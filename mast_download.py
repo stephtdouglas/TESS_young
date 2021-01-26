@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import astropy.io.ascii as at
 import astropy.io.fits as fits
-from astropy.io import fits
 from astropy.table import Table, vstack
 from astroquery.mast import Observations
 
@@ -120,6 +119,9 @@ def download_cluster(catalog_filename,cluster_name,sectors,
                 print("No light curves found for",tic,source)
             else:
                 manifest_list.append(manifest)
+
+        # TODO: when running this for real, pause to try to prevent server
+        # errors
 
     all_manifest = vstack(manifest_list)
 
