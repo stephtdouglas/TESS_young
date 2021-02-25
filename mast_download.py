@@ -64,6 +64,8 @@ def download_lightcurves(ticname,pipeline,sectors=[8,9]):
             elif sec_str[i] in filename:
                 found = True
                 found_count += 1
+                # TODO: currently this doesn't work if there are multiple
+                # "objects" returned for the target search
                 manifest["sector"][j] = sector
                 break
             else:
