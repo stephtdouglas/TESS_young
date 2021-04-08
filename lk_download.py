@@ -49,7 +49,7 @@ def download_list(ticnames,outfilename,pipelines=["QLP","PATHOS"],sectors=[8,9,1
             search_table = download_one_set(f"TIC {ticname}",pipeline,sectors=sectors)
             if search_table is not None:
                 search_table_list.append(search_table)
-                print(search_table.dtype.names)
+                # print(search_table.dtype.names)
             else:
                 print("missing:",ticname,pipeline,sectors)
 
@@ -60,8 +60,9 @@ if __name__=="__main__":
 
     today = date.today()
 
-    cat = at.read("IC2391_zorro_DR2memb_EDR3data.csv",delimiter=",")
-    download_list(cat["TIC"],f"ic2391_{str(today)}.csv")
+    cat = at.read("IC2391_crossmatch_xmatch_TIC.csv",delimiter=",")
+    # print(cat["TIC"])
+    download_list(cat["TIC"],f"IC2391_downloads_{str(today)}.csv")
 
     # download_list(["45404408","93270923"],outfilename="test.csv")
 
