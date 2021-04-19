@@ -95,6 +95,91 @@ def xmatch_ic2391(to_plot=False):
     print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][lowq_close])
     print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][lowq_close])
 
+
+    if to_plot:
+
+        # Compare G magnitudes
+        plt.figure()
+        plt.plot(allcat["GAIAEDR3_G_CORRECTED"][hdb_memb],
+        allcat["GAIAEDR3_G_CORRECTED"][hdb_memb],'o',
+                 label="HDBScan",alpha=0.75)
+        plt.plot(allcat["GAIAEDR3_G_CORRECTED"][can_memb],
+                allcat["phot_g_mean_mag_Cantat-Gaudin"][can_memb],'o',
+                 label="Cantat-Gaudin",alpha=0.75)
+        plt.plot(allcat["GAIAEDR3_G_CORRECTED"][ges_memb],
+                 allcat["phot_g_mean_mag_GES"][ges_memb],'o',
+                 label="GES",alpha=0.75)
+        plt.plot(allcat["GAIAEDR3_G_CORRECTED"][can_memb],
+                allcat["Gmag"][can_memb],'o',
+                 label="Cantat-Gaudin 2",alpha=0.75)
+        plt.xlim(25,0)
+        plt.ylim(25,0)
+        x = np.linspace(0,25,10)
+        plt.plot(x,x,'k-')
+        plt.xlabel("Gmag final")
+        plt.ylabel("Gmag input")
+        plt.legend()
+        plt.savefig("ic2391_test_match_gmags.png")
+        plt.close()
+
+        # Compare astrometry
+        plt.figure()
+        plt.plot(allcat["GAIAEDR3_PARALLAX"][hdb_memb],
+                 allcat["GAIADR2_PARALLAX"][hdb_memb],'o',
+                 label="HDBScan",alpha=0.75)
+        plt.plot(allcat["GAIAEDR3_PARALLAX"][can_memb],
+                allcat["Plx"][can_memb],'o',
+                 label="Cantat-Gaudin",alpha=0.75)
+        plt.plot(allcat["GAIAEDR3_PARALLAX"][ges_memb],
+                 allcat["PLX"][ges_memb],'o',
+                 label="GES",alpha=0.75)
+        # plt.xlim(25,0)
+        # plt.ylim(25,0)
+        x = np.linspace(0,9,10)
+        plt.plot(x,x,'k-')
+        plt.legend()
+        plt.xlabel("EDR3 Parallax")
+        plt.ylabel("Lit parallax / DR2")
+        plt.savefig("ic2391_test_match_parallax.png")
+        plt.close()
+
+        # Check angular distance
+        plt.figure()
+        # plt.plot(allcat["GAIAEDR3_PARALLAX"][hdb_memb],
+        #          allcat["GAIADR2_PARALLAX"][hdb_memb],'o',
+        #          label="HDBScan",alpha=0.75)
+        plt.plot(allcat["GAIAEDR3_PARALLAX"][can_memb],
+                 allcat["angDist_Cantat-Gaudin"][can_memb],'o',
+                 label="Cantat-Gaudin",alpha=0.75,color="C1")
+        plt.plot(allcat["GAIAEDR3_PARALLAX"][ges_memb],
+                 allcat["angDist_GES"][ges_memb],'o',
+                 label="GES",alpha=0.75,color="C2")
+        plt.xlim(-3,10)
+        # plt.ylim(25,0)
+        plt.legend(loc=3)
+        plt.xlabel("EDR3 Parallax")
+        plt.ylabel("Xmatch angDist")
+        plt.savefig("ic2391_test_match_angdist.png")
+        plt.close()
+
+        plt.figure()
+        # plt.plot(allcat["GAIAEDR3_PARALLAX"][hdb_memb],
+        #          allcat["GAIADR2_PARALLAX"][hdb_memb],'o',
+        #          label="HDBScan",alpha=0.75)
+        plt.plot(allcat["Gmag"][can_memb],
+                 allcat["angDist_Cantat-Gaudin"][can_memb],'o',
+                 label="Cantat-Gaudin",alpha=0.75,color="C1")
+        plt.plot(allcat["phot_g_mean_mag_GES"][ges_memb],
+                 allcat["angDist_GES"][ges_memb],'o',
+                 label="GES",alpha=0.75,color="C2")
+        plt.xlim(25,0)
+        # plt.ylim(25,0)
+        plt.legend(loc=3)
+        plt.xlabel("Gmag")
+        plt.ylabel("Xmatch angDist")
+        plt.savefig("ic2391_test_match_angdistG.png")
+        plt.close()
+
     # Print overlap information
     lists = [hdb_memb,ges_memb,can_memb,hdbscan_lowq]
     names = ["HDBScan","GES","Cantat-Gaudin","HDBscan Low Quality"]
@@ -180,8 +265,8 @@ def xmatch_ic2391(to_plot=False):
                     'ra_epoch2000_Cantat-Gaudin', 'dec_epoch2000_Cantat-Gaudin']
                     # ,'TIC','angDist_TIC']
 
-    subcat[any_memb].write("IC2391_crossmatch.fits",overwrite=True)
-    subcat[any_memb].write("IC2391_crossmatch.csv",overwrite=True)
+    # subcat[any_memb].write("IC2391_crossmatch.fits",overwrite=True)
+    # subcat[any_memb].write("IC2391_crossmatch.csv",overwrite=True)
     # finalcat[any_memb].write("IC2391_crossmatch_allcolumns.fits",overwrite=True)
 
 
@@ -220,6 +305,44 @@ def xmatch_ic2391(to_plot=False):
         plt.plot(finalcat["GAIAEDR3_PARALLAX"][hdbscan_lowq],
                  finalcat["GAIAEDR3_PMRA"][hdbscan_lowq],'k.',label="Quality cut",
                  alpha=0.95)
+        ax3.set_xlim(-20,15)
+        plt.xlabel("Parallax (mas)")
+        plt.savefig("ic2391_test_match_astrometry_lowq.png")
+
+        # Plot astrometry for confirmed members and for "low quality" stars that
+        # were left out of the HDBScan run
+        plt.figure(figsize=(10,10))
+        ax1 = plt.subplot(221)
+        for i,memb in enumerate(lists[:3]):
+            plt.plot(finalcat["GAIAEDR3_PMDEC"][memb],finalcat["GAIAEDR3_PARALLAX"][memb],'.',
+                    label=names[i],alpha=0.75)
+        plt.plot(finalcat["GAIAEDR3_PMDEC"],
+                 finalcat["GAIAEDR3_PARALLAX"],'k.',label="All",
+                 alpha=0.1,zorder=-5)
+        plt.ylabel("Parallax (mas)")
+        ax1.set_ylim(-20,15)
+        plt.legend(loc=3)
+
+        ax2 = plt.subplot(223,sharex=ax1)
+        for i,memb in enumerate(lists[:3]):
+            plt.plot(finalcat["GAIAEDR3_PMDEC"][memb],finalcat["GAIAEDR3_PMRA"][memb],'.',
+                    label=names[i],alpha=0.75)
+        plt.plot(finalcat["GAIAEDR3_PMDEC"],
+                 finalcat["GAIAEDR3_PMRA"],'k.',label="All",
+                 alpha=0.1,zorder=-5)
+        plt.ylabel("PMRA (mas/yr)")
+        plt.xlabel("PMDEC (mas/yr)")
+        ax1.set_xlim(-50,50)
+        ax2.set_ylim(-40,25)
+
+        ax3 = plt.subplot(224,sharey=ax2)
+        for i,memb in enumerate(lists[:3]):
+            plt.plot(finalcat["GAIAEDR3_PARALLAX"][memb],
+                    finalcat["GAIAEDR3_PMRA"][memb],'.',
+                    label=names[i],alpha=0.75)
+        plt.plot(finalcat["GAIAEDR3_PARALLAX"],
+                 finalcat["GAIAEDR3_PMRA"],'k.',label="All",
+                 alpha=0.1,zorder=-5)
         ax3.set_xlim(-20,15)
         plt.xlabel("Parallax (mas)")
         plt.savefig("ic2391_test_match_astrometry.png")
