@@ -237,17 +237,27 @@ def run_list(list_filenames,output_filename,data_dir,plot_dir):
 
         full_file = os.path.join(filename,f"{filename}.fits")
         full_path = os.path.join(data_dir,full_file)
-        lc = lk.read(full_path)
+        lc = lk.read(full_path,quality_bitmask="default")
         tic = lc.meta["TICID"]
 
-        time,flux = lc.time.value,lc.flux.value
+        sector = lc.meta["SECTOR"]
         try:
             lc_type = lc.meta["ORIGIN"]
         except:
             if "pathos" in lc.meta["FILENAME"]:
                 lc_type = "PATHOS"
+                lc = lc.remove_outliers()
+                # if sector==10:
+                #     good = ((time>1571) & (time<1582)) | (time>1585)
+                # elif sector==8:
+                #     good = ((time>1518) & (time<1530)) | (time>1535)
+                # time, flux = time[good], flux[good]
 
-        sector = lc.meta["SECTOR"]
+        time,flux = lc.time.value,lc.flux.value
+
+        if "/" in lc_type:
+            lc_type = lc_type.replace("/","_")
+
         one_out = run_one(time,flux,tic,sec_file)
 
         # Unpack analysis results
@@ -257,12 +267,13 @@ def run_list(list_filenames,output_filename,data_dir,plot_dir):
         tics[i] = tic
 
         # Save and close the plot files
+        print(lc_type,sector)
         plt.savefig("{0}TIC{1}_{2}{3}.png".format(plot_dir,tic,lc_type,sector),
                     bbox_inches="tight")
         plt.close()
 
-        if i>=3:
-            break
+        # if i>=10:
+        #     break
 
     sec_file.close()
 
@@ -333,7 +344,7 @@ if __name__=="__main__":
     #
     # print("Array, min(i), max(i)")
     # print(arrayid, mini, maxi)
-    mini, maxi = 0,2
+    mini, maxi = 0,30
 
     sub_list = file_list[mini:maxi]
 
