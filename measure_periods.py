@@ -75,6 +75,7 @@ def run_one(t,f,tic=None,secondary_file=None):
     # Just plot the light curve
     ax = plt.subplot(top_grid[0])
     ax.plot(t,f,'k.')
+    print(ax.get_xlim())
     ax.set_ylim(ylims)
 
     # Run the lomb-scargle periodogram on the light curve
@@ -198,7 +199,7 @@ def run_one(t,f,tic=None,secondary_file=None):
 #     """
 #     pass
 
-def run_list(list_filenames,output_filename,data_dir,plot_dir):
+def run_list(list_filenames,lc_types,output_filename,data_dir,plot_dir):
     """ Run a list of TESS files through run_one(), and save results.
 
     Inputs:
@@ -237,26 +238,63 @@ def run_list(list_filenames,output_filename,data_dir,plot_dir):
 
         full_file = os.path.join(filename,f"{filename}.fits")
         full_path = os.path.join(data_dir,full_file)
-        lc = lk.read(full_path,quality_bitmask="default")
-        tic = lc.meta["TICID"]
+        lc_type = lc_types[i].lower()
 
-        sector = lc.meta["SECTOR"]
-        try:
+        if "pathos"==lc_type:
+            flux_col = "default"
+            lc = lk.read(full_path,quality_bitmask="default")
+            lc = lc.remove_outliers()
+            tic = lc.meta["TICID"]
+            time,flux = lc.time.value,lc.flux.value
+            sector = lc.meta["SECTOR"]
+            # print(tic,lc_type)
+            # print(time)
+            # print(flux)
+            if sector==8:
+                good = ((time>1519) & (time<1530)) | (time>1536.5)
+            elif sector==9:
+                # These are estimated
+                good = ((time>1545) & (time<1556)) | (time>1558)
+            elif sector==10:
+                good = ((time>1572) & (time<1582)) | (time>1586)
+            time, flux = time[good], flux[good]
+        elif "cdips" in lc_type:
+            flux_col = "TFA1"
+            lc = lk.read(full_path,quality_bitmask="default",flux_column=flux_col)
+            lc = lc.remove_outliers()
+            tic = lc.meta["TICID"]
+            time,flux = lc.time.value,lc.flux.value
+            sector = lc.meta["SECTOR"]
+
+            # print(tic,lc_type)
+            # print(time)
+            # print(flux)
+            # if sector==8:
+            #     good = ((time < 2458530) | (time>2458536.5))
+            # elif sector==9:
+            #     good = ((time > 2458545) & (time<2458556)) | (time > 2458558)
+            # elif sector==10:
+            #     good = ((time > 2458573) & (time<2458582.5)) | (time > 2458588)
+            # time, flux = time[good], flux[good]
+        elif "qlp" in lc_type:
+            flux_col = "sap_flux"
+            lc = lk.read(full_path,quality_bitmask="default",
+                         flux_column=flux_col)
+            tic = lc.meta["TICID"]
+            sector = lc.meta["SECTOR"]
+            time,flux = lc.time.value,lc.flux.value
+        else:
+            flux_col = "default"
+            lc = lk.read(full_path,quality_bitmask="default")
             lc_type = lc.meta["ORIGIN"]
-        except:
-            if "pathos" in lc.meta["FILENAME"]:
-                lc_type = "PATHOS"
-                lc = lc.remove_outliers()
-                # if sector==10:
-                #     good = ((time>1571) & (time<1582)) | (time>1585)
-                # elif sector==8:
-                #     good = ((time>1518) & (time<1530)) | (time>1535)
-                # time, flux = time[good], flux[good]
+            sector = lc.meta["SECTOR"]
+            time,flux = lc.time.value,lc.flux.value
+            if "/" in lc_type:
+                lc_type = lc_type.replace("/","_")
 
-        time,flux = lc.time.value,lc.flux.value
 
-        if "/" in lc_type:
-            lc_type = lc_type.replace("/","_")
+
+
 
         one_out = run_one(time,flux,tic,sec_file)
 
@@ -268,7 +306,8 @@ def run_list(list_filenames,output_filename,data_dir,plot_dir):
 
         # Save and close the plot files
         print(lc_type,sector)
-        plt.savefig("{0}TIC{1}_{2}{3}.png".format(plot_dir,tic,lc_type,sector),
+        plt.savefig("{0}TIC{1}_{2}_{3}_{4}.png".format(plot_dir,tic,lc_type,
+                                                       flux_col,sector),
                     bbox_inches="tight")
         plt.close()
 
@@ -323,6 +362,7 @@ if __name__=="__main__":
     else:
         listfile = at.read(sys.argv[1])
         file_list = listfile["obs_id"]
+        lc_types = listfile["author"]
         cluster = sys.argv[2]
 
     if len(sys.argv)>3:
@@ -344,9 +384,10 @@ if __name__=="__main__":
     #
     # print("Array, min(i), max(i)")
     # print(arrayid, mini, maxi)
-    mini, maxi = 0,30
+    mini, maxi = 0,50
 
     sub_list = file_list[mini:maxi]
+    sub_types = lc_types[mini:maxi]
 
     base_path = "./"# "/vega/astro/users/sd2706/k2/"
     data_path = os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/")
@@ -354,4 +395,4 @@ if __name__=="__main__":
 
     print(sub_list)
 
-    run_list(sub_list,base_path+outfile,data_path,plot_path)
+    run_list(sub_list,sub_types,base_path+outfile,data_path,plot_path)

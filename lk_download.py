@@ -35,7 +35,8 @@ def download_one_set(ticname,pipeline,sectors=[8,9]):
     else:
         return None
 
-def download_list(ticnames,outfilename,pipelines=["QLP","PATHOS"],sectors=[8,9,10]):
+def download_list(ticnames,outfilename,pipelines=["CDIPS","QLP","PATHOS"],
+                  sectors=[8,9,10]):
     """
     Retrieve HLSP light curves from MAST for a list of ticnames.
 
