@@ -24,6 +24,7 @@ if __name__=="__main__":
 
     barnes["TICID"] = np.zeros(len(barnes),"U20")
     barnes["GaiaDR2"] = np.zeros(len(barnes),"U50")
+    barnes["SimbadName"] = np.zeros(len(barnes),"U20")
 
     for i,name in enumerate(barnes["Name"]):
 
@@ -41,6 +42,8 @@ if __name__=="__main__":
         # result_table = Simbad.query_object(simbad_name)
         result_table = Simbad.query_objectids(simbad_name)
         # print(result_table)
+
+        barnes["SimbadName"][i] = simbad_name
 
         if result_table is None:
             print(name,simbad_name,"Not Found")
@@ -62,6 +65,7 @@ if __name__=="__main__":
 
     tr["TICID"] = np.zeros(len(tr),"U20")
     tr["GaiaDR2"] = np.zeros(len(tr),"U50")
+    tr["SimbadName"] = np.zeros(len(tr),"U20")
 
     for i,name in enumerate(tr["Name"]):
 
@@ -76,6 +80,7 @@ if __name__=="__main__":
         # result_table = Simbad.query_object(simbad_name)
         result_table = Simbad.query_objectids(simbad_name)
         # print(result_table)
+        tr["SimbadName"][i] = simbad_name
 
         if result_table is None:
             print(name,simbad_name,"Not Found")
@@ -98,6 +103,7 @@ if __name__=="__main__":
 
     ps["TICID"] = np.zeros(len(ps),"U20")
     ps["GaiaDR2"] = np.zeros(len(ps),"U50")
+    ps["SimbadName"] = np.zeros(len(ps),"U20")
 
     for i,name in enumerate(ps["Name"]):
 
@@ -112,6 +118,8 @@ if __name__=="__main__":
         # result_table = Simbad.query_object(simbad_name)
         result_table = Simbad.query_objectids(simbad_name)
         # print(result_table)
+
+        ps["SimbadName"][i] = simbad_name
 
         if result_table is None:
             print(name,simbad_name,"Not Found")
