@@ -241,8 +241,8 @@ def run_list(list_filenames,lc_types,output_filename,data_dir,plot_dir):
         lc_type = lc_types[i].lower()
 
         if "pathos"==lc_type:
-            flux_col = "default"
-            lc = lk.read(full_path,quality_bitmask="default")
+            flux_col = "ap2_flux_cor"
+            lc = lk.read(full_path,quality_bitmask="default",flux_column=flux_col)
             lc = lc.remove_outliers()
             tic = lc.meta["TICID"]
             time,flux = lc.time.value,lc.flux.value
@@ -259,7 +259,7 @@ def run_list(list_filenames,lc_types,output_filename,data_dir,plot_dir):
                 good = ((time>1572) & (time<1582)) | (time>1586)
             time, flux = time[good], flux[good]
         elif "cdips" in lc_type:
-            flux_col = "TFA1"
+            flux_col = "TFA2"
             lc = lk.read(full_path,quality_bitmask="default",flux_column=flux_col)
             lc = lc.remove_outliers()
             tic = lc.meta["TICID"]
