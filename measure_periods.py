@@ -38,7 +38,8 @@ from k2spin import detrend
 #
 #     pass
 
-def run_one(t,f,tic=None,secondary_file=None):
+def run_one(t,f,tic=None,lc_type=None,sector=None,flux_col=None,
+            secondary_file=None):
     """Run a lomb-scargle analysis on one light curve.
 
     Inputs:
@@ -125,7 +126,10 @@ def run_one(t,f,tic=None,secondary_file=None):
         # Record all secondary peaks, just in case
         if secondary_file is not None:
             for i in range(num_sig):
-                secondary_file.write("{0},{1:.4f},{2:.4f},{3:.4f}\n".format(tic,
+                # lc_type,sector,flux_col,
+                secondary_file.write("{0},{1},{2},{3},".format(tic,
+                                     lc_type,sector,flux_col))
+                secondary_file.write("{0:.4f},{1:.4f},{2:.4f}\n".format(
                                      sig_periods[i],sig_powers[i],sigmas[0]))
 
     else:
@@ -191,15 +195,10 @@ def run_one(t,f,tic=None,secondary_file=None):
             sec_period, sec_power, sigmas[0], extra_sig, harm_type)
 
 
-
-# def run_list():
-#     """
-#     Measure periods and associated analysis for a a list of lightcurves,
-#     and save results.
-#     """
-#     pass
-
-def run_list(list_filenames,lc_types,output_filename,data_dir,plot_dir):
+def run_list(data_list,output_filename,data_dir,plot_dir,
+             flux_cols={"PATHOS":["psf_flux_cor","ap1_flux_cor","ap2_flux_cor","ap3_flux_cor"],
+                        "CDIPS":["TFA1","TFA2","TFA3","PCA1","PCA2","PCA3"],
+                        "QLP":["sap_flux"]}):
     """ Run a list of TESS files through run_one(), and save results.
 
     Inputs:
@@ -208,142 +207,142 @@ def run_list(list_filenames,lc_types,output_filename,data_dir,plot_dir):
 
     output_filenames: string, giving the output filename for a table of results
 
-    data_dir: directory that contains the data files
+    data_dir: string, directory that contains the data files
 
-    plot_dir: directory to save plots in
+    plot_dir: string, directory to save plots in
+
+    flux_cols: dictionary containing a list for each lightcurve type in data_list
 
     """
 
-    n_files = len(list_filenames)
-    fund_periods = np.zeros(n_files)
-    fund_powers = np.zeros(n_files)
-    sig_periods = np.zeros(n_files)
-    sig_powers = np.zeros(n_files)
-    sec_periods = np.zeros(n_files)
-    sec_powers = np.zeros(n_files)
-    thresholds = np.zeros(n_files)
-    tics = np.zeros(n_files,np.int64)
-    num_sig_peaks = np.zeros(n_files,int)
-    harm_types = np.empty(n_files,"S10")
-    harm_types[:] = "-"
+    n_files = len(data_list)
+    #TODO: make all of these columns part of the data_list table
+    data_list["fund_periods"] = np.zeros(n_files)
+    data_list["fund_powers"] = np.zeros(n_files)
+    data_list["sig_periods"] = np.zeros(n_files)
+    data_list["sig_powers"] = np.zeros(n_files)
+    data_list["sec_periods"] = np.zeros(n_files)
+    data_list["sec_powers"] = np.zeros(n_files)
+    data_list["thresholds"] = np.zeros(n_files)
+    data_list["tics"] = np.zeros(n_files,np.int64)
+    data_list["num_sig_peaks"] = np.zeros(n_files,int)
+    data_list["harm_types"] = np.empty(n_files,"S10")
+    data_list["harm_types"][:] = "-"
+    data_list["flux_cols"] = np.empty(n_files,"S15")
+    data_list["flux_cols"][:] = "default"
 
+    # fund_periods = np.zeros(n_files)
+    # fund_powers = np.zeros(n_files)
+    # sig_periods = np.zeros(n_files)
+    # sig_powers = np.zeros(n_files)
+    # sec_periods = np.zeros(n_files)
+    # sec_powers = np.zeros(n_files)
+    # thresholds = np.zeros(n_files)
+    # tics = np.zeros(n_files,np.int64)
+    # num_sig_peaks = np.zeros(n_files,int)
+    # harm_types = np.empty(n_files,"S10")
+    # harm_types[:] = "-"
+
+    # TODO: also save sector, lc_type, etc
     sec_filename = output_filename.replace(".csv","_allpeaks.csv")
     sec_file = open(sec_filename,"w")
-    sec_file.write("TIC,period,power,threshold\n")
+    sec_file.write("TIC,lc_type,sector,flux_col,period,power,threshold\n")
 
-    for i,filename in enumerate(list_filenames):
+    for i,row in enumerate(data_list):
         # The hlsp files don't have consistent filenames from pipeline
         # to pipeline, so I'll have to retrieve them from the header
         # using lightkurve
 
-        full_file = os.path.join(filename,f"{filename}.fits")
+        first = True
+
+        full_file = os.path.join(row["obs_id"],row["productFilename"])
         full_path = os.path.join(data_dir,full_file)
-        lc_type = lc_types[i].lower()
+        lc_type = row["provenance_name"]
+        sector = row["sequence_number"]
 
-        if "pathos"==lc_type:
-            flux_col = "ap2_flux_cor"
+        these_flux_cols = flux_cols[lc_type]
+        if len(these_flux_cols)==0:
+            print(lc_type,"not found in flux_cols")
+            continue
+
+        for flux_col in these_flux_cols:
             lc = lk.read(full_path,quality_bitmask="default",flux_column=flux_col)
             lc = lc.remove_outliers()
             tic = lc.meta["TICID"]
             time,flux = lc.time.value,lc.flux.value
-            sector = lc.meta["SECTOR"]
-            # print(tic,lc_type)
-            # print(time)
-            # print(flux)
-            if sector==8:
-                good = ((time>1519) & (time<1530)) | (time>1536.5)
-            elif sector==9:
-                # These are estimated
-                good = ((time>1545) & (time<1556)) | (time>1558)
-            elif sector==10:
-                good = ((time>1572) & (time<1582)) | (time>1586)
-            time, flux = time[good], flux[good]
-        elif "cdips" in lc_type:
-            flux_col = "TFA2"
-            lc = lk.read(full_path,quality_bitmask="default",flux_column=flux_col)
-            lc = lc.remove_outliers()
-            tic = lc.meta["TICID"]
-            time,flux = lc.time.value,lc.flux.value
-            sector = lc.meta["SECTOR"]
-
-            # print(tic,lc_type)
-            # print(time)
-            # print(flux)
-            # if sector==8:
-            #     good = ((time < 2458530) | (time>2458536.5))
-            # elif sector==9:
-            #     good = ((time > 2458545) & (time<2458556)) | (time > 2458558)
-            # elif sector==10:
-            #     good = ((time > 2458573) & (time<2458582.5)) | (time > 2458588)
-            # time, flux = time[good], flux[good]
-        elif "qlp" in lc_type:
-            flux_col = "sap_flux"
-            lc = lk.read(full_path,quality_bitmask="default",
-                         flux_column=flux_col)
-            tic = lc.meta["TICID"]
-            sector = lc.meta["SECTOR"]
-            time,flux = lc.time.value,lc.flux.value
-        else:
-            flux_col = "default"
-            lc = lk.read(full_path,quality_bitmask="default")
-            lc_type = lc.meta["ORIGIN"]
-            sector = lc.meta["SECTOR"]
-            time,flux = lc.time.value,lc.flux.value
-            if "/" in lc_type:
-                lc_type = lc_type.replace("/","_")
 
 
+            if "PATHOS"==lc_type:
+                if sector==8:
+                    good = ((time>1519) & (time<1530)) | (time>1536.5)
+                elif sector==9:
+                    # These are estimated
+                    good = ((time>1545) & (time<1556)) | (time>1558)
+                elif sector==10:
+                    good = ((time>1572) & (time<1582)) | (time>1586)
+                time, flux = time[good], flux[good]
 
 
+            one_out = run_one(time,flux,tic,lc_type,sector,flux_col,sec_file)
 
-        one_out = run_one(time,flux,tic,sec_file)
+            if first:
+                k = i
+            else:
+                data_list.add_row(data_list[i])
+                k = -1
 
-        # Unpack analysis results
-        fund_periods[i],fund_powers[i],sig_periods[i] = one_out[:3]
-        sig_powers[i],sec_periods[i],sec_powers[i],thresholds[i] = one_out[3:7]
-        num_sig_peaks[i],harm_types[i] = one_out[7:]
-        tics[i] = tic
+            # Unpack analysis results
+            data_list["fund_periods"][k],data_list["fund_powers"][k],data_list["sig_periods"][k] = one_out[:3]
+            data_list["sig_powers"][k],data_list["sec_periods"][k],data_list["sec_powers"][k],data_list["thresholds"][k] = one_out[3:7]
+            data_list["num_sig_peaks"][k],data_list["harm_types"][k] = one_out[7:]
+            data_list["tics"][k] = tic
+            data_list["flux_cols"][k] = flux_col
 
-        # Save and close the plot files
-        print(lc_type,sector)
-        plt.savefig("{0}TIC{1}_{2}_{3}_{4}.png".format(plot_dir,tic,lc_type,
-                                                       flux_col,sector),
-                    bbox_inches="tight")
-        plt.close()
+            # Save and close the plot files
+            print(lc_type,sector)
+            plt.savefig("{0}TIC{1}_{2}_{3}_{4}.png".format(plot_dir,tic,
+                                                           lc_type.upper(),
+                                                           flux_col,sector),
+                        bbox_inches="tight")
+            plt.close()
 
-        # if i>=10:
-        #     break
+            # If there are multiple aperture types for the same lc file
+            # Need to add rows to the output table
+            first = False
+
+        if i>=2:
+            break
 
     sec_file.close()
 
-    data = {"TIC": tics,
-            "fund_period": fund_periods,
-            "fund_power": fund_powers,
-            "sig_period": sig_periods,
-            "sig_power": sig_powers,
-            "sec_period": sec_periods,
-            "sec_power": sec_powers,
-            "threshold": thresholds,
-            "num_sig": num_sig_peaks,
-            "harm_type": harm_types}
+    # data = {"TIC": tics,
+    #         "fund_period": fund_periods,
+    #         "fund_power": fund_powers,
+    #         "sig_period": sig_periods,
+    #         "sig_power": sig_powers,
+    #         "sec_period": sec_periods,
+    #         "sec_power": sec_powers,
+    #         "threshold": thresholds,
+    #         "num_sig": num_sig_peaks,
+    #         "harm_type": harm_types}
     formats = {
-            "fund_period": "%0.4f",
-            "fund_power": "%0.4f",
-            "sig_period": "%0.4f",
-            "sig_power": "%0.4f",
-            "sec_period": "%0.4f",
-            "sec_power": "%0.4f",
-            "threshold": "%0.6f"}
+            "fund_periods": "%0.4f",
+            "fund_powers": "%0.4f",
+            "sig_periods": "%0.4f",
+            "sig_powers": "%0.4f",
+            "sec_periods": "%0.4f",
+            "sec_powers": "%0.4f",
+            "thresholds": "%0.6f"}
 
-    names = ["TIC","fund_period","fund_power",
-            "sig_period","sig_power","sec_period","sec_power",
-            "num_sig","harm_type","threshold"]
+    # names = ["tics","fund_periods","fund_powers",
+    #         "sig_periods","sig_powers","sec_periods","sec_powers",
+    #         "num_sig_peaks","harm_types","thresholds"]
 
     pickle_file = open(output_filename.replace(".csv",".pkl"),"wb")
-    pickle.dump(data,pickle_file)
+    pickle.dump(data_list,pickle_file)
     pickle_file.close()
 
-    at.write(data,output_filename,names=names,
+    at.write(data_list,output_filename,#names=names,
              formats=formats,delimiter=",")
 
 
@@ -361,8 +360,8 @@ if __name__=="__main__":
         print("Please provide a list of light curve files and cluster name")
     else:
         listfile = at.read(sys.argv[1])
-        file_list = listfile["obs_id"]
-        lc_types = listfile["author"]
+        sub_info = listfile["target_name","provenance_name","sequence_number",
+                            "obs_id","productFilename","author"]
         cluster = sys.argv[2]
 
     if len(sys.argv)>3:
@@ -386,8 +385,7 @@ if __name__=="__main__":
     # print(arrayid, mini, maxi)
     mini, maxi = 0,50
 
-    sub_list = file_list[mini:maxi]
-    sub_types = lc_types[mini:maxi]
+    sub_list = sub_info[mini:maxi]
 
     base_path = "./"# "/vega/astro/users/sd2706/k2/"
     data_path = os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/")
@@ -395,4 +393,4 @@ if __name__=="__main__":
 
     print(sub_list)
 
-    run_list(sub_list,sub_types,base_path+outfile,data_path,plot_path)
+    run_list(sub_list,base_path+outfile,data_path,plot_path)
