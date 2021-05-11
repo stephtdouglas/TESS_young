@@ -15,7 +15,7 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import astropy.io.ascii as at
 import astropy.io.fits as fits
-from astropy.table import join, Table
+from astropy.table import join, Table, unique
 from astropy import units as u
 from scipy.signal import argrelextrema
 import lightkurve as lk
@@ -360,8 +360,9 @@ if __name__=="__main__":
         print("Please provide a list of light curve files and cluster name")
     else:
         listfile = at.read(sys.argv[1])
-        sub_info = listfile["target_name","provenance_name","sequence_number",
+        sub_info0 = listfile["target_name","provenance_name","sequence_number",
                             "obs_id","productFilename","author"]
+        sub_info = unique(sub_info0)
         cluster = sys.argv[2]
 
     if len(sys.argv)>3:
