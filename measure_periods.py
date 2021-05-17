@@ -300,18 +300,16 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
 
             # Save and close the plot files
             print(lc_type,sector)
-            plt.savefig("{0}TIC{1}_{2}_{3}_{4}.png".format(plot_dir,tic,
+            output_plotfile = "{0}TIC{1}_{2}_{3}_{4}.png".format(plot_dir,tic,
                                                            lc_type.upper(),
-                                                           flux_col,sector),
-                        bbox_inches="tight")
+                                                           flux_col,sector)
+            plt.savefig(output_plotfile.replace(" ",""),bbox_inches="tight")
             plt.close()
 
             # If there are multiple aperture types for the same lc file
             # Need to add rows to the output table
             first = False
 
-        if i>=2:
-            break
 
     sec_file.close()
 
@@ -388,10 +386,14 @@ if __name__=="__main__":
 
     sub_list = sub_info[mini:maxi]
 
-    base_path = "./"# "/vega/astro/users/sd2706/k2/"
-    data_path = os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/")
-    plot_path = base_path+"plots/"
+#    base_path = "./"# "/vega/astro/users/sd2706/k2/"
+#    data_path = os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/")
+#    plot_path = base_path+"plots/"
 
+    base_path = "/data/douglaslab/tess/ic2391/"
+    data_path = "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/"
+    plot_path = os.path.join(base_path,"plots/")
+    
     print(sub_list)
 
     run_list(sub_list,base_path+outfile,data_path,plot_path)
