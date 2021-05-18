@@ -6,7 +6,13 @@ from datetime import date
 import logging
 import pickle
 
-logging.basicConfig(level=logging.WARNING)
+arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",0))
+jobid = int(os.getenv("SLURM_JOB_ID",99))
+logger = logging.getLogger("measure_periods")
+logging.basicConfig(level=logging.DEBUG,
+                    filename='/data/douglaslab/script_logs/measure_periods_{0}_{1}.log'.format(jobid,arrayid),
+                    format='%(asctime)s %(message)s')
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 import matplotlib
 matplotlib.use("agg")
@@ -76,7 +82,7 @@ def run_one(t,f,tic=None,lc_type=None,sector=None,flux_col=None,
     # Just plot the light curve
     ax = plt.subplot(top_grid[0])
     ax.plot(t,f,'k.')
-    print(ax.get_xlim())
+    logging.debug(ax.get_xlim())
     ax.set_ylim(ylims)
 
     # Run the lomb-scargle periodogram on the light curve
@@ -89,7 +95,8 @@ def run_one(t,f,tic=None,lc_type=None,sector=None,flux_col=None,
 
     # Find all peaks in the periodogram
     peak_locs = argrelextrema(periodogram,np.greater,order=100)
-    print(len(peak_locs[0]),periods_to_test[np.argmax(peak_locs[0])])
+    logging.debug(len(peak_locs[0]))
+    logging.debug(periods_to_test[np.argmax(peak_locs[0])])
 
     # Only keep significant peaks (use bootstrap significance levels)
     sig_locs = peak_locs[0][periodogram[peak_locs[0]]>sigmas[0]]
@@ -216,7 +223,8 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
     """
 
     n_files = len(data_list)
-    #TODO: make all of these columns part of the data_list table
+    raw_data_list = data_list.copy()
+    
     data_list["fund_periods"] = np.zeros(n_files)
     data_list["fund_powers"] = np.zeros(n_files)
     data_list["sig_periods"] = np.zeros(n_files)
@@ -248,7 +256,7 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
     sec_file = open(sec_filename,"w")
     sec_file.write("TIC,lc_type,sector,flux_col,period,power,threshold\n")
 
-    for i,row in enumerate(data_list):
+    for i,row in enumerate(raw_data_list):
         # The hlsp files don't have consistent filenames from pipeline
         # to pipeline, so I'll have to retrieve them from the header
         # using lightkurve
@@ -259,6 +267,8 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
         full_path = os.path.join(data_dir,full_file)
         lc_type = row["provenance_name"]
         sector = row["sequence_number"]
+        logging.debug(i)
+        logging.debug(lc_type)
 
         these_flux_cols = flux_cols[lc_type]
         if len(these_flux_cols)==0:
@@ -266,6 +276,7 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
             continue
 
         for flux_col in these_flux_cols:
+            logging.debug(flux_col)
             lc = lk.read(full_path,quality_bitmask="default",flux_column=flux_col)
             lc = lc.remove_outliers()
             tic = lc.meta["TICID"]
@@ -291,6 +302,8 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
                 data_list.add_row(data_list[i])
                 k = -1
 
+            logging.debug(k)
+            
             # Unpack analysis results
             data_list["fund_periods"][k],data_list["fund_powers"][k],data_list["sig_periods"][k] = one_out[:3]
             data_list["sig_powers"][k],data_list["sec_periods"][k],data_list["sec_powers"][k],data_list["thresholds"][k] = one_out[3:7]
@@ -299,13 +312,16 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
             data_list["flux_cols"][k] = flux_col
 
             # Save and close the plot files
-            print(lc_type,sector)
+            logging.debug(lc_type)
+            logging.debug(sector)
             output_plotfile = "{0}TIC{1}_{2}_{3}_{4}.png".format(plot_dir,tic,
                                                            lc_type.upper(),
                                                            flux_col,sector)
             plt.savefig(output_plotfile.replace(" ",""),bbox_inches="tight")
             plt.close()
 
+            logging.debug(output_plotfile.replace(" ","").split("/")[-1])
+            
             # If there are multiple aperture types for the same lc file
             # Need to add rows to the output table
             first = False
@@ -369,21 +385,25 @@ if __name__=="__main__":
     else:
         outfile = "tables/{0}_output_{1}.csv".format(cluster,today)
 
-    # # Break down the data set into subsets for parallel processing
-    # arrayid = int(os.getenv("PBS_ARRAYID",0))
-    #
-    # mini = (arrayid - 1) * 35
-    # maxi = min(mini + 35, len(file_list))
-    # if arrayid==0:
-    #     mini = 0
-    #     maxi = len(file_list)
-    # else:
-    #     outfile = outfile.replace(".csv","_{0}.csv".format(arrayid))
-    #
-    # print("Array, min(i), max(i)")
-    # print(arrayid, mini, maxi)
-    mini, maxi = 0,50
+    # Break down the data set into subsets for parallel processing
+    # TODO: put these back at 50 or 100, longer jobs are easier to run on this cluster
+#     arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",0))
+    
+    mini = (arrayid - 1) * 35
+    maxi = min(mini + 35, len(sub_info))
+    if arrayid==0:
+        mini = 0
+        maxi = 3 #len(sub_info)
+    else:
+        outfile = outfile.replace(".csv","_{0}.csv".format(arrayid))
 
+#    logging.basicConfig(filename='/data/douglaslab/script_logs/measure_periods_{0}.log'.format(arrayid))
+        
+    logging.info("Array, min(i), max(i)")
+    logging.info(arrayid)
+    logging.info(mini)
+    logging.info(maxi)
+    
     sub_list = sub_info[mini:maxi]
 
 #    base_path = "./"# "/vega/astro/users/sd2706/k2/"
@@ -394,6 +414,6 @@ if __name__=="__main__":
     data_path = "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/"
     plot_path = os.path.join(base_path,"plots/")
     
-    print(sub_list)
+    logging.info(sub_list)
 
     run_list(sub_list,base_path+outfile,data_path,plot_path)
