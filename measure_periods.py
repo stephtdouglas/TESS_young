@@ -6,8 +6,8 @@ from datetime import date
 import logging
 import pickle
 
-arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",0))
-jobid = int(os.getenv("SLURM_JOB_ID",99))
+arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
+jobid = int(os.getenv("SLURM_JOB_ID",9999))
 logger = logging.getLogger("measure_periods")
 logging.basicConfig(level=logging.DEBUG,
                     filename='/data/douglaslab/script_logs/measure_periods_{0}_{1}.log'.format(jobid,arrayid),
@@ -388,12 +388,13 @@ if __name__=="__main__":
     # Break down the data set into subsets for parallel processing
     # TODO: put these back at 50 or 100, longer jobs are easier to run on this cluster
 #     arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",0))
-    
-    mini = (arrayid - 1) * 35
-    maxi = min(mini + 35, len(sub_info))
-    if arrayid==0:
+
+    array_step = 10
+    mini = arrayid * array_step
+    maxi = min(mini + array_step, len(sub_info))
+    if arrayid==9999:
         mini = 0
-        maxi = 3 #len(sub_info)
+        maxi = array_step #len(sub_info)
     else:
         outfile = outfile.replace(".csv","_{0}.csv".format(arrayid))
 
