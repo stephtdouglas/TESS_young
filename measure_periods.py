@@ -9,7 +9,7 @@ import pickle
 arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
 jobid = int(os.getenv("SLURM_JOB_ID",9999))
 logger = logging.getLogger("measure_periods")
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     filename='/data/douglaslab/script_logs/measure_periods_{0}_{1}.log'.format(jobid,arrayid),
                     format='%(asctime)s %(message)s')
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -376,7 +376,9 @@ if __name__=="__main__":
         listfile = at.read(sys.argv[1])
         sub_info0 = listfile["target_name","provenance_name","sequence_number",
                             "obs_id","productFilename","author"]
-        sub_info = unique(sub_info0)
+        # sub_info = unique(sub_info0)
+        logging.warning("Assuming unique input list!")
+        sub_info = sub_info0
         cluster = sys.argv[2]
 
     if len(sys.argv)>3:
@@ -389,7 +391,7 @@ if __name__=="__main__":
     # TODO: put these back at 50 or 100, longer jobs are easier to run on this cluster
 #     arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",0))
 
-    array_step = 10
+    array_step = 35
     mini = arrayid * array_step
     maxi = min(mini + array_step, len(sub_info))
     if arrayid==9999:
