@@ -1,0 +1,23 @@
+name: lightkurve2
+channels:
+  - conda-forge
+  - astropy
+  - defaults
+dependencies:
+  - numpy
+  - pip
+  - jupyter
+  - astropy
+  - python=3.6
+  - matplotlib
+  - scipy
+  - oktopus
+  - bs4
+  - pandas
+  - tqdm
+  - requests
+  - numba
+  - astroquery
+  - astroml
+  - lightkurve
+prefix: /home/douglste/.conda/envs/lightkurve2
