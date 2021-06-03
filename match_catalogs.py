@@ -13,9 +13,18 @@ from astropy.table import join, Table
 from astroquery.xmatch import XMatch
 from astropy import units as u
 
-def xmatch_ic2391(to_plot=False):
+def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
+    """
+    inputs
+    ------
+    hdbscanfile: filename for the .fits HDBScan catalog from Phill Cargile
+
+    to_plot: bool, whether to create plots to examine crossmatching
+
+    """
+    print("\n",cluster,"\n-----------")
+
     # Phill's catalog, which also includes all the other Gaia information
-    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
     with fits.open(hdbscanfile) as hdu:
         hdbscan = Table(hdu[1].data)
         # hdbscan_memb = hdbscan[hdbscan["MemBool"]==1]
@@ -24,22 +33,30 @@ def xmatch_ic2391(to_plot=False):
     # print(hdbscan.dtype)
 
     # Gaia-ESO Survey catalog (Jackson+2020)
+    # This catalog includes all the clusters
     ges0 = at.read("catalogs/Jackson2020_table2_GaiaEDR3_xmatch.csv")
     ges1 = at.read("catalogs/Jackson2020_table3_GaiaDR2_data.txt",
                   header_start=1,data_start=4)
     ges = join(ges0,ges1,keys=["target","filter","cluster"])
-    ges = ges[ges["cluster"]=="IC2391"]
+
+    if cluster=="IC_2391":
+        gcluster = "IC2391"
+    elif cluster=="NGC_2451A":
+        gcluster = "NGC2451a"
+    else:
+        gcluster = cluster.replace("_","")
+    ges = ges[ges["cluster"]==gcluster]
     # print(ges.dtype.names)
     ges.rename_column("source_id","GAIAEDR3_ID")
-    # print(ges["GAIADR3_ID"])
+    print(ges["GAIAEDR3_ID"])
 
     # Cantat-Gaudin et al. 2020
-    cantat = at.read("catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch.csv",
-                     data_start=3)
+    # With the new Xmatch protocol, this doesn't need to start on 3
+    cantat = at.read(cgfile)
     cantat.rename_column("source_id","GAIAEDR3_ID")
-    cantat = cantat[cantat["Cluster"]=="IC_2391"]
+    cantat = cantat[cantat["Cluster"]==cluster]
     # print(cantat.dtype.names)
-    # print(cantat["GAIAEDR3_ID"])
+    print(cantat["GAIAEDR3_ID"])
 
 
     # First join the GES and Cantat-Gaudin catalogs
@@ -69,6 +86,9 @@ def xmatch_ic2391(to_plot=False):
     any_memb = hdb_memb | ges_memb | can_memb
     print(len(np.where(all_memb)[0]),len(np.where(any_memb)[0]))
 
+
+    # NOTE: this only looks at "low quality" members, not potential members
+    # of other clumps or unassigned members.
     hdbscan_lowq = (allcat["HDBscan_Cluster"]==-2) & (allcat["HDBscan_Cluster"].mask==False)
 
     # Check for "low quality" members in the same region of the diagrams
@@ -119,7 +139,7 @@ def xmatch_ic2391(to_plot=False):
         plt.xlabel("Gmag final")
         plt.ylabel("Gmag input")
         plt.legend()
-        plt.savefig("ic2391_test_match_gmags.png")
+        plt.savefig(f"plots/{cluster}_test_match_gmags.png")
         plt.close()
 
         # Compare astrometry
@@ -140,7 +160,7 @@ def xmatch_ic2391(to_plot=False):
         plt.legend()
         plt.xlabel("EDR3 Parallax")
         plt.ylabel("Lit parallax / DR2")
-        plt.savefig("ic2391_test_match_parallax.png")
+        plt.savefig(f"plots/{cluster}_test_match_parallax.png")
         plt.close()
 
         # Check angular distance
@@ -159,7 +179,7 @@ def xmatch_ic2391(to_plot=False):
         plt.legend(loc=3)
         plt.xlabel("EDR3 Parallax")
         plt.ylabel("Xmatch angDist")
-        plt.savefig("ic2391_test_match_angdist.png")
+        plt.savefig(f"plots/{cluster}_test_match_angdist.png")
         plt.close()
 
         plt.figure()
@@ -177,7 +197,7 @@ def xmatch_ic2391(to_plot=False):
         plt.legend(loc=3)
         plt.xlabel("Gmag")
         plt.ylabel("Xmatch angDist")
-        plt.savefig("ic2391_test_match_angdistG.png")
+        plt.savefig(f"plots/{cluster}_test_match_angdistG.png")
         plt.close()
 
     # Print overlap information
@@ -212,31 +232,6 @@ def xmatch_ic2391(to_plot=False):
     print(allcat.dtype.names)
 
     # For now, will just have to output the file and run it through xmatch on my own. Sigh.
-    # print("Starting Xmatch")
-    # # Now crossmatch to the TIC to get TIC IDs
-    # allpos = allcat["GAIAEDR3_RA","GAIAEDR3_DEC","GAIAEDR3_ID"]
-    # allpos.rename_column("GAIAEDR3_RA","ra")
-    # allpos.rename_column("GAIAEDR3_DEC","dec")
-    # print(allpos)
-    # table = XMatch.query(cat1=allpos,
-    #                      cat2='vizier:IV/38/tic',
-    #                      max_distance=1 * u.arcsec,
-    #                      colRA1='ra',colDec1='dec',cache=True)
-    #                      # colRA1='GAIAEDR3_RA',colDec1='GAIAEDR3_DEC')
-    # print("Finished Xmatch")
-    # print(table.dtype.names)
-    # table.rename_column("ra","GAIAEDR3_RA")
-    # table.rename_column("dec","GAIAEDR3_DEC")
-    # for colname in table.dtype.names:
-    #     if ("GAIAEDR3" in colname) or ("TIC" in colname):
-    #         continue
-    #     else:
-    #         table.rename_column(colname,f"{colname}_TIC")
-    #
-    # finalcat = join(allcat,table,keys=["GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC"])
-    # print(len(allcat),len(table),len(finalcat))
-
-    # For now, will just have to output the file and run it through xmatch on my own. Sigh.
     finalcat = allcat
 
     # sys.exit(0)
@@ -265,9 +260,9 @@ def xmatch_ic2391(to_plot=False):
                     'ra_epoch2000_Cantat-Gaudin', 'dec_epoch2000_Cantat-Gaudin']
                     # ,'TIC','angDist_TIC']
 
-    # subcat[any_memb].write("IC2391_crossmatch.fits",overwrite=True)
-    # subcat[any_memb].write("IC2391_crossmatch.csv",overwrite=True)
-    # finalcat[any_memb].write("IC2391_crossmatch_allcolumns.fits",overwrite=True)
+    subcat[any_memb].write(f"tables/{cluster}_crossmatch.fits",overwrite=True)
+    subcat[any_memb].write(f"tables/{cluster}_crossmatch.csv",overwrite=True)
+    finalcat[any_memb].write(f"tables/{cluster}_crossmatch_allcolumns.fits",overwrite=True)
 
 
     if to_plot:
@@ -307,7 +302,7 @@ def xmatch_ic2391(to_plot=False):
                  alpha=0.95)
         ax3.set_xlim(-20,15)
         plt.xlabel("Parallax (mas)")
-        plt.savefig("ic2391_test_match_astrometry_lowq.png")
+        plt.savefig(f"plots/{cluster}_test_match_astrometry_lowq.png")
 
         # Plot astrometry for confirmed members and for "low quality" stars that
         # were left out of the HDBScan run
@@ -345,7 +340,7 @@ def xmatch_ic2391(to_plot=False):
                  alpha=0.1,zorder=-5)
         ax3.set_xlim(-20,15)
         plt.xlabel("Parallax (mas)")
-        plt.savefig("ic2391_test_match_astrometry.png")
+        plt.savefig(f"plots/{cluster}_test_match_astrometry.png")
 
 
 
@@ -366,12 +361,26 @@ def xmatch_ic2391(to_plot=False):
         plt.xlim(-0.5,5)
         plt.ylim(25,0)
         plt.legend()
-        plt.savefig("ic2391_test_match_cmd.png")
+        plt.savefig(f"plots/{cluster}_test_match_cmd.png")
         plt.close()
 
 
 if __name__=="__main__":
 
-    # test_cantat_gaudin()
+    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
+    #TODO: switch to the new Xmatch files
+    cgfile = "catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch_new.csv"
+    xmatch("IC_2391",hdbscanfile,cgfile,to_plot=True)
 
-    xmatch_ic2391(to_plot=True)
+    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
+    #TODO: switch to the new Xmatch files
+    cgfile = "catalogs/cantat-gaudin2020_ngc2451A_10deg_GaiaEDR3_xmatch.csv"
+    xmatch("NGC_2451A",hdbscanfile,cgfile,to_plot=True)
+
+    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2547.fits")
+    #TODO: switch to the new Xmatch files
+    cgfile = "catalogs/cantat-gaudin2020_ngc2547_10deg_GaiaEDR3_xmatch.csv"
+    xmatch("NGC_2547",hdbscanfile,cgfile,to_plot=True)
+
+    # I'm missing the IC 2602 catalog from Phill
+    # and Collinder 135 is missing from Jackson+2020
