@@ -19,6 +19,8 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
     ------
     hdbscanfile: filename for the .fits HDBScan catalog from Phill Cargile
 
+    cgfile: filename for the .csv Xmatch result for Cantat-Gaudin+ 2020 and Gaia EDR3
+
     to_plot: bool, whether to create plots to examine crossmatching
 
     """
@@ -47,8 +49,13 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         gcluster = cluster.replace("_","")
     ges = ges[ges["cluster"]==gcluster]
     # print(ges.dtype.names)
-    ges.rename_column("source_id","GAIAEDR3_ID")
-    print(ges["GAIAEDR3_ID"])
+
+    if len(ges)>0:
+        ges.rename_column("source_id","GAIAEDR3_ID")
+        # print(ges["GAIAEDR3_ID"])
+        found_ges = True
+    else:
+        found_ges = False
 
     # Cantat-Gaudin et al. 2020
     # With the new Xmatch protocol, this doesn't need to start on 3
@@ -56,12 +63,22 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
     cantat.rename_column("source_id","GAIAEDR3_ID")
     cantat = cantat[cantat["Cluster"]==cluster]
     # print(cantat.dtype.names)
-    print(cantat["GAIAEDR3_ID"])
+    # print(cantat["GAIAEDR3_ID"])
 
 
     # First join the GES and Cantat-Gaudin catalogs
-    cg = join(ges,cantat,keys=["GAIAEDR3_ID"],join_type="outer",
-              table_names=["GES","Cantat-Gaudin"])
+    if found_ges:
+        cg = join(ges,cantat,keys=["GAIAEDR3_ID"],join_type="outer",
+                table_names=["GES","Cantat-Gaudin"])
+    else:
+        cg = cantat
+        cg.rename_column("angDist","angDist_Cantat-Gaudin")
+        cg.rename_column("ra_epoch2000","ra_epoch2000_Cantat-Gaudin")
+        cg.rename_column("dec_epoch2000","dec_epoch2000_Cantat-Gaudin")
+        col_match = at.read("hdbscan_edr3_cols.csv",delimiter=",")
+        for colname in col_match["edr3_col"]:
+            cg.rename_column(colname,f"{colname}_Cantat-Gaudin")
+        # cg.rename_column("","_Cantat-Gaudin")
     # print(cg.dtype)
     # print(cg["GAIAEDR3_ID"])
 
@@ -72,8 +89,15 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
 
 
     bp_rp = allcat["GAIAEDR3_BP"] - allcat["GAIAEDR3_RP"]
-    hdb_memb = (allcat["MemBool"]==1)  & (allcat["MemBool"].mask==False)
-    ges_memb = (allcat["prob_p"]>0) & (allcat["prob_p"].mask==False) #TODO: make sure this is the right cut-off
+    try:
+        hdb_memb = (allcat["MemBool"]==1)  & (allcat["MemBool"].mask==False)
+    except AttributeError:
+        hdb_memb = (allcat["MemBool"]==1)
+
+    if found_ges:
+        ges_memb = (allcat["prob_p"]>0) & (allcat["prob_p"].mask==False) #TODO: make sure this is the right cut-off
+    else:
+        ges_memb = np.zeros(len(allcat),bool)
     can_memb = (allcat["proba"]>0) & (allcat["proba"].mask==False)
 
     print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][ges_memb])
@@ -82,14 +106,20 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
     print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][can_memb])
     print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][can_memb])
 
-    all_memb = hdb_memb & ges_memb & can_memb
+    if found_ges:
+        all_memb = hdb_memb & ges_memb & can_memb
+    else:
+        all_memb = hdb_memb & can_memb
     any_memb = hdb_memb | ges_memb | can_memb
     print(len(np.where(all_memb)[0]),len(np.where(any_memb)[0]))
 
 
     # NOTE: this only looks at "low quality" members, not potential members
     # of other clumps or unassigned members.
-    hdbscan_lowq = (allcat["HDBscan_Cluster"]==-2) & (allcat["HDBscan_Cluster"].mask==False)
+    try:
+        hdbscan_lowq = (allcat["HDBscan_Cluster"]==-2) & (allcat["HDBscan_Cluster"].mask==False)
+    except AttributeError:
+        hdbscan_lowq = (allcat["HDBscan_Cluster"]==-2)
 
     # Check for "low quality" members in the same region of the diagrams
     # as the confirmed members
@@ -105,11 +135,15 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
                 & (allcat["GAIAEDR3_PMDEC"]>pmdec_lims[0])
                 & (allcat["GAIAEDR3_PMDEC"]<pmdec_lims[1])
                 & (allcat["GAIAEDR3_PARALLAX"]>plx_lims[0])
-                & (allcat["GAIAEDR3_PARALLAX"]<plx_lims[1])
-                & (allcat["GAIAEDR3_PMRA"].mask==False)
-                & (allcat["GAIAEDR3_PMDEC"].mask==False)
-                & (allcat["GAIAEDR3_PARALLAX"].mask==False)
-                )
+                & (allcat["GAIAEDR3_PARALLAX"]<plx_lims[1]))
+    try:
+        lowq_close = (lowq_close
+                        & (allcat["GAIAEDR3_PMRA"].mask==False)
+                        & (allcat["GAIAEDR3_PMDEC"].mask==False)
+                        & (allcat["GAIAEDR3_PARALLAX"].mask==False)
+                        )
+    except AttributeError:
+        lowq_close = lowq_close
     # lowq_close = lowq_close & ~any_memb
     print(np.where(lowq_close)[0])
     print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][lowq_close])
@@ -126,11 +160,12 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         plt.plot(allcat["GAIAEDR3_G_CORRECTED"][can_memb],
                 allcat["phot_g_mean_mag_Cantat-Gaudin"][can_memb],'o',
                  label="Cantat-Gaudin",alpha=0.75)
-        plt.plot(allcat["GAIAEDR3_G_CORRECTED"][ges_memb],
-                 allcat["phot_g_mean_mag_GES"][ges_memb],'o',
-                 label="GES",alpha=0.75)
+        if found_ges:
+            plt.plot(allcat["GAIAEDR3_G_CORRECTED"][ges_memb],
+                     allcat["phot_g_mean_mag_GES"][ges_memb],'o',
+                     label="GES",alpha=0.75)
         plt.plot(allcat["GAIAEDR3_G_CORRECTED"][can_memb],
-                allcat["Gmag"][can_memb],'o',
+                allcat["Gmag"][can_memb],'o',color="C3",
                  label="Cantat-Gaudin 2",alpha=0.75)
         plt.xlim(25,0)
         plt.ylim(25,0)
@@ -150,9 +185,10 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         plt.plot(allcat["GAIAEDR3_PARALLAX"][can_memb],
                 allcat["Plx"][can_memb],'o',
                  label="Cantat-Gaudin",alpha=0.75)
-        plt.plot(allcat["GAIAEDR3_PARALLAX"][ges_memb],
-                 allcat["PLX"][ges_memb],'o',
-                 label="GES",alpha=0.75)
+        if found_ges:
+            plt.plot(allcat["GAIAEDR3_PARALLAX"][ges_memb],
+                     allcat["PLX"][ges_memb],'o',
+                     label="GES",alpha=0.75)
         # plt.xlim(25,0)
         # plt.ylim(25,0)
         x = np.linspace(0,9,10)
@@ -171,9 +207,10 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         plt.plot(allcat["GAIAEDR3_PARALLAX"][can_memb],
                  allcat["angDist_Cantat-Gaudin"][can_memb],'o',
                  label="Cantat-Gaudin",alpha=0.75,color="C1")
-        plt.plot(allcat["GAIAEDR3_PARALLAX"][ges_memb],
-                 allcat["angDist_GES"][ges_memb],'o',
-                 label="GES",alpha=0.75,color="C2")
+        if found_ges:
+            plt.plot(allcat["GAIAEDR3_PARALLAX"][ges_memb],
+                     allcat["angDist_GES"][ges_memb],'o',
+                     label="GES",alpha=0.75,color="C2")
         plt.xlim(-3,10)
         # plt.ylim(25,0)
         plt.legend(loc=3)
@@ -189,9 +226,10 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         plt.plot(allcat["Gmag"][can_memb],
                  allcat["angDist_Cantat-Gaudin"][can_memb],'o',
                  label="Cantat-Gaudin",alpha=0.75,color="C1")
-        plt.plot(allcat["phot_g_mean_mag_GES"][ges_memb],
-                 allcat["angDist_GES"][ges_memb],'o',
-                 label="GES",alpha=0.75,color="C2")
+        if found_ges:
+            plt.plot(allcat["phot_g_mean_mag_GES"][ges_memb],
+                     allcat["angDist_GES"][ges_memb],'o',
+                     label="GES",alpha=0.75,color="C2")
         plt.xlim(25,0)
         # plt.ylim(25,0)
         plt.legend(loc=3)
@@ -218,8 +256,10 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
 
     # fix columns in the combined catalog
     col_match = at.read("hdbscan_edr3_cols.csv",delimiter=",")
-    print(col_match)
+    # print(col_match)
     for i in [1,2]:
+        if (found_ges==False) and (i==1):
+            continue
         name = names[i]
         memb = np.where(lists[i])[0]
         for k in range(len(col_match)):
@@ -229,7 +269,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
                 allcat[hdb_colname][j] = allcat[colname][j]
                 allcat[colname].mask[j] = False
             allcat.remove_column(colname)
-    print(allcat.dtype.names)
+    # print(allcat.dtype.names)
 
     # For now, will just have to output the file and run it through xmatch on my own. Sigh.
     finalcat = allcat
@@ -240,25 +280,42 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
 
     # Write out the catalog to two files: a full catalog with all columns,
     # and a sub-catalog to use for further analysis
-    subcat = finalcat['TMASS_ID', 'UKIDSS_ID', 'GAIAEDR3_ID', 'GAIADR2_G',
-                    'GAIADR2_BP', 'GAIADR2_RP', 'GAIAEDR3_G', 'GAIAEDR3_BP',
-                    'GAIAEDR3_RP', 'GAIADR2_PARALLAX', 'GAIADR2_PARALLAX_ERROR',
-                    'GAIADR2_RUWE', 'GAIAEDR3_RA', 'GAIAEDR3_DEC',
-                    'GAIAEDR3_PARALLAX', 'GAIAEDR3_PARALLAX_ERROR',
-                    'GAIAEDR3_PMRA', 'GAIAEDR3_PMDEC', 'GAIAEDR3_PMRA_ERROR',
-                    'GAIAEDR3_PMDEC_ERROR', 'GAIAEDR3_RUWE',
-                    'GAIAEDR3_G_CORRECTED', 'GAIAEDR3_PARALLAX_CORRECTED',
-                    'HDBscan_MemProb', 'HDBscan_Cluster', 'HDBscan_Stability',
-                    'MemBool', 'angDist_GES', 'target', 'filter', 'cluster',
-                    'S/N', 'Teff', 'logg', 'gamma', 'Ks', 'RV_1', 'e_RV',
-                    'logL', 'ra_epoch2000_GES', 'dec_epoch2000_GES', 'PLX',
-                    'e_PLX', 'VRA', 'e_VRA', 'VDec', 'e_VDec', 'RV_2', 'SRV',
-                    'Gflag', 'prob_p', 'p_filter', 'angDist_Cantat-Gaudin',
-                    'RA_ICRS', 'DE_ICRS', 'GaiaDR2', 'Plx', 'pmRA*', 'pmDE',
-                    'RV', 'o_Gmag', 'Gmag', 'BP-RP', 'proba', 'Cluster',
-                    'Teff50',
-                    'ra_epoch2000_Cantat-Gaudin', 'dec_epoch2000_Cantat-Gaudin']
-                    # ,'TIC','angDist_TIC']
+    if found_ges:
+        subcat = finalcat['TMASS_ID', 'UKIDSS_ID', 'GAIAEDR3_ID', 'GAIADR2_G',
+                        'GAIADR2_BP', 'GAIADR2_RP', 'GAIAEDR3_G', 'GAIAEDR3_BP',
+                        'GAIAEDR3_RP', 'GAIADR2_PARALLAX', 'GAIADR2_PARALLAX_ERROR',
+                        'GAIADR2_RUWE', 'GAIAEDR3_RA', 'GAIAEDR3_DEC',
+                        'GAIAEDR3_PARALLAX', 'GAIAEDR3_PARALLAX_ERROR',
+                        'GAIAEDR3_PMRA', 'GAIAEDR3_PMDEC', 'GAIAEDR3_PMRA_ERROR',
+                        'GAIAEDR3_PMDEC_ERROR', 'GAIAEDR3_RUWE',
+                        'GAIAEDR3_G_CORRECTED', 'GAIAEDR3_PARALLAX_CORRECTED',
+                        'HDBscan_MemProb', 'HDBscan_Cluster', 'HDBscan_Stability',
+                        'MemBool', 'angDist_GES', 'target', 'filter', 'cluster',
+                        'S/N', 'Teff', 'logg', 'gamma', 'Ks', 'RV_1', 'e_RV',
+                        'logL', 'ra_epoch2000_GES', 'dec_epoch2000_GES', 'PLX',
+                        'e_PLX', 'VRA', 'e_VRA', 'VDec', 'e_VDec', 'RV_2', 'SRV',
+                        'Gflag', 'prob_p', 'p_filter', 'angDist_Cantat-Gaudin',
+                        'RA_ICRS', 'DE_ICRS', 'GaiaDR2', 'Plx', 'pmRA*', 'pmDE',
+                        'RV', 'o_Gmag', 'Gmag', 'BP-RP', 'proba', 'Cluster',
+                        'Teff50',
+                        'ra_epoch2000_Cantat-Gaudin', 'dec_epoch2000_Cantat-Gaudin']
+                        # ,'TIC','angDist_TIC']
+    else:
+        subcat = finalcat['TMASS_ID', 'UKIDSS_ID', 'GAIAEDR3_ID', 'GAIADR2_G',
+                        'GAIADR2_BP', 'GAIADR2_RP', 'GAIAEDR3_G', 'GAIAEDR3_BP',
+                        'GAIAEDR3_RP', 'GAIADR2_PARALLAX', 'GAIADR2_PARALLAX_ERROR',
+                        'GAIADR2_RUWE', 'GAIAEDR3_RA', 'GAIAEDR3_DEC',
+                        'GAIAEDR3_PARALLAX', 'GAIAEDR3_PARALLAX_ERROR',
+                        'GAIAEDR3_PMRA', 'GAIAEDR3_PMDEC', 'GAIAEDR3_PMRA_ERROR',
+                        'GAIAEDR3_PMDEC_ERROR', 'GAIAEDR3_RUWE',
+                        'GAIAEDR3_G_CORRECTED', 'GAIAEDR3_PARALLAX_CORRECTED',
+                        'HDBscan_MemProb', 'HDBscan_Cluster', 'HDBscan_Stability',
+                        'MemBool', 'angDist_Cantat-Gaudin',
+                        'RA_ICRS', 'DE_ICRS', 'GaiaDR2', 'Plx', 'pmRA*', 'pmDE',
+                        'RV', 'o_Gmag', 'Gmag', 'BP-RP', 'proba', 'Cluster',
+                        'Teff50',
+                        'ra_epoch2000_Cantat-Gaudin', 'dec_epoch2000_Cantat-Gaudin']
+                        # ,'TIC','angDist_TIC']
 
     subcat[any_memb].write(f"tables/{cluster}_crossmatch.fits",overwrite=True)
     subcat[any_memb].write(f"tables/{cluster}_crossmatch.csv",overwrite=True)
@@ -270,7 +327,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         # were left out of the HDBScan run
         plt.figure(figsize=(10,10))
         ax1 = plt.subplot(221)
-        for i,memb in enumerate(lists[:3]):
+        for i,memb in enumerate(lists[:-1]):
             plt.plot(finalcat["GAIAEDR3_PMDEC"][memb],finalcat["GAIAEDR3_PARALLAX"][memb],'.',
                     label=names[i],alpha=0.75)
         plt.plot(finalcat["GAIAEDR3_PMDEC"][hdbscan_lowq],
@@ -281,7 +338,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         plt.legend(loc=3)
 
         ax2 = plt.subplot(223,sharex=ax1)
-        for i,memb in enumerate(lists[:3]):
+        for i,memb in enumerate(lists[:-1]):
             plt.plot(finalcat["GAIAEDR3_PMDEC"][memb],finalcat["GAIAEDR3_PMRA"][memb],'.',
                     label=names[i],alpha=0.75)
         plt.plot(finalcat["GAIAEDR3_PMDEC"][hdbscan_lowq],
@@ -293,7 +350,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         ax2.set_ylim(-40,25)
 
         ax3 = plt.subplot(224,sharey=ax2)
-        for i,memb in enumerate(lists[:3]):
+        for i,memb in enumerate(lists[:-1]):
             plt.plot(finalcat["GAIAEDR3_PARALLAX"][memb],
                     finalcat["GAIAEDR3_PMRA"][memb],'.',
                     label=names[i],alpha=0.75)
@@ -308,7 +365,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         # were left out of the HDBScan run
         plt.figure(figsize=(10,10))
         ax1 = plt.subplot(221)
-        for i,memb in enumerate(lists[:3]):
+        for i,memb in enumerate(lists[:-1]):
             plt.plot(finalcat["GAIAEDR3_PMDEC"][memb],finalcat["GAIAEDR3_PARALLAX"][memb],'.',
                     label=names[i],alpha=0.75)
         plt.plot(finalcat["GAIAEDR3_PMDEC"],
@@ -319,7 +376,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         plt.legend(loc=3)
 
         ax2 = plt.subplot(223,sharex=ax1)
-        for i,memb in enumerate(lists[:3]):
+        for i,memb in enumerate(lists[:-1]):
             plt.plot(finalcat["GAIAEDR3_PMDEC"][memb],finalcat["GAIAEDR3_PMRA"][memb],'.',
                     label=names[i],alpha=0.75)
         plt.plot(finalcat["GAIAEDR3_PMDEC"],
@@ -331,7 +388,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         ax2.set_ylim(-40,25)
 
         ax3 = plt.subplot(224,sharey=ax2)
-        for i,memb in enumerate(lists[:3]):
+        for i,memb in enumerate(lists[:-1]):
             plt.plot(finalcat["GAIAEDR3_PARALLAX"][memb],
                     finalcat["GAIAEDR3_PMRA"][memb],'.',
                     label=names[i],alpha=0.75)
@@ -354,8 +411,9 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
                  label="HDBScan",alpha=0.75)
         plt.plot(bp_rp[can_memb],finalcat["GAIAEDR3_G_CORRECTED"][can_memb],'o',
                  label="Cantat-Gaudin",alpha=0.75)
-        plt.plot(bp_rp[ges_memb],finalcat["GAIAEDR3_G_CORRECTED"][ges_memb],'o',
-                 label="GES",alpha=0.75)
+        if found_ges:
+            plt.plot(bp_rp[ges_memb],finalcat["GAIAEDR3_G_CORRECTED"][ges_memb],'o',
+                    label="GES",alpha=0.75)
         plt.plot(bp_rp[lowq_close],finalcat["GAIAEDR3_G_CORRECTED"][lowq_close],'ko',
                  label="Low Q",alpha=0.75)
         plt.xlim(-0.5,5)
@@ -367,20 +425,24 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
 
 if __name__=="__main__":
 
-    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
-    #TODO: switch to the new Xmatch files
-    cgfile = "catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch_new.csv"
-    xmatch("IC_2391",hdbscanfile,cgfile,to_plot=True)
+    # Collinder 135 is missing from Jackson+2020
+    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/Collinder_135.fits")
+    cgfile = "catalogs/cantat-gaudin2020_collinder135_10deg_GaiaEDR3_xmatch.csv"
+    xmatch("Collinder_135",hdbscanfile,cgfile,to_plot=True)
 
+    #NGC 2451A
     hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
-    #TODO: switch to the new Xmatch files
     cgfile = "catalogs/cantat-gaudin2020_ngc2451A_10deg_GaiaEDR3_xmatch.csv"
     xmatch("NGC_2451A",hdbscanfile,cgfile,to_plot=True)
 
+    #NGC 2547
     hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2547.fits")
-    #TODO: switch to the new Xmatch files
     cgfile = "catalogs/cantat-gaudin2020_ngc2547_10deg_GaiaEDR3_xmatch.csv"
     xmatch("NGC_2547",hdbscanfile,cgfile,to_plot=True)
 
+    #IC 2391
+    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
+    cgfile = "catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch_new.csv"
+    xmatch("IC_2391",hdbscanfile,cgfile,to_plot=True)
+
     # I'm missing the IC 2602 catalog from Phill
-    # and Collinder 135 is missing from Jackson+2020
