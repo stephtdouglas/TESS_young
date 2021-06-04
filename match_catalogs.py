@@ -96,11 +96,12 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
     bp_rp = allcat["GAIAEDR3_BP"] - allcat["GAIAEDR3_RP"]
     hdb_memb = (allcat["MemBool"]==1)  & (allcat["MemBool"].mask==False)
 
+    # Jackson+2020 Table 4/Section 4 indictes that 0.9 is the membership cutoff
     if found_ges:
-        ges_memb = (allcat["prob_p"]>0) & (allcat["prob_p"].mask==False) #TODO: make sure this is the right cut-off
+        ges_memb = (allcat["prob_p"]>=0.9) & (allcat["prob_p"].mask==False)
     else:
         ges_memb = np.zeros(len(allcat),bool)
-    can_memb = (allcat["proba"]>0) & (allcat["proba"].mask==False)
+    can_memb = (allcat["proba"]>=0.7) & (allcat["proba"].mask==False)
 
     # print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][ges_memb])
     # print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][ges_memb])
