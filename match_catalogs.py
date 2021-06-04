@@ -31,8 +31,13 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         hdbscan = Table(hdu[1].data)
         # hdbscan_memb = hdbscan[hdbscan["MemBool"]==1]
 
-    hdbscan.rename_column("GAIADER3_ID","GAIAEDR3_ID")
+    if hdbscan.masked == False:
+        hdbscan = Table(hdbscan, masked=True, copy=False)
+
+    # print(type(hdbscan))
     # print(hdbscan.dtype)
+    # print(hdbscan.masked)
+    hdbscan.rename_column("GAIADER3_ID","GAIAEDR3_ID")
 
     # Gaia-ESO Survey catalog (Jackson+2020)
     # This catalog includes all the clusters
@@ -89,10 +94,7 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
 
 
     bp_rp = allcat["GAIAEDR3_BP"] - allcat["GAIAEDR3_RP"]
-    try:
-        hdb_memb = (allcat["MemBool"]==1)  & (allcat["MemBool"].mask==False)
-    except AttributeError:
-        hdb_memb = (allcat["MemBool"]==1)
+    hdb_memb = (allcat["MemBool"]==1)  & (allcat["MemBool"].mask==False)
 
     if found_ges:
         ges_memb = (allcat["prob_p"]>0) & (allcat["prob_p"].mask==False) #TODO: make sure this is the right cut-off
@@ -100,11 +102,11 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
         ges_memb = np.zeros(len(allcat),bool)
     can_memb = (allcat["proba"]>0) & (allcat["proba"].mask==False)
 
-    print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][ges_memb])
-    print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][ges_memb])
-
-    print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][can_memb])
-    print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][can_memb])
+    # print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][ges_memb])
+    # print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][ges_memb])
+    #
+    # print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][can_memb])
+    # print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][can_memb])
 
     if found_ges:
         all_memb = hdb_memb & ges_memb & can_memb
@@ -116,10 +118,8 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
 
     # NOTE: this only looks at "low quality" members, not potential members
     # of other clumps or unassigned members.
-    try:
-        hdbscan_lowq = (allcat["HDBscan_Cluster"]==-2) & (allcat["HDBscan_Cluster"].mask==False)
-    except AttributeError:
-        hdbscan_lowq = (allcat["HDBscan_Cluster"]==-2)
+    hdbscan_lowq = (allcat["HDBscan_Cluster"]==-2) & (allcat["HDBscan_Cluster"].mask==False)
+
 
     # Check for "low quality" members in the same region of the diagrams
     # as the confirmed members
@@ -135,19 +135,15 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
                 & (allcat["GAIAEDR3_PMDEC"]>pmdec_lims[0])
                 & (allcat["GAIAEDR3_PMDEC"]<pmdec_lims[1])
                 & (allcat["GAIAEDR3_PARALLAX"]>plx_lims[0])
-                & (allcat["GAIAEDR3_PARALLAX"]<plx_lims[1]))
-    try:
-        lowq_close = (lowq_close
-                        & (allcat["GAIAEDR3_PMRA"].mask==False)
-                        & (allcat["GAIAEDR3_PMDEC"].mask==False)
-                        & (allcat["GAIAEDR3_PARALLAX"].mask==False)
-                        )
-    except AttributeError:
-        lowq_close = lowq_close
+                & (allcat["GAIAEDR3_PARALLAX"]<plx_lims[1])
+                & (allcat["GAIAEDR3_PMRA"].mask==False)
+                & (allcat["GAIAEDR3_PMDEC"].mask==False)
+                & (allcat["GAIAEDR3_PARALLAX"].mask==False)
+                )
     # lowq_close = lowq_close & ~any_memb
     print(np.where(lowq_close)[0])
-    print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][lowq_close])
-    print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][lowq_close])
+    # print(allcat["GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_PARALLAX"][lowq_close])
+    # print(allcat["GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_RP"][lowq_close])
 
 
     if to_plot:
@@ -266,8 +262,9 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
             colname = f"{col_match['edr3_col'][k]}_{name}"
             for j in memb:
                 hdb_colname = col_match["hdbscan_col"][k]
-                allcat[hdb_colname][j] = allcat[colname][j]
-                allcat[colname].mask[j] = False
+                if allcat[hdb_colname].mask[j]==True:
+                    allcat[hdb_colname][j] = allcat[colname][j]
+                    allcat[hdb_colname].mask[j] = False
             allcat.remove_column(colname)
     # print(allcat.dtype.names)
 
