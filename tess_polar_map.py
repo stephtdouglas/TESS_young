@@ -6,6 +6,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astroquery.mast import Observations
+import astropy.io.ascii as at
 import matplotlib.pyplot as plt
 from matplotlib import cm
 plt.interactive(False)
@@ -29,8 +30,16 @@ def parse_s_region(s_region):
     return {'ra': ra, 'dec': dec}
 
 def polar_map(save=True, sector_colors=True, legend=True,
-              hemisphere="South",cluster=None,cluster_skycoord=None):
+              hemisphere="South"):
+    """
+    Plot TESS sectors (cycle 1 North or cycle 2 South) on a polar projection plot
+
+    returns
+    -------
+    ax: matplotlib axis
+    """
     obsTable = Observations.query_criteria(dataproduct_type="image", obs_collection='TESS')
+    # at.write(obsTable,"map_out.csv",overwrite=False,delimiter=",")
     obsTable = obsTable[obsTable["calib_level"]==3]
 
     regions = {}
@@ -39,7 +48,8 @@ def polar_map(save=True, sector_colors=True, legend=True,
 
     # Sector list for colors
     if sector_colors:
-        sectors = np.unique([s[1] for s in regions.values()])
+        sectors = np.arange(1,27)
+        print(sectors)
         colors = cm.get_cmap('viridis', len(sectors))
         colors = colors(range(len(sectors)))
 
@@ -87,21 +97,6 @@ def polar_map(save=True, sector_colors=True, legend=True,
     # print("done plotting sectors")
     # print(hemisphere,ax.get_rmin(),ax.get_rmax())
 
-    if cluster is not None:
-
-        # x_rad = c.geocentrictrueecliptic.lon.wrap_at(180 * u.deg).radian
-        # y_rad = c.geocentrictrueecliptic.lat.degree
-        x_clu = cluster_skycoord.geocentrictrueecliptic.lon.wrap_at(180*u.deg).radian
-        y_clu = cluster_skycoord.geocentrictrueecliptic.lat.degree
-        if hemisphere=="North":
-            y_clu = y_clu*-1
-
-
-        ax.plot(x_clu,y_clu,'k.')
-
-        ax.set_title(cluster)
-
-    #
     # if sector_colors:
     #     for i, s in enumerate(sectors):
     #         ax.plot([np.nan], [np.nan], color=colors[i], alpha=0.5, label='Sector {}'.format(s))
@@ -114,13 +109,70 @@ def polar_map(save=True, sector_colors=True, legend=True,
     #     ax.set_rticklabels([80,60,40,20,0])
 
     if save:
-        plt.savefig('TESS_sectors_{0}_{1}.png'.format(hemisphere.lower(),
-                                                      cluster))
-        plt.close()
+        plt.savefig('plots/TESS_sectors_{0}_blank.png'.format(hemisphere.lower()))
 
-    plt.show()
+    return ax
+
+def polar_cluster(ax,cluster=None,cluster_skycoord=None,save=True,
+                  hemisphere="South"):
+    """
+    Plot members of an open cluster on a polar projection plot
+
+    returns
+    -------
+    ax: matplotlib axis
+    """
+
+
+    # x_rad = c.geocentrictrueecliptic.lon.wrap_at(180 * u.deg).radian
+    # y_rad = c.geocentrictrueecliptic.lat.degree
+    x_clu = cluster_skycoord.geocentrictrueecliptic.lon.wrap_at(180*u.deg).radian
+    y_clu = cluster_skycoord.geocentrictrueecliptic.lat.degree
+    if hemisphere=="North":
+        y_clu = y_clu*-1
+
+
+    ax.plot(x_clu,y_clu,'k.',alpha=0.5,ms=1)
+
+    # ax.set_title(cluster)
+
+    if save:
+        plt.savefig('plots/TESS_sectors_{0}_{1}.png'.format(hemisphere.lower(),
+                                                    cluster))
+    return ax
+
+def plot_all_clusters():
+    ax = polar_map(hemisphere="South",save=False)
+
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547"]
+    for cluster in clusters:
+        cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
+        cat_pos = SkyCoord(cat["GAIAEDR3_RA"],cat["GAIAEDR3_DEC"],unit=u.degree)
+        ax = polar_cluster(ax,cluster,cat_pos,save=False)
+
+    plt.savefig("plots/TESS_sectors_South_all.png")
+
+    return ax
+
 
 if __name__=="__main__":
-    # polar_map(hemisphere="South")
+    # _ = plot_all_clusters()
 
-    polar_map(hemisphere="North")
+    ax = polar_map(hemisphere="South",save=False)
+
+    mclusters = ["IC_2391","IC_2602","NGC_2451A","NGC_2547"]
+    cat = at.read("catalogs/Meingast2021_GaiaEDR3_xmatch.csv",delimiter=",")
+    print(np.unique(cat["Cluster"]))
+    cat_pos = SkyCoord(cat["_RAJ2000"],cat["_DEJ2000"],unit=u.degree)
+    for cluster in mclusters:
+        print(cluster)
+        loc = (cat["Cluster"]==cluster.replace("_"," ")) & (cat["fc"]<0.1)
+        print(len(np.where(loc)[0]))
+        ax = polar_cluster(ax,cluster,cat_pos[loc],save=False)
+
+    plt.savefig("plots/TESS_sectors_South_Meingast.png")
+
+
+    # polar_map(hemisphere="North")
+
+    plt.close("all")
