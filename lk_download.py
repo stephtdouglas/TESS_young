@@ -61,10 +61,18 @@ if __name__=="__main__":
 
     today = date.today()
 
-    cat = at.read("IC2391_crossmatch_xmatch_TIC.csv",delimiter=",")
-    # print(cat["TIC"])
-    download_list(cat["TIC"],f"IC2391_downloads_{str(today)}.csv")
+    cat_files = ["Collinder_135_crossmatch_xmatch_TIC.csv",
+                 "IC_2391_crossmatch_xmatch_TIC.csv",
+                 "NGC_2451A_crossmatch_xmatch_TIC.csv",
+                 "NGC_2547_crossmatch_xmatch_TIC.csv"
+                 ]
 
-    # download_list(["45404408","93270923"],outfilename="test.csv")
+    sector_list = [[6,7,8],[8,9,10],[7,8],[7,8,9]]
 
-    # search_table = download_one_set("TIC 93270923", pipeline="PATHOS")
+    for i,filename in enumerate(cat_files):
+        print(filename)
+        cat = at.read(filename,delimiter=",")
+        dl_filename = filename.replace("crossmatch_xmatch_TIC",
+                                       f"downloads_{str(today)}")
+        print(dl_filename)
+        download_list(cat["TIC"],dl_filename,sectors=sector_list[i])

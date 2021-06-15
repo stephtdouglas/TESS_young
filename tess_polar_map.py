@@ -136,6 +136,11 @@ def polar_cluster(ax,cluster=None,cluster_skycoord=None,save=True,
 
     # ax.set_title(cluster)
 
+    if cluster is not None:
+        x_avg = np.average(x_clu)
+        y_avg = np.average(y_clu)
+        ax.text(x_avg,y_avg+5,cluster,color="k")
+
     if save:
         plt.savefig('plots/TESS_sectors_{0}_{1}.png'.format(hemisphere.lower(),
                                                     cluster))
@@ -156,21 +161,21 @@ def plot_all_clusters():
 
 
 if __name__=="__main__":
-    # _ = plot_all_clusters()
+    _ = plot_all_clusters()
 
     ax = polar_map(hemisphere="South",save=False)
 
-    mclusters = ["IC_2391","IC_2602","NGC_2451A","NGC_2547"]
-    cat = at.read("catalogs/Meingast2021_GaiaEDR3_xmatch.csv",delimiter=",")
-    print(np.unique(cat["Cluster"]))
-    cat_pos = SkyCoord(cat["_RAJ2000"],cat["_DEJ2000"],unit=u.degree)
-    for cluster in mclusters:
-        print(cluster)
-        loc = (cat["Cluster"]==cluster.replace("_"," ")) & (cat["fc"]<0.1)
-        print(len(np.where(loc)[0]))
-        ax = polar_cluster(ax,cluster,cat_pos[loc],save=False)
-
-    plt.savefig("plots/TESS_sectors_South_Meingast.png")
+    # mclusters = ["IC_2391","IC_2602","NGC_2451A","NGC_2547"]
+    # cat = at.read("catalogs/Meingast2021_GaiaEDR3_xmatch.csv",delimiter=",")
+    # print(np.unique(cat["Cluster"]))
+    # cat_pos = SkyCoord(cat["_RAJ2000"],cat["_DEJ2000"],unit=u.degree)
+    # for cluster in mclusters:
+    #     print(cluster)
+    #     loc = (cat["Cluster"]==cluster.replace("_"," ")) & (cat["fc"]<0.1)
+    #     print(len(np.where(loc)[0]))
+    #     ax = polar_cluster(ax,cluster,cat_pos[loc],save=False)
+    #
+    # plt.savefig("plots/TESS_sectors_South_Meingast.png")
 
 
     # polar_map(hemisphere="North")
