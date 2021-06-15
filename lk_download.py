@@ -30,7 +30,7 @@ def download_one_set(ticname,pipeline,sectors=[8,9]):
 
     search = search_lightcurve(ticname, author=pipeline, sector=sectors)
     if len(search)>0:
-        lc = search.download_all()
+        lc = search.download_all(download_dir="/data/douglaslab/.lightkurve-cache/")
         return search.table
     else:
         return None
