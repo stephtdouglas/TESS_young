@@ -423,24 +423,27 @@ def xmatch(cluster,hdbscanfile,cgfile,to_plot=False):
 
 if __name__=="__main__":
 
-    # Collinder 135 is missing from Jackson+2020
-    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/Collinder_135.fits")
-    cgfile = "catalogs/cantat-gaudin2020_collinder135_10deg_GaiaEDR3_xmatch.csv"
-    xmatch("Collinder_135",hdbscanfile,cgfile,to_plot=True)
+    # # Collinder 135 is missing from Jackson+2020
+    # hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/Collinder_135.fits")
+    # cgfile = "catalogs/cantat-gaudin2020_collinder135_10deg_GaiaEDR3_xmatch.csv"
+    # xmatch("Collinder_135",hdbscanfile,cgfile,to_plot=True)
+    #
+    # #NGC 2451A
+    # hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
+    # cgfile = "catalogs/cantat-gaudin2020_ngc2451A_10deg_GaiaEDR3_xmatch.csv"
+    # xmatch("NGC_2451A",hdbscanfile,cgfile,to_plot=True)
+    #
+    # #NGC 2547
+    # hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2547.fits")
+    # cgfile = "catalogs/cantat-gaudin2020_ngc2547_10deg_GaiaEDR3_xmatch.csv"
+    # xmatch("NGC_2547",hdbscanfile,cgfile,to_plot=True)
+    #
+    # #IC 2391
+    # hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
+    # cgfile = "catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch_new.csv"
+    # xmatch("IC_2391",hdbscanfile,cgfile,to_plot=True)
 
-    #NGC 2451A
-    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
-    cgfile = "catalogs/cantat-gaudin2020_ngc2451A_10deg_GaiaEDR3_xmatch.csv"
-    xmatch("NGC_2451A",hdbscanfile,cgfile,to_plot=True)
-
-    #NGC 2547
-    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2547.fits")
-    cgfile = "catalogs/cantat-gaudin2020_ngc2547_10deg_GaiaEDR3_xmatch.csv"
-    xmatch("NGC_2547",hdbscanfile,cgfile,to_plot=True)
-
-    #IC 2391
-    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
-    cgfile = "catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch_new.csv"
-    xmatch("IC_2391",hdbscanfile,cgfile,to_plot=True)
-
-    # I'm missing the IC 2602 catalog from Phill
+    #IC 2602
+    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2602.fits")
+    cgfile = "catalogs/cantat-gaudin2020_ic2602_10deg_GaiaEDR3_xmatch.csv"
+    xmatch("IC_2602",hdbscanfile,cgfile,to_plot=True)
