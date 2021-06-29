@@ -299,7 +299,7 @@ def plot_all():
 def id_solar(bp_rp):
     return (bp_rp<=1.2) & (bp_rp>=0.8)
 
-def plot_model_tracks():
+def plot_model_tracks(ages,plot_name="",plot_title=""):
     bp_rp_IC_2391, prot_IC_2391 = process_cluster("IC_2391","2021-06-22")
     bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18")
     bp_rp_NGC_2451A, prot_NGC_2451A = process_cluster("NGC_2451A","2021-06-21")
@@ -313,15 +313,26 @@ def plot_model_tracks():
 
     # Sean's models
     plt.figure()
-    plt.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*48,
+    plt.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
              prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
-    plt.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*34,
+    plt.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
              prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
-    plt.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*50,
+    plt.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
              prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
-    plt.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*37.5,
+    plt.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
              prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
-
+    plt.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
+            "IC 2391",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["Collinder_135"],max(prot_Collinder_135[solar_Collinder_135])*1.2,
+            "Collinder 135",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["NGC_2451A"],max(prot_NGC_2451A[solar_NGC_2451A])*1.2,
+            "NGC 2451A",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["NGC_2547"],max(prot_NGC_2547[solar_NGC_2547])*1.2,
+            "NGC 2547",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
 
     mfile = at.read("models/spintracks_Matt_ea_15/spintrack10_Mea15.txt",
                     names=["age(yr)","P0_0.7","P0_5","P0_18"])
@@ -337,19 +348,31 @@ def plot_model_tracks():
     plt.xlabel("Age (Myr)")
     plt.ylabel("Period (d)")
 
-    plt.title("Matt et al. (2015), Solar mass")
-    plt.savefig("plots/periodtracks_Matt2015.png")
+    plt.title(f"Matt et al. (2015), Solar mass{plot_title}")
+    plt.savefig(f"plots/periodtracks{plot_name}_Matt2015.png")
 
     # Seth's models, Matt wind model
     plt.figure()
-    plt.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*48,
+    plt.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
              prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
-    plt.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*34,
+    plt.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
              prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
-    plt.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*50,
+    plt.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
              prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
-    plt.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*37.5,
+    plt.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
              prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
+    plt.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
+            "IC 2391",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["Collinder_135"],max(prot_Collinder_135[solar_Collinder_135])*1.2,
+            "Collinder 135",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["NGC_2451A"],max(prot_NGC_2451A[solar_NGC_2451A])*1.2,
+            "NGC 2451A",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["NGC_2547"],max(prot_NGC_2547[solar_NGC_2547])*1.2,
+            "NGC 2547",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
 
     periods = ["0.3d","0.4d","0.6d","0.8d","1.5d","12d","3d","4.5d","6d","8d"]
     for p in periods:
@@ -369,20 +392,32 @@ def plot_model_tracks():
     plt.xlabel("Age (Myr)")
     plt.ylabel("Period (d)")
 
-    plt.title("Gossage et al. (2021), Solar Mass, M15 spin-down")
-    plt.savefig("plots/periodtracks_Gossage2021_M15.png")
+    plt.title(f"Gossage et al. (2021), Solar Mass, M15 spin-down{plot_title}")
+    plt.savefig(f"plots/periodtracks{plot_name}_Gossage2021_M15.png")
 
 
     # Seth's models, Garraffo wind model
     plt.figure()
-    plt.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*48,
+    plt.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
              prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
-    plt.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*34,
+    plt.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
              prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
-    plt.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*50,
+    plt.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
              prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
-    plt.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*37.5,
+    plt.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
              prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
+    plt.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
+            "IC 2391",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["Collinder_135"],max(prot_Collinder_135[solar_Collinder_135])*1.2,
+            "Collinder 135",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["NGC_2451A"],max(prot_NGC_2451A[solar_NGC_2451A])*1.2,
+            "NGC 2451A",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
+    plt.text(ages["NGC_2547"],max(prot_NGC_2547[solar_NGC_2547])*1.2,
+            "NGC 2547",horizontalalignment="center",rotation="vertical",
+            fontsize=7,color="grey")
 
     periods = ["0.3d","0.4d","0.6d","0.8d","1.5d","12d","3d","4.5d","6d","8d"]
     for p in periods:
@@ -402,8 +437,8 @@ def plot_model_tracks():
     plt.xlabel("Age (Myr)")
     plt.ylabel("Period (d)")
 
-    plt.title("Gossage et al. (2021), Solar Mass, G18 spin-down")
-    plt.savefig("plots/periodtracks_Gossage2021_G18.png")
+    plt.title(f"Gossage et al. (2021), Solar Mass, G18 spin-down{plot_title}")
+    plt.savefig(f"plots/periodtracks{plot_name}_Gossage2021_G18.png")
 
 
 if __name__=="__main__":
@@ -412,5 +447,24 @@ if __name__=="__main__":
     # _, _ = process_cluster("NGC_2451A","2021-06-21")
     # _, _ = process_cluster("NGC_2547","2021-06-21")
 
-    plot_model_tracks()
-    # plot_all()
+
+    cg20_ages = {"IC_2391": 28.8,
+                 "IC_2602": 36.3,
+                 "NGC_2547": 32.4,
+                 "NGC_2451A": 35.5,
+                 "Collinder_135": 26.3}
+    khar_ages = {"IC_2391": 112.2,
+                 "IC_2602": 221.3,
+                 "NGC_2547": 77.6,
+                 "NGC_2451A": 57.5,
+                 "Collinder_135": 39.8}
+    plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", CG20 Ages")
+    plot_model_tracks(khar_ages,plot_name="_Kharages",plot_title=", Khar Ages")
+    plot_all()
+
+    g12_ages = {"IC_2391": 46,
+                 "IC_2602": 32,
+                 "NGC_2547": 38,
+                 "NGC_2451A": 60,
+                 "Collinder_135": 26}
+    plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages")

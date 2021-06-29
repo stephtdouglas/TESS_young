@@ -451,8 +451,6 @@ def stamp(img, maskmap, ax=None, cmap="cubehelix"):
     return ax
 
 
-# TODO: I think astropy wcs is back to accepting nonstandard header cards. NOPE.
-
 def extract_wcs(dataheader):
     """
     Generate WCS for a TPF, since astropy has decided not to cooperate.
@@ -472,11 +470,7 @@ def extract_wcs(dataheader):
     return w5
 
 
-# TODO: replace with the stereographic plots I created
-# And plot all the cluster targets in the background
-
-
-def plot_sky(axes, TIC, wcs, pos, tess_img):
+def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
     """
     inputs
     ------
@@ -489,30 +483,30 @@ def plot_sky(axes, TIC, wcs, pos, tess_img):
 
     tess_wcs = wcs
 
-    # Get 2MASS K image
-    twomass_images, pix_2mass, hdr_2mass, wcs_2mass = None, None, None, None
-    try:
-        twomass_images = SkyView.get_images(position=pos, survey=['2MASS-K'],
-                                            pixels=500)
-        # print(twomass_images)
-        if len(twomass_images)>0:
-            pix_2mass = twomass_images[0][0].data
-            hdr_2mass = twomass_images[0][0].header
-            wcs_2mass = WCS(hdr_2mass)
-    except (astroquery.exceptions.TimeoutError, urllib.HTTPError):
-        pix_2mass, hdr_2mass, wcs_2mass = None, None, None
-
-    # # Get DSS2 R image - not SDSS because this is the Hyades!
-    pix,hdr,im,wcs_sdss = None,None,None,None
-    try:
-        dss_images = SkyView.get_images(position=pos, survey=['DSS2 Red'],
-                                         pixels=700)
-        if len(dss_images)>0:
-            pix = dss_images[0][0].data
-            hdr = dss_images[0][0].header
-            wcs_sdss = WCS(hdr)
-    except (astroquery.exceptions.TimeoutError,urllib.HTTPError):
-        pix, hdr, wcs_sdss = None, None, None
+    # # Get 2MASS K image
+    # twomass_images, pix_2mass, hdr_2mass, wcs_2mass = None, None, None, None
+    # try:
+    #     twomass_images = SkyView.get_images(position=pos, survey=['2MASS-K'],
+    #                                         pixels=500)
+    #     # print(twomass_images)
+    #     if len(twomass_images)>0:
+    #         pix_2mass = twomass_images[0][0].data
+    #         hdr_2mass = twomass_images[0][0].header
+    #         wcs_2mass = WCS(hdr_2mass)
+    # except (astroquery.exceptions.TimeoutError, urllib.HTTPError):
+    #     pix_2mass, hdr_2mass, wcs_2mass = None, None, None
+    #
+    # # # Get DSS2 R image - not SDSS because this is the Hyades!
+    # pix,hdr,im,wcs_sdss = None,None,None,None
+    # try:
+    #     dss_images = SkyView.get_images(position=pos, survey=['DSS2 Red'],
+    #                                      pixels=700)
+    #     if len(dss_images)>0:
+    #         pix = dss_images[0][0].data
+    #         hdr = dss_images[0][0].header
+    #         wcs_sdss = WCS(hdr)
+    # except (astroquery.exceptions.TimeoutError,urllib.HTTPError):
+    #     pix, hdr, wcs_sdss = None, None, None
 
 
     # Plot TESS image
@@ -521,40 +515,49 @@ def plot_sky(axes, TIC, wcs, pos, tess_img):
     ax1.matshow(tess_img, origin="lower", cmap=cmap, norm=colors.LogNorm(),
                 zorder=-10)
 
-    if pix is not None:
-        # median = np.median(pix)
-        # stdev = np.std(pix)
-        # levels = np.linspace(median + stdev, np.max(pix), 20)
-        # #grey = plt.cm.Greys(0.3)
-        # ax1[hdr].contour(pix,cmap=plt.cm.Greys, levels=levels,zorder=10)
+    # Plot TESS image
+    # Plot the pixel stamp as usual, except with the WCS
+    ax2 = axes[1]
+    ax2.matshow(tess_img, origin="lower", cmap="Greys", norm=colors.LogNorm(),
+                zorder=-10)
+    # This line is failing and I can't figure out why
+    # https://docs.astropy.org/en/stable/visualization/wcsaxes/overlays.html
+    ax2.scatter(gaia_pos.ra.degree,gaia_pos.dec.degree,'.',
+                transform=ax2.get_transform('world'))
 
-        # Plot the SDSS image rotated into the same frame as the pixel stamp
-        ax2 = axes[1]
-        vmax = np.percentile(pix,99.9)
-        ax2.imshow(pix, origin="lower", norm=colors.LogNorm(), zorder=-10,
-                  transform=ax2.get_transform(wcs_sdss))
-        # median2 = np.median(coadd)
-        # stdev2 = np.std(coadd)
-        # levels2 = np.linspace(median, np.max(coadd), 5)
+    # if pix is not None:
+    #     # median = np.median(pix)
+    #     # stdev = np.std(pix)
+    #     # levels = np.linspace(median + stdev, np.max(pix), 20)
+    #     # #grey = plt.cm.Greys(0.3)
+    #     # ax1[hdr].contour(pix,cmap=plt.cm.Greys, levels=levels,zorder=10)
+    #
+    #     # Plot the SDSS image rotated into the same frame as the pixel stamp
+    #     ax2 = axes[1]
+    #     vmax = np.percentile(pix,99.9)
+    #     ax2.imshow(pix, origin="lower", norm=colors.LogNorm(), zorder=-10,
+    #               transform=ax2.get_transform(wcs_sdss))
+    #     # median2 = np.median(coadd)
+    #     # stdev2 = np.std(coadd)
+    #     # levels2 = np.linspace(median, np.max(coadd), 5)
+    #
+    # if pix_2mass is not None:
+    #
+    #     # Matplotlib was choking on negative values when it saved the figure
+    #     pos_min = np.min(pix_2mass[pix_2mass>0])
+    #     vmin = np.max([pos_min,np.percentile(pix_2mass,0.01)])
+    #     vmax = np.percentile(pix_2mass,99.9)
+    #     # TODO: figure out how to do this correctly now
+    #     # pix_2mass.flags.writeable=True
+    #     # pix_2mass[pix_2mass<=0] = pos_min
+    #
+    #     # Plot the 2MASS image rotated into the same frame as the pixel stamp
+    #     ax4 = axes[2]
+    #     ax4.imshow(pix_2mass, origin="lower", norm=colors.LogNorm(), zorder=-10,
+    #               transform=ax4.get_transform(wcs_2mass))
 
-    if pix_2mass is not None:
 
-        # Matplotlib was choking on negative values when it saved the figure
-        pos_min = np.min(pix_2mass[pix_2mass>0])
-        vmin = np.max([pos_min,np.percentile(pix_2mass,0.01)])
-        vmax = np.percentile(pix_2mass,99.9)
-        # TODO: figure out how to do this correctly now
-        # pix_2mass.flags.writeable=True
-        # pix_2mass[pix_2mass<=0] = pos_min
-
-        # Plot the 2MASS image rotated into the same frame as the pixel stamp
-        ax4 = axes[2]
-        ax4.imshow(pix_2mass, origin="lower", norm=colors.LogNorm(), zorder=-10,
-                  transform=ax4.get_transform(wcs_2mass))
-
-
-    # Plot chip image - not working?
-    # TODO: replace with my TESS stereographic plot
+    # Plot TESS stereographic plot of the cluster
     ax3 = axes[3]
     ax3.plot(pos.ra.value,pos.dec.value,'*',color=cmap(0.01),ms=24,
              mec=cmap(0.99))
@@ -567,8 +570,8 @@ def plot_sky(axes, TIC, wcs, pos, tess_img):
 
     plt.subplots_adjust(hspace=0.15)
 
-    del(im,pix,hdr)
-    del(twomass_images, pix_2mass, hdr_2mass)
+    # del(im,pix,hdr)
+    # del(twomass_images, pix_2mass, hdr_2mass)
 
 
 if __name__=="__main__":
@@ -577,9 +580,6 @@ if __name__=="__main__":
     dir = os.path.expanduser("~/Google Drive (douglste@lafayette.edu)/Research/hpc/douglaslab/tess/ngc_2451a/tables/")
     period_file_base = os.path.join(dir,"NGC_2451A_output_2021-06-21_")
     nfiles = 23
-
-    # TODO: will need to pass these in to the functions above, instead
-    # of just running them all at the beginning
 
     for i in range(nfiles):
         #print(i+1)
@@ -598,6 +598,11 @@ if __name__=="__main__":
     print(res.dtype)
     tic_ids = res["target_name"]
     print(tic_ids)
+
+    # import Gaia positions
+    gaia = at.read("catalogs/GaiaEDR3_NGC_2451A_10deg.csv",delimiter="|",
+                   data_start=3)
+    gaia_pos = SkyCoord(gaia["RA_ICRS"],gaia["DE_ICRS"],unit=u.degree)
 
     # TODO: sort by RA or by TIC ID, not sure which
 
@@ -625,7 +630,7 @@ if __name__=="__main__":
         tess_wcs = extract_wcs(dataheader)
 
     fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
-    plot_sky(sky_axes, test_tic, tess_wcs, cutout_coord, coadd)
+    plot_sky(sky_axes, test_tic, tess_wcs, cutout_coord, coadd, gaia_pos)
     plot_lcs(lc_axes, test_tic, res[test_res],
              os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
     sector, lc_type, flux_col = 8, "CDIPS", "PCA1"
