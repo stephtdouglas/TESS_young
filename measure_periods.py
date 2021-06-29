@@ -96,7 +96,8 @@ def run_one(t,f,tic=None,lc_type=None,sector=None,flux_col=None,
     # Find all peaks in the periodogram
     peak_locs = argrelextrema(periodogram,np.greater,order=100)
     logging.debug(len(peak_locs[0]))
-    logging.debug(periods_to_test[np.argmax(peak_locs[0])])
+    if len(peak_locs[0])>0:
+        logging.debug(periods_to_test[np.argmax(peak_locs[0])])
 
     # Only keep significant peaks (use bootstrap significance levels)
     sig_locs = peak_locs[0][periodogram[peak_locs[0]]>sigmas[0]]
@@ -291,6 +292,8 @@ def run_list(data_list,output_filename,data_dir,plot_dir,
                     good = ((time>1545) & (time<1556)) | (time>1558)
                 elif sector==10:
                     good = ((time>1572) & (time<1582)) | (time>1586)
+                else:
+                    good = np.ones(len(time),bool)
                 time, flux = time[good], flux[good]
 
 
@@ -413,9 +416,15 @@ if __name__=="__main__":
 #    data_path = os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/")
 #    plot_path = base_path+"plots/"
 
-    base_path = "/data/douglaslab/tess/ic2391/"
+    cname = cluster.lower().replace(" ","_")
+    base_path = f"/data/douglaslab/tess/{cname}/"
+    logging.debug(os.path.exists(base_path))
+
     data_path = "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/"
     plot_path = os.path.join(base_path,"plots/")
+    table_path = os.path.join(base_path,"tables/")
+    logging.debug(os.path.exists(plot_path))
+    logging.debug(os.path.exists(table_path))
     
     logging.info(sub_list)
 
