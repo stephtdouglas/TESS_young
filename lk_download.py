@@ -4,6 +4,7 @@ Script to retrieve TESS lightcurves using LightKurve
 
 import os
 from datetime import date
+from requests import HTTPError
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,7 +29,12 @@ def download_one_set(ticname,pipeline,sectors=[8,9]):
 
     """
 
-    search = search_lightcurve(ticname, author=pipeline, sector=sectors)
+    try:
+        search = search_lightcurve(ticname, author=pipeline, sector=sectors)
+    except HTTPError:
+        print(ticname, pipeline, sectors, "MAST server error")
+        return None
+        
     if len(search)>0:
         lc = search.download_all(download_dir="/data/douglaslab/.lightkurve-cache/")
         return search.table
@@ -36,23 +42,43 @@ def download_one_set(ticname,pipeline,sectors=[8,9]):
         return None
 
 def download_list(ticnames,outfilename,pipelines=["CDIPS","QLP","PATHOS"],
-                  sectors=[8,9,10]):
+                  sectors=[8,9,10],start_i=0,start_ct=0):
     """
     Retrieve HLSP light curves from MAST for a list of ticnames.
 
     """
 
     search_table_list = []
+    ct = start_ct
 
-    for ticname in ticnames:
-        print(ticname)
+    for i,ticname in enumerate(ticnames):
+        if i < start_i:
+            continue
+        print(i,ticname,ct)
+
+#        existing_out = glob.glob(f"tables/{outfilename}*")
+#        last_out = 
+        
+#        if (i<(ct+1)*50):
+#            last_out = outfilename+f".{ct+1}"
+#            if os.path.exists(last_out):
+#                print("already done",ct)
+#                print(last_out)
+#                continue
+        
         for pipeline in pipelines:
             search_table = download_one_set(f"TIC {ticname}",pipeline,sectors=sectors)
             if search_table is not None:
                 search_table_list.append(search_table)
                 # print(search_table.dtype.names)
-            else:
-                print("missing:",ticname,pipeline,sectors)
+            #else:
+            #    print("missing:",ticname,pipeline,sectors)
+
+        if ((i % 50)==0) and (len(search_table_list)>1):
+            ct += 1
+            out_table = vstack(search_table_list,join_type="outer")
+            print(outfilename+f".{ct}")
+            at.write(out_table,outfilename+f".{ct}",delimiter=",")
 
     out_table = vstack(search_table_list,join_type="outer")
     at.write(out_table,outfilename,delimiter=",")
@@ -61,10 +87,10 @@ if __name__=="__main__":
 
     today = date.today()
 
-    cat_files = ["Collinder_135_crossmatch_xmatch_TIC.csv",
+    cat_files = [#"Collinder_135_crossmatch_xmatch_TIC.csv",
                  "IC_2391_crossmatch_xmatch_TIC.csv",
-                 "NGC_2451A_crossmatch_xmatch_TIC.csv",
-                 "NGC_2547_crossmatch_xmatch_TIC.csv"
+#                 "NGC_2451A_crossmatch_xmatch_TIC.csv",
+#                 "NGC_2547_crossmatch_xmatch_TIC.csv"
                  ]
 
     sector_list = [[6,7,8],[8,9,10],[7,8],[7,8,9]]
@@ -72,7 +98,9 @@ if __name__=="__main__":
     for i,filename in enumerate(cat_files):
         print(filename)
         cat = at.read(filename,delimiter=",")
-        dl_filename = filename.replace("crossmatch_xmatch_TIC",
+        dl_filename0 = filename.replace("crossmatch_xmatch_TIC",
                                        f"downloads_{str(today)}")
+        dl_filename = os.path.join("tables/",dl_filename0)
         print(dl_filename)
         download_list(cat["TIC"],dl_filename,sectors=sector_list[i])
+        break
