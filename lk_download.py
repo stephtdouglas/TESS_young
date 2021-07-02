@@ -87,15 +87,19 @@ if __name__=="__main__":
 
     today = date.today()
 
-    cat_files = [#"Collinder_135_crossmatch_xmatch_TIC.csv",
+    cat_files = ["Collinder_135_crossmatch_xmatch_TIC.csv",
                  "IC_2391_crossmatch_xmatch_TIC.csv",
-#                 "NGC_2451A_crossmatch_xmatch_TIC.csv",
-#                 "NGC_2547_crossmatch_xmatch_TIC.csv"
-                 ]
+                 "NGC_2451A_crossmatch_xmatch_TIC.csv",
+                 "NGC_2547_crossmatch_xmatch_TIC.csv",
+                 "IC_2602_crossmatch_xmatch_TIC.csv"
+                ]
 
-    sector_list = [[6,7,8],[8,9,10],[7,8],[7,8,9]]
+    sector_list = [[6,7,8],[8,9,10],[7,8],[7,8,9],[9,10,11]]
 
     for i,filename in enumerate(cat_files):
+        print(i,filename)
+        if i<=3:
+            continue
         print(filename)
         cat = at.read(filename,delimiter=",")
         dl_filename0 = filename.replace("crossmatch_xmatch_TIC",
@@ -103,4 +107,4 @@ if __name__=="__main__":
         dl_filename = os.path.join("tables/",dl_filename0)
         print(dl_filename)
         download_list(cat["TIC"],dl_filename,sectors=sector_list[i])
-        break
+        
