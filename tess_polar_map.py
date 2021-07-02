@@ -139,7 +139,7 @@ def polar_cluster(ax,cluster=None,cluster_skycoord=None,save=True,
     if cluster is not None:
         x_avg = np.average(x_clu)
         y_avg = np.average(y_clu)
-        ax.text(x_avg,y_avg+5,cluster,color="k")
+        ax.text(x_avg,y_avg+5,cluster,color="k",horizontalalignment="right")
 
     if save:
         plt.savefig('plots/TESS_sectors_{0}_{1}.png'.format(hemisphere.lower(),
@@ -149,7 +149,7 @@ def polar_cluster(ax,cluster=None,cluster_skycoord=None,save=True,
 def plot_all_clusters():
     ax = polar_map(hemisphere="South",save=False)
 
-    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547"]
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     for cluster in clusters:
         cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
         cat_pos = SkyCoord(cat["GAIAEDR3_RA"],cat["GAIAEDR3_DEC"],unit=u.degree)
@@ -163,7 +163,7 @@ def plot_all_clusters():
 if __name__=="__main__":
     _ = plot_all_clusters()
 
-    ax = polar_map(hemisphere="South",save=False)
+    # ax = polar_map(hemisphere="South",save=False)
 
     # mclusters = ["IC_2391","IC_2602","NGC_2451A","NGC_2547"]
     # cat = at.read("catalogs/Meingast2021_GaiaEDR3_xmatch.csv",delimiter=",")

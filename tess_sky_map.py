@@ -152,8 +152,8 @@ def stereographic_map(cluster=None, cluster_skycoord=None, plot_sectors=[8,9,10]
 
 
 def plot_clusters_sterographic():
-    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547"]
-    sector_list = [[6,7,8],[8,9,10],[7,8],[7,8,9]]
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    sector_list = [[8,9,10],[6,7,8],[7,8],[7,8,9],[9,10,11]]
     for i,cluster in enumerate(clusters):
         cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
         cat_pos = SkyCoord(cat["GAIAEDR3_RA"],cat["GAIAEDR3_DEC"],unit=u.degree)
@@ -190,8 +190,8 @@ def plot_clusters_sterographic():
         plt.show()
 
 if __name__=="__main__":
-    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547"]
-    sector_list = [[8,9,10],[6,7,8],[7,8],[7,8,9]]
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    sector_list = [[8,9,10],[6,7,8],[7,8],[7,8,9],[9,10,11]]
     for i,cluster in enumerate(clusters):
         cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
         cat_pos = SkyCoord(cat["GAIAEDR3_RA"],cat["GAIAEDR3_DEC"],unit=u.degree)

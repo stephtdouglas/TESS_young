@@ -27,6 +27,7 @@ import astroquery
 from astroquery.skyview import SkyView
 from astroquery.mast import Observations
 from astroquery.mast import Tesscut
+from astroquery.vizier import Vizier
 from astropy.wcs import WCS
 import astropy.io.ascii as at
 import astropy.io.fits as fits
@@ -166,7 +167,7 @@ def stereographic_map(ax, wcs, cluster=None, cluster_skycoord=None,
 
 def set_up_tess_sky(cluster, gs_sky, sky_ind=3):
     clusters = np.array(["IC_2391","Collinder_135","NGC_2451A","NGC_2547"])
-    sector_list = [[6,7,8],[8,9,10],[7,8],[7,8,9]]
+    sector_list = [[8,9,10],[6,7,8],[7,8],[7,8,9]]
 
     i = np.where(clusters==cluster)[0][0]
     logging.debug(cluster)
@@ -210,7 +211,7 @@ def setup_figure(wcs,cluster):
     two sky survey images, light curve and periodogram plots.
     """
 
-    fig = plt.figure(figsize=(14,16))
+    fig = plt.figure(figsize=(14,14))
 
     gs_base = gridspec.GridSpec(1,2,width_ratios=[1,3])
 
@@ -220,7 +221,7 @@ def setup_figure(wcs,cluster):
 
     sky_axes.append(set_up_tess_sky(cluster, gs_sky, sky_ind=3))
 
-    lc_n = 7
+    lc_n = 5
 
     gs_lc = gridspec.GridSpecFromSubplotSpec(lc_n,1,subplot_spec=gs_base[1])
 
@@ -349,50 +350,27 @@ def plot_lcs(axes, TIC, row, data_dir):
     # axes[1].tick_params(labelbottom=False)
     axes[1].set_xlabel("Time (d)",fontsize=label_fontsize)
 
-
-    axes[2].set_axis_off()
-    axes[3].set_axis_off()
-    # ### White noise
-    # # TODO: I think we can delete this panel
-    # axes[2].plot(t,w,'k.')
-    # axes[2].set_ylim(np.percentile(w,[0.5,99.5]))
-    # axes[2].set_xlim(t[0],t[-1])
-    # axes[2].set_ylabel("White noise",fontsize=label_fontsize)
-    # axes[2].set_yticklabels([])
-    # # axes[2].tick_params(labelbottom=False)
-    # axes[2].set_xlabel("Time (d)",fontsize=label_fontsize)
-    #
-    # ### Time-dependent trend
-    # # TODO: I think we can delete this panel
-    # axes[3].plot(t,f - w,'k.')
-    # axes[3].set_ylabel("Time-dep",fontsize=label_fontsize)
-    # axes[3].set_xlim(t[0],t[-1])
-    # axes[3].set_yticklabels([])
-    # # axes[3].tick_params(labelbottom=False)
-    # axes[3].set_xlabel("Time (d)",fontsize=label_fontsize)
-
-
     ### Phase folded 1
     if row["sig_periods"][0]>0:
-        plot_phased(axes[4],t,f,row["sig_periods"][0],row["sig_powers"][0],color=color1)
-        axes[4].set_ylim(ylims)
-        axes[4].set_ylabel("P1",fontsize=label_fontsize)
+        plot_phased(axes[2],t,f,row["sig_periods"][0],row["sig_powers"][0],color=color1)
+        axes[2].set_ylim(ylims)
+        axes[2].set_ylabel("P1",fontsize=label_fontsize)
 
         if row["sig_periods"]>=2:
             repeats = np.arange(t[0],t[-1],row["sig_periods"][0])
             for r in repeats:
                 axes[1].axvline(r,ls="--",color=color1,lw=2)
         # axes[4].tick_params(labelbottom=False)
-        axes[4].set_xlabel("Phase",fontsize=label_fontsize)
+        axes[2].set_xlabel("Phase",fontsize=label_fontsize)
     else:
-        axes[4].set_axis_off()
+        axes[2].set_axis_off()
 
 
     ### Phase folded 2
     if row["sec_periods"][0]>0:
-        plot_phased(axes[5],t,f,row["sec_periods"][0],row["sec_powers"][0],color=color2)
-        axes[5].set_ylim(ylims)
-        axes[5].set_ylabel("P2",fontsize=label_fontsize)
+        plot_phased(axes[3],t,f,row["sec_periods"][0],row["sec_powers"][0],color=color2)
+        axes[3].set_ylim(ylims)
+        axes[3].set_ylabel("P2",fontsize=label_fontsize)
 
         # print(row["sec_periods"])
         if row["sec_periods"][0]>=2:
@@ -401,19 +379,19 @@ def plot_lcs(axes, TIC, row, data_dir):
             for r in repeats:
                 # print(r)
                 axes[1].axvline(r,ls=":",color=color2,lw=2)
-        axes[5].set_xlabel("Phase",fontsize=label_fontsize)
+        axes[3].set_xlabel("Phase",fontsize=label_fontsize)
     else:
         # axes[5].set_yticks([])
         # axes[5].set_yticklabels([])
-        axes[5].set_axis_off()
+        axes[3].set_axis_off()
 
     ### Phase folded 3
     if third_period is not None:
-        plot_phased(axes[6],t,f,third_period,third_power,color=color3)
-        axes[6].set_ylim(ylims)
-        axes[6].set_ylabel("P3",fontsize=label_fontsize)
-        axes[6].set_xlim(0,1)
-        axes[6].set_xlabel("Phase",fontsize=label_fontsize)
+        plot_phased(axes[4],t,f,third_period,third_power,color=color3)
+        axes[4].set_ylim(ylims)
+        axes[4].set_ylabel("P3",fontsize=label_fontsize)
+        axes[4].set_xlim(0,1)
+        axes[4].set_xlabel("Phase",fontsize=label_fontsize)
         #
         # if third_period]>=2:
         #     repeats = np.arange(t[0],t[-1],third_period)
@@ -424,7 +402,7 @@ def plot_lcs(axes, TIC, row, data_dir):
     else:
         # axes[6].set_yticks([])
         # axes[6].set_yticklabels([])
-        axes[6].set_axis_off()
+        axes[4].set_axis_off()
 
 
     plt.subplots_adjust(hspace=0.6)
@@ -520,10 +498,13 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
     ax2 = axes[1]
     ax2.matshow(tess_img, origin="lower", cmap="Greys", norm=colors.LogNorm(),
                 zorder=-10)
-    # This line is failing and I can't figure out why
-    # https://docs.astropy.org/en/stable/visualization/wcsaxes/overlays.html
-    ax2.scatter(gaia_pos.ra.degree,gaia_pos.dec.degree,'.',
-                transform=ax2.get_transform('world'))
+    # tpos = SkyCoord.from_name(f"TIC {TIC}")
+    gres = Vizier.query_region(f"TIC {TIC}", radius=0.2*u.degree, catalog='I/350/gaiaedr3')
+    gaia_pos = SkyCoord(gres[0]["RA_ICRS"],gres[0]["DE_ICRS"],unit=u.degree)
+    ax2.set_autoscale_on(False)
+    ax2.scatter(gaia_pos.ra,gaia_pos.dec,
+                transform=ax2.get_transform('icrs'), s=50,
+                edgecolor='r',facecolor='r',zorder=10)
 
     # if pix is not None:
     #     # median = np.median(pix)
