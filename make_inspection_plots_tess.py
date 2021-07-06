@@ -4,9 +4,9 @@ import time
 import logging
 import urllib as urllib
 
-# logger = logging.getLogger("make_inspection_plots_tess")
+logger = logging.getLogger("make_inspection_plots_tess")
 logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(message)s')
-# logging.getLogger("matplotlib").setLevel(logging.WARNING)
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 import numpy as np
 
@@ -173,7 +173,8 @@ def set_up_tess_sky(cluster, gs_sky, sky_ind=3):
     logging.debug(cluster)
     logging.debug(i)
 
-    cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
+    #cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
+    cat = at.read(f"{cluster}_crossmatch_xmatch_TIC.csv",delimiter=",")
     cat_pos = SkyCoord(cat["GAIAEDR3_RA"],cat["GAIAEDR3_DEC"],unit=u.degree)
 
     cluster_skycoord = cat_pos
@@ -500,9 +501,10 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
                 zorder=-10)
     # tpos = SkyCoord.from_name(f"TIC {TIC}")
     ax2.set_autoscale_on(False)
-    ax2.scatter(gaia_pos.ra,gaia_pos.dec,
-                transform=ax2.get_transform('fk5'), s=6,
-                edgecolor=cmap(0.9),facecolor=cmap(0.9),zorder=10)
+    if gaia_pos is not None:
+        ax2.scatter(gaia_pos.ra,gaia_pos.dec,
+                    transform=ax2.get_transform('fk5'), s=6,
+                    edgecolor=cmap(0.9),facecolor=cmap(0.9),zorder=10)
 
     ax2.plot([7.5,9],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
     ax2.plot([11,12.5],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
@@ -561,7 +563,8 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
 if __name__=="__main__":
 
     # TODO: make these an input from the commandline
-    dir = os.path.expanduser("~/Google Drive (douglste@lafayette.edu)/Research/hpc/douglaslab/tess/ngc_2451a/tables/")
+    base_dir = "/data/douglaslab/"
+    dir = os.path.join(base_dir,"tess/ngc_2451a/tables/")
     period_file_base = os.path.join(dir,"NGC_2451A_output_2021-06-21_")
     nfiles = 23
 
@@ -584,13 +587,14 @@ if __name__=="__main__":
     print(tic_ids)
 
     # import Gaia positions
-    hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
+#    hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
+    hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
     with fits.open(hdbfile) as hdu:
         hdbscan = hdu[1].data
     bright = hdbscan["GAIAEDR3_G"]<17.4
     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
                         hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
-
+#    gaia_pos = None
     # TODO: sort by RA or by TIC ID, not sure which
 
 
@@ -608,10 +612,10 @@ if __name__=="__main__":
     # Get TESS image
     cutout_coord = SkyCoord.from_name(f"TIC {test_tic}")
     dir_ffi = "./temp/" #"/data/douglaslab/tess/ffi/"
-    # tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
-    # tess_file = tess_data[2][0]
+    tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
+    tess_file = tess_data[2][0]
 
-    tess_file = "./temp/tess-s0007-3-1_113.295383_-35.481020_20x20_astrocut.fits"
+    #tess_file = "./temp/tess-s0007-3-1_113.295383_-35.481020_20x20_astrocut.fits"
 
     with fits.open(tess_file) as hdu:
         dataheader = hdu[1].header
@@ -622,7 +626,8 @@ if __name__=="__main__":
     fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
     plot_sky(sky_axes, test_tic, tess_wcs, cutout_coord, coadd, gaia_pos)
     plot_lcs(lc_axes, test_tic, res[test_res],
-             os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
+             "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/")
+#             os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
     sector, lc_type, flux_col = 8, "CDIPS", "PCA1"
     plt.suptitle(f"TIC {test_tic}: {lc_type}, {flux_col}, Sector {sector}",
                  y=0.91,fontsize=20)
@@ -635,7 +640,7 @@ if __name__=="__main__":
     # TODO: change this all to be relevant to TESS, not K2
     with open("../c13_plots/k2sc_inspect/fig4.tbl","w") as f:
 
-        for i,ep in enumerate(c13_epic):
+        for i,ep in enumerate(tic_ids):
 
             print(i,ep)
             fig, sky_axes, lc_axes = setup_figure()
