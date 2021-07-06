@@ -499,12 +499,15 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
     ax2.matshow(tess_img, origin="lower", cmap="Greys", norm=colors.LogNorm(),
                 zorder=-10)
     # tpos = SkyCoord.from_name(f"TIC {TIC}")
-    gres = Vizier.query_region(f"TIC {TIC}", radius=0.2*u.degree, catalog='I/350/gaiaedr3')
-    gaia_pos = SkyCoord(gres[0]["RA_ICRS"],gres[0]["DE_ICRS"],unit=u.degree)
     ax2.set_autoscale_on(False)
     ax2.scatter(gaia_pos.ra,gaia_pos.dec,
-                transform=ax2.get_transform('icrs'), s=50,
-                edgecolor='r',facecolor='r',zorder=10)
+                transform=ax2.get_transform('fk5'), s=6,
+                edgecolor=cmap(0.9),facecolor=cmap(0.9),zorder=10)
+
+    ax2.plot([7.5,9],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
+    ax2.plot([11,12.5],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
+    ax2.plot([10,10],[7.5,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
+    ax2.plot([10,10],[11,12.5],color=cmap(0.5),transform=ax2.get_transform('pixel'))
 
     # if pix is not None:
     #     # median = np.median(pix)
@@ -581,9 +584,12 @@ if __name__=="__main__":
     print(tic_ids)
 
     # import Gaia positions
-    gaia = at.read("catalogs/GaiaEDR3_NGC_2451A_10deg.csv",delimiter="|",
-                   data_start=3)
-    gaia_pos = SkyCoord(gaia["RA_ICRS"],gaia["DE_ICRS"],unit=u.degree)
+    hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
+    with fits.open(hdbfile) as hdu:
+        hdbscan = hdu[1].data
+    bright = hdbscan["GAIAEDR3_G"]<17.4
+    gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
+                        hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
 
     # TODO: sort by RA or by TIC ID, not sure which
 
@@ -602,8 +608,11 @@ if __name__=="__main__":
     # Get TESS image
     cutout_coord = SkyCoord.from_name(f"TIC {test_tic}")
     dir_ffi = "./temp/" #"/data/douglaslab/tess/ffi/"
-    tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
-    tess_file = tess_data[2][0]
+    # tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
+    # tess_file = tess_data[2][0]
+
+    tess_file = "./temp/tess-s0007-3-1_113.295383_-35.481020_20x20_astrocut.fits"
+
     with fits.open(tess_file) as hdu:
         dataheader = hdu[1].header
         pixels = hdu[1].data["FLUX"]
