@@ -1,4 +1,5 @@
 import sys,os
+import glob
 import itertools
 import time
 import logging
@@ -563,95 +564,122 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
 if __name__=="__main__":
 
     # TODO: make these an input from the commandline
-    base_dir = "/data/douglaslab/"
-    dir = os.path.join(base_dir,"tess/ngc_2451a/tables/")
-    period_file_base = os.path.join(dir,"NGC_2451A_output_2021-06-21_")
-    nfiles = 23
+    cluster = "NGC_2451A"
+    # base_dir = os.path.expanduser(f"~/data/tess/")
+    base_dir = "/data/douglaslab/tess/"
+    dir = os.path.join(base_dir,f"{cluster.lower()}/tables/")
 
-    for i in range(nfiles):
-        #print(i+1)
-        period_file = "{0}{1}.csv".format(period_file_base,i)
-        new_res = at.read(period_file)
+    filenames = glob.iglob(os.path.join(base_dir,f"*{date}*csv"))
 
-        peak_file = "{0}{1}_allpeaks.csv".format(period_file_base,i)
-        new_peaks = at.read(peak_file)
-        if i==0:
-            res = new_res
-            peaks = new_peaks
+    all_res = []
+    all_peaks0 = []
+    for filename in filenames:
+        if "allpeaks" in filename:
+            all_peaks0.append(at.read(filename))
         else:
-            res = table.vstack([res,new_res])
-            peaks = table.vstack([peaks,new_peaks])
+            all_res.append(at.read(filename))
 
-    print(res.dtype)
-    tic_ids = res["target_name"]
-    print(tic_ids)
+    all_peaks = vstack(all_peaks0)
+    results = vstack(all_res)
 
-    # import Gaia positions
-#    hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
+    all_peaks.rename_column("lc_type","provenance_name")
+    all_peaks.rename_column("sector","sequence_number")
+    all_peaks.rename_column("TIC","target_name")
+
+
+#     # import Gaia positions
+# #    hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
+#     hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
+#     with fits.open(hdbfile) as hdu:
+#         hdbscan = hdu[1].data
+#     bright = hdbscan["GAIAEDR3_G"]<17.4
+#     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
+#                         hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
+# #    gaia_pos = None
+#     # TODO: sort by RA or by TIC ID, not sure which
+#
+#
+#     test_tic = 113449635
+#     test_res = np.where((res["target_name"]==test_tic) & (res["sequence_number"]==8)
+#                          & (res["provenance_name"]=="CDIPS") & (res["flux_cols"]=="PCA1"))[0]
+#     print(test_res)
+#     print(res[test_res])
+#     print(res[test_res]["obs_id"])
+#     test_peaks = np.where((peaks["TIC"]==test_tic) & (peaks["sector"]==8)
+#                          & (peaks["lc_type"]=="CDIPS") & (peaks["flux_col"]=="PCA1"))[0]
+#     print(test_peaks)
+#     print(peaks[test_peaks])
+#
+#     # Get TESS image
+#     cutout_coord = SkyCoord.from_name(f"TIC {test_tic}")
+#     dir_ffi = "./temp/" #"/data/douglaslab/tess/ffi/"
+#     tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
+#     tess_file = tess_data[2][0]
+#
+#     #tess_file = "./temp/tess-s0007-3-1_113.295383_-35.481020_20x20_astrocut.fits"
+#
+#     with fits.open(tess_file) as hdu:
+#         dataheader = hdu[1].header
+#         pixels = hdu[1].data["FLUX"]
+#         coadd = np.sum(pixels,axis=0)
+#         tess_wcs = extract_wcs(dataheader)
+#
+#     fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
+#     plot_sky(sky_axes, test_tic, tess_wcs, cutout_coord, coadd, gaia_pos)
+#     plot_lcs(lc_axes, test_tic, res[test_res],
+#              "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/")
+# #             os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
+#     sector, lc_type, flux_col = 8, "CDIPS", "PCA1"
+#     plt.suptitle(f"TIC {test_tic}: {lc_type}, {flux_col}, Sector {sector}",
+#                  y=0.91,fontsize=20)
+#     # plt.tight_layout()
+#     #
+#     plt.savefig("test_inspection.png")
+
+    ###########################################################################
+    ###########################################################################
+    #### Now a loop over all of them
+    # Set up files that will be used for all stars
+    dir_ffi = "./temp/" #"/data/douglaslab/tess/ffi/"
+    # hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
     hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
     with fits.open(hdbfile) as hdu:
         hdbscan = hdu[1].data
     bright = hdbscan["GAIAEDR3_G"]<17.4
     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
                         hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
-#    gaia_pos = None
-    # TODO: sort by RA or by TIC ID, not sure which
-
-
-    test_tic = 113449635
-    test_res = np.where((res["target_name"]==test_tic) & (res["sequence_number"]==8)
-                         & (res["provenance_name"]=="CDIPS") & (res["flux_cols"]=="PCA1"))[0]
-    print(test_res)
-    print(res[test_res])
-    print(res[test_res]["obs_id"])
-    test_peaks = np.where((peaks["TIC"]==test_tic) & (peaks["sector"]==8)
-                         & (peaks["lc_type"]=="CDIPS") & (peaks["flux_col"]=="PCA1"))[0]
-    print(test_peaks)
-    print(peaks[test_peaks])
-
-    # Get TESS image
-    cutout_coord = SkyCoord.from_name(f"TIC {test_tic}")
-    dir_ffi = "./temp/" #"/data/douglaslab/tess/ffi/"
-    tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
-    tess_file = tess_data[2][0]
-
-    #tess_file = "./temp/tess-s0007-3-1_113.295383_-35.481020_20x20_astrocut.fits"
-
-    with fits.open(tess_file) as hdu:
-        dataheader = hdu[1].header
-        pixels = hdu[1].data["FLUX"]
-        coadd = np.sum(pixels,axis=0)
-        tess_wcs = extract_wcs(dataheader)
-
-    fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
-    plot_sky(sky_axes, test_tic, tess_wcs, cutout_coord, coadd, gaia_pos)
-    plot_lcs(lc_axes, test_tic, res[test_res],
-             "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/")
-#             os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
-    sector, lc_type, flux_col = 8, "CDIPS", "PCA1"
-    plt.suptitle(f"TIC {test_tic}: {lc_type}, {flux_col}, Sector {sector}",
-                 y=0.91,fontsize=20)
-    # plt.tight_layout()
-    #
-    plt.savefig("test_inspection.png")
-    """
-    print(len(c13_epic),len(np.unique(c13_epic)))
 
     # TODO: change this all to be relevant to TESS, not K2
-    with open("../c13_plots/k2sc_inspect/fig4.tbl","w") as f:
+    with open("tables/fig_inspect.tbl","w") as f:
 
-        for i,ep in enumerate(tic_ids):
+        for i,row in enumerate(results:
 
-            print(i,ep)
-            fig, sky_axes, lc_axes = setup_figure()
-            plot_sky(sky_axes,ep)
-            plot_lcs(lc_axes,ep)
-            plt.suptitle("EPIC {0}".format(ep))
-            # plt.tight_layout()
+            print(row["target_name","provenance_name","sequence_number",
+                      "flux_cols"])
 
-            plt.savefig("../c13_plots/k2sc_inspect/inspection_{0}.png".format(ep))
-            plt.savefig("../c13_plots/k2sc_inspect/fig4_{0}.eps".format(i+700))
-            f.write("fig4_{0}.eps & EPIC {1}\n".format(i+700, ep))
+            tic = row["target_name"]
+            cutout_coord = SkyCoord.from_name(f"TIC {test_tic}")
+            tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
+            tess_file = tess_data[2][0]
+
+            with fits.open(tess_file) as hdu:
+                dataheader = hdu[1].header
+                pixels = hdu[1].data["FLUX"]
+                coadd = np.sum(pixels,axis=0)
+                tess_wcs = extract_wcs(dataheader)
+
+            fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
+            plot_sky(sky_axes, tic, tess_wcs, cutout_coord, coadd, gaia_pos)
+            plot_lcs(lc_axes, tic, row,
+                     "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/")
+                     # os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
+            sector, lc_type, flux_col = row["sequence_number"], row["provenance_name"], row["flux_cols"]
+            plt.suptitle(f"TIC {tic}: {lc_type}, {flux_col}, Sector {sector}",
+                         y=0.91,fontsize=20)
+
+            plt.savefig(f"/data2/douglaslab/cluster.lower()/inspect_plots/fig_inspect_{tic}_{lc_type}_{flux_col}_{sector}.png")
+            # plt.savefig(f"/data2/douglaslab/cluster.lower()/inspect_plots/fig_inspect_{i}.eps".format(i+700))
+            f.write(f"fig_inspect_{i}.eps & TIC {tic}: {lc_type}, {flux_col}, Sector {sector}\n")
 #            plt.savefig("/home/stephanie/my_papers/praeK2/fig4.eps".format(ep))
             plt.close("all")
 
@@ -659,4 +687,4 @@ if __name__=="__main__":
             # IF trying to query for images!
             time.sleep(0.5)
 
-    """
+            break
