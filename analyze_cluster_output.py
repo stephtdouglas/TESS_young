@@ -1,5 +1,6 @@
 import os, sys
 import glob
+import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +10,8 @@ from scipy import stats
 
 # Read in and merge the outputs from k2spin
 
-def process_cluster(cluster, date, clean_limit=10):
+def process_cluster(cluster, date, clean_limit=10,
+                    return_periodcolor=True, date2=None):
     """
     Read in results from period measurement, select periods for each star.
 
@@ -19,6 +21,9 @@ def process_cluster(cluster, date, clean_limit=10):
     """
     base_dir = os.path.expanduser(f"~/data/tess/{cluster.lower()}/tables/")
     filenames = glob.iglob(os.path.join(base_dir,f"*{date}*csv"))
+    if date2 is not None:
+        filenames2 = glob.iglob(os.path.join(base_dir,f"*{date2}*csv"))
+        filenames = itertools.chain(filenames,filenames2)
 
     all_res = []
     all_peaks0 = []
@@ -43,10 +48,11 @@ def process_cluster(cluster, date, clean_limit=10):
     pathos = np.where(results["provenance_name"]=="PATHOS")[0]
     results.remove_rows(pathos)
 
+
     # Remove that secondary clump in Collinder 135
     # Should probably do this in a smarter fashion in future
-    if cluster=="Collinder_135":
-        secondary = np.where(results["RA"]<108)
+    # if cluster=="Collinder_135":
+    #     secondary = np.where(results["RA"]<108)
 
     u_tic = np.unique(results["target_name"])
 
@@ -131,11 +137,11 @@ def process_cluster(cluster, date, clean_limit=10):
 
         if ncontam==0:
             results2["clean60"][i] = True
-            print("clean",ncontam,results2["clean"][i])
+            # print("clean",ncontam,results2["clean"][i])
 
         else:
             results2["clean60"][i] = False
-            print("not clean",ncontam,results2["clean"][i])
+            # print("not clean",ncontam,results2["clean"][i])
 
             # Are there potentially half or double harmonics?
             tolerance = 0.05
@@ -158,11 +164,11 @@ def process_cluster(cluster, date, clean_limit=10):
 
         if ncontam==0:
             results2["clean30"][i] = True
-            print("clean",ncontam,results2["clean"][i])
+            # print("clean",ncontam,results2["clean"][i])
 
         else:
             results2["clean30"][i] = False
-            print("not clean",ncontam,results2["clean"][i])
+            # print("not clean",ncontam,results2["clean"][i])
 
         contaminants = np.where(sub_tab["power"]>=(0.1*max_power))[0]
         # one match is just going to be the primary peak itself
@@ -170,11 +176,11 @@ def process_cluster(cluster, date, clean_limit=10):
 
         if ncontam==0:
             results2["clean10"][i] = True
-            print("clean",ncontam,results2["clean"][i])
+            # print("clean",ncontam,results2["clean"][i])
 
         else:
             results2["clean10"][i] = False
-            print("not clean",ncontam,results2["clean"][i])
+            # print("not clean",ncontam,results2["clean"][i])
 
         # If the highest peak is >13 days, are there other significant periods?
         if max_per>13:
@@ -261,27 +267,31 @@ def process_cluster(cluster, date, clean_limit=10):
     bp_rp = summary_gaia["GAIAEDR3_BP"] - summary_gaia["GAIAEDR3_RP"]
     bp_rp2 = summary2_gaia["GAIAEDR3_BP"] - summary2_gaia["GAIAEDR3_RP"]
 
-    plt.figure()
-    plt.plot(bp_rp,summary_gaia["Prot"],'.',color="grey",alpha=0.5)
-    plt.plot(bp_rp[clean],summary_gaia["Prot"][clean],'d',ms=5,zorder=5)
-    plt.plot(bp_rp2[clean2],summary2_gaia["Prot"][clean2],'o')
-    print(len(np.where(clean2)[0]))
+    if return_periodcolor:
+        plt.figure()
+        plt.plot(bp_rp,summary_gaia["Prot"],'.',color="grey",alpha=0.5)
+        plt.plot(bp_rp[clean],summary_gaia["Prot"][clean],'d',ms=5,zorder=5)
+        plt.plot(bp_rp2[clean2],summary2_gaia["Prot"][clean2],'o')
+        print(len(np.where(clean2)[0]))
 
-    plt.ylim(0.1,50)
-    plt.xlim(-0.5,3.5)
-    plt.yscale("log")
+        plt.ylim(0.1,50)
+        plt.xlim(-0.5,3.5)
+        plt.yscale("log")
 
-    plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
-    plt.ylabel("Period (d)")
+        plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
+        plt.ylabel("Period (d)")
 
-    ax = plt.gca()
-    ax.axhline(12,linestyle="--",color="C2")
+        ax = plt.gca()
+        ax.axhline(12,linestyle="--",color="C2")
 
-    plt.title(cluster)
-    plt.savefig(f"plots/periodmass_{cluster}_clean{clean_limit}.png")
+        plt.title(cluster)
+        plt.savefig(f"plots/periodmass_{cluster}_clean{clean_limit}.png")
 
-    # return bp_rp[clean],summary_gaia["Prot"][clean]
-    return bp_rp2[clean2],summary2_gaia["Prot"][clean2]
+        # return bp_rp[clean],summary_gaia["Prot"][clean]
+        return bp_rp2[clean2],summary2_gaia["Prot"][clean2]
+
+    else:
+        return summary2_gaia, clean2, results2
 
 def plot_all(clean_limit=10):
     bp_rp_IC_2391, prot_IC_2391 = process_cluster("IC_2391","2021-06-22",clean_limit)
@@ -314,7 +324,8 @@ def plot_all(clean_limit=10):
 def id_solar(bp_rp):
     return (bp_rp<=1.2) & (bp_rp>=0.8)
 
-def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10):
+def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
+                      plot_individual_stars=False):
     bp_rp_IC_2391, prot_IC_2391 = process_cluster("IC_2391","2021-06-22",clean_limit)
     bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit)
     bp_rp_NGC_2451A, prot_NGC_2451A = process_cluster("NGC_2451A","2021-06-21",clean_limit)
@@ -333,16 +344,23 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10):
     ########################################################################
     # Sean's models
     ax = axes[0,0]
-    ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
-             prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
-    ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
-             prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
-             prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
-             prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
-    ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
-             prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    if plot_individual_stars:
+        ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
+                 prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
+        ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
+                 prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
+                 prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
+                 prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
+        ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
+                 prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    else:
+        ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",positions=[ages["IC_2391"]])
+        ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",positions=[ages["Collinder_135"]])
+        ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",positions=[ages["NGC_2451A"]])
+        ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",positions=[ages["NGC_2547"]])
+        ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",positions=[ages["IC_2602"]])
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -556,10 +574,10 @@ if __name__=="__main__":
                  "NGC_2451A": 60,
                  "Collinder_135": 26}
     for clean_limit in ["",10,30,60]:
-        plot_all(clean_limit)
-        # plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", CG20 Ages",
-        # clean_limit=clean_limit)
-        # plot_model_tracks(khar_ages,plot_name="_Kharages",plot_title=", Khar Ages",
-        # clean_limit=clean_limit)
-        # plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
-        # clean_limit=clean_limit)
+        # plot_all(clean_limit)
+        plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", CG20 Ages",
+        clean_limit=clean_limit)
+        plot_model_tracks(khar_ages,plot_name="_Kharages",plot_title=", Khar Ages",
+        clean_limit=clean_limit)
+        plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
+        clean_limit=clean_limit)

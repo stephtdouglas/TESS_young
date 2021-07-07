@@ -16,6 +16,7 @@ from astropy.table import join, Table
 # from astroquery.xmatch import XMatch
 from astropy import units as u
 
+from analyze_cluster_output import process_cluster
 
 def vizier_tic(simbad_name,gaia_dr2):
     print("Find TIC for ",simbad_name,gaia_dr2)
@@ -302,7 +303,7 @@ def catalog_numbers():
 
     print(len(unames),"out of",
           len(simbad),"from Tschape & Rudiger in updated catalog")
-    # print(match["Name"],"\n")
+    print(match["Name","TIC","GAIAEDR3_ID","GAIAEDR3_G"])
 
 
     # NGC 2547
@@ -344,9 +345,148 @@ def catalog_numbers():
     #     print(row["GAIAEDR3_RA","_RAJ2000","TIC"])
 
 
+def compare_literature(clean_limit=10):
+
+    plt.figure(figsize=(11,4))
+
+
+    ############################################################################
+    ############################################################################
+    # IC 2391
+    cluster = "IC_2391"
+    print(cluster,"\n-------")
+    simbadfile = "IC2391_rotation_patten1996_simbad.csv"
+    simbad = at.read(simbadfile, delimiter=",")
+
+    # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    # cat = at.read(catfile,delimiter=",")
+
+    summary, clean, results = process_cluster(cluster,"2021-06-22",clean_limit=clean_limit,
+                                     return_periodcolor=False)
+    # print(summary.dtype)
+
+    match = join(simbad,summary,join_type="left",keys=["TIC"],
+                 table_names=["lit","new"])
+
+    ax1 = plt.subplot(131)
+    ax1.plot(match["Period"],match["Prot"],'o',color="C0",label="Patten & Simon (1996)")
+    ax1.legend(loc=2)
+
+    x = np.linspace(0.1,50,20)
+    ax1.plot(x,x,"-",zorder=-5,color="grey")
+    ax1.plot(x,x/2,"--",zorder=-5,color="grey")
+    ax1.plot(x,x*2,"--",zorder=-5,color="grey")
+
+    ax1.set_xlim(0.1,50)
+    ax1.set_ylim(0.1,50)
+    ax1.set_xscale("log")
+    ax1.set_yscale("log")
+
+    ax1.set_ylabel("TESS Period (d)")
+    ax1.set_xlabel("Literature Period (d)")
+    ax1.set_title(cluster.replace("_"," "))
+
+    ############################################################################
+    ############################################################################
+    # IC 2602
+    cluster = "IC_2602"
+    print(cluster,"\n-------")
+
+    # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    # cat = at.read(catfile,delimiter=",")
+
+    summary, clean, results = process_cluster(cluster,"2021-06-29",clean_limit=clean_limit,
+                                     return_periodcolor=False,date2="2021-06-30")
+
+    # Barnes periods
+    simbadfile = "IC2602_rotation_barnes1999_simbad.csv"
+    simbad = at.read(simbadfile, delimiter=",")
+    match = join(simbad,summary,join_type="left",keys=["TIC"],
+                 table_names=["lit","new"])
+
+    # Tschape & Rudiger periods.
+    simbadfile2 = "IC2602_rotation_tschape2001_simbad.csv"
+    simbad2 = at.read(simbadfile2, delimiter=",")
+    match2 = join(simbad2,summary,join_type="left",keys=["TIC"],
+                 table_names=["lit","new"])
+
+    ax2 = plt.subplot(132)
+    ax2.plot(match["Prot_lit"],match["Prot_new"],'d',color="C4",
+             label="Barnes+ (1999)")
+    ax2.plot(match2["Prot_lit"],match2["Prot_new"],'D',mec="midnightblue",mfc="none",
+             label="Tschape & Rudiger (2001)",mew=1.5)
+    ax2.legend(loc=2)
+
+    x = np.linspace(0.1,50,20)
+    ax2.plot(x,x,"-",zorder=-5,color="grey")
+    ax2.plot(x,x/2,"--",zorder=-5,color="grey")
+    ax2.plot(x,x*2,"--",zorder=-5,color="grey")
+
+    ax2.set_xlim(0.1,50)
+    ax2.set_ylim(0.1,50)
+    ax2.set_xscale("log")
+    ax2.set_yscale("log")
+
+    # ax2.set_ylabel("TESS Period (d)")
+    ax2.set_xlabel("Literature Period (d)")
+    ax2.set_title(cluster.replace("_"," "))
+
+
+    ############################################################################
+    ############################################################################
+    # NGC 2547
+    cluster = "NGC_2547"
+    print(cluster,"\n-------")
+    simbadfile = "NGC2547_rotation_irwin2008_simbad.csv"
+    simbad = at.read(simbadfile, delimiter=",")
+
+    # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    # cat = at.read(catfile,delimiter=",")
+
+    summary, clean, results = process_cluster(cluster,"2021-06-21",clean_limit=clean_limit,
+                                     return_periodcolor=False)
+    # print(summary.dtype)
+
+    match = join(simbad[simbad["TIC"]!=0],summary[clean],join_type="left",keys=["TIC"],
+                 table_names=["lit","new"])
+
+    ax3 = plt.subplot(133)
+    ax3.plot(match["Per"],match["Prot"],'v',color="C3",label="Irwin+ (2008)")
+    ax3.legend(loc=2)
+    x = np.linspace(0.1,50,20)
+    ax3.plot(x,x,"-",zorder=-5,color="grey")
+    ax3.plot(x,x/2,"--",zorder=-5,color="grey")
+    ax3.plot(x,x*2,"--",zorder=-5,color="grey")
+
+    x = np.logspace(-1,2,200)
+    for p in [1,2,5]:
+        beat_period = 1/(1/x+1/p)
+        ax3.plot(x,beat_period,":",zorder=-5,color="lightgrey")
+        ax3.plot(beat_period,x,":",zorder=-5,color="lightgrey")
+
+    ax3.set_xlim(0.1,50)
+    ax3.set_ylim(0.1,50)
+    ax3.set_xscale("log")
+    ax3.set_yscale("log")
+
+    # ax3.set_ylabel("TESS Period (d)")
+    ax3.set_xlabel("Literature Period (d)")
+    ax3.set_title(cluster.replace("_"," "))
+
+    plt.savefig(f"plots/literature_comparison_clean{clean_limit}.png",
+                bbox_inches="tight")
+    # plt.show()
+
+
 if __name__=="__main__":
     #
     # xmatch_ic2391_ic2602()
     # xmatch_ngc2547()
 
-    catalog_numbers()
+    # catalog_numbers()
+    compare_literature(clean_limit="")
+    compare_literature(clean_limit=10)
+    compare_literature(clean_limit=30)
+    compare_literature(clean_limit=60)
+
+    plt.close("all")
