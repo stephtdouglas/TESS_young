@@ -584,9 +584,9 @@ if __name__=="__main__":
     all_peaks = vstack(all_peaks0)
     results = vstack(all_res)
 
-    all_peaks.rename_column("lc_type","provenance_name")
-    all_peaks.rename_column("sector","sequence_number")
-    all_peaks.rename_column("TIC","target_name")
+    # all_peaks.rename_column("lc_type","provenance_name")
+    # all_peaks.rename_column("sector","sequence_number")
+    # all_peaks.rename_column("TIC","target_name")
 
 
 #     # import Gaia positions
@@ -650,7 +650,7 @@ if __name__=="__main__":
     bright = hdbscan["GAIAEDR3_G"]<17.4
     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
                         hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
-    
+
     # TODO: change this all to be relevant to TESS, not K2
     with open("tables/fig_inspect.tbl","w") as f:
 
