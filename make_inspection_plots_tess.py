@@ -589,67 +589,22 @@ if __name__=="__main__":
     # all_peaks.rename_column("TIC","target_name")
 
 
-#     # import Gaia positions
-# #    hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
-#     hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
-#     with fits.open(hdbfile) as hdu:
-#         hdbscan = hdu[1].data
-#     bright = hdbscan["GAIAEDR3_G"]<17.4
-#     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
-#                         hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
-# #    gaia_pos = None
-#     # TODO: sort by RA or by TIC ID, not sure which
-#
-#
-#     test_tic = 113449635
-#     test_res = np.where((res["target_name"]==test_tic) & (res["sequence_number"]==8)
-#                          & (res["provenance_name"]=="CDIPS") & (res["flux_cols"]=="PCA1"))[0]
-#     print(test_res)
-#     print(res[test_res])
-#     print(res[test_res]["obs_id"])
-#     test_peaks = np.where((peaks["TIC"]==test_tic) & (peaks["sector"]==8)
-#                          & (peaks["lc_type"]=="CDIPS") & (peaks["flux_col"]=="PCA1"))[0]
-#     print(test_peaks)
-#     print(peaks[test_peaks])
-#
-#     # Get TESS image
-#     cutout_coord = SkyCoord.from_name(f"TIC {test_tic}")
-#     dir_ffi = "./temp/" #"/data/douglaslab/tess/ffi/"
-#     tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
-#     tess_file = tess_data[2][0]
-#
-#     #tess_file = "./temp/tess-s0007-3-1_113.295383_-35.481020_20x20_astrocut.fits"
-#
-#     with fits.open(tess_file) as hdu:
-#         dataheader = hdu[1].header
-#         pixels = hdu[1].data["FLUX"]
-#         coadd = np.sum(pixels,axis=0)
-#         tess_wcs = extract_wcs(dataheader)
-#
-#     fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
-#     plot_sky(sky_axes, test_tic, tess_wcs, cutout_coord, coadd, gaia_pos)
-#     plot_lcs(lc_axes, test_tic, res[test_res],
-#              "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/")
-# #             os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
-#     sector, lc_type, flux_col = 8, "CDIPS", "PCA1"
-#     plt.suptitle(f"TIC {test_tic}: {lc_type}, {flux_col}, Sector {sector}",
-#                  y=0.91,fontsize=20)
-#     # plt.tight_layout()
-#     #
-#     plt.savefig("test_inspection.png")
-
     ###########################################################################
     ###########################################################################
     #### Now a loop over all of them
     # Set up files that will be used for all stars
+    # FFI save directory
     dir_ffi = "/data2/douglaslab/tess/ffi/"
+
+    # Cluster catalog with TIC, for ticmags
+    catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    cat = at.read(catfile,delimiter=",")
+
+    # HDBScan file, used for gaia positions
     # hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
     hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
     with fits.open(hdbfile) as hdu:
         hdbscan = hdu[1].data
-    bright = hdbscan["GAIAEDR3_G"]<17.4
-    gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
-                        hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
 
     # TODO: change this all to be relevant to TESS, not K2
     with open("tables/fig_inspect.tbl","w") as f:
@@ -671,7 +626,22 @@ if __name__=="__main__":
                 tess_wcs = extract_wcs(dataheader)
 
             fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
-            plot_sky(sky_axes, tic, tess_wcs, cutout_coord, coadd, gaia_pos)
+
+            # Define a faint mag limit for stars being plotted over the FFI stamp
+            loc = np.where(cat["TIC"]==tic)[0]
+            if len(loc)==1:
+                faint_limit = cat["Tmag"][loc]+3
+                bright = hdbscan["GAIAEDR3_G"]<=faint_limit
+            elif len(loc)>1:
+                print("Uh oh! Multiple TIC matches for",tic)
+                faint_limit = cat["Tmag"][loc][0]+3
+                bright = hdbscan["GAIAEDR3_G"]<=faint_limit
+            else:
+                print("Uh oh! No TIC match for",tic)
+                faint_limit=0
+                bright = hdbscan["GAIAEDR3_G"]<=faint_limit
+
+            plot_sky(sky_axes, tic, tess_wcs, cutout_coord, coadd, gaia_pos[bright])
             plot_lcs(lc_axes, tic, row,
                      "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/",
                      all_peaks)
