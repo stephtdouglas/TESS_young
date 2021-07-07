@@ -605,7 +605,8 @@ if __name__=="__main__":
     hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
     with fits.open(hdbfile) as hdu:
         hdbscan = hdu[1].data
-
+    gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"],
+                        hdbscan["GAIAEDR3_DEC"],unit=u.degree)
     # TODO: change this all to be relevant to TESS, not K2
     with open("tables/fig_inspect.tbl","w") as f:
 
