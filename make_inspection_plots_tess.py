@@ -618,7 +618,7 @@ if __name__=="__main__":
             tic = row["target_name"]
             cutout_coord = SkyCoord.from_name(f"TIC {tic}")
             tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
-            tess_file = tess_data[2][0]
+            tess_file = tess_data[-1][0]
 
             with fits.open(tess_file) as hdu:
                 dataheader = hdu[1].header
@@ -661,5 +661,5 @@ if __name__=="__main__":
             # IF trying to query for images!
             time.sleep(0.5)
 
-            if i>10:
-                break
+#            if i>10:
+#                break
