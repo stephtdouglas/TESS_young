@@ -502,12 +502,14 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
     ax2.matshow(tess_img, origin="lower", cmap="Greys", norm=colors.LogNorm(),
                 zorder=-10)
     # tpos = SkyCoord.from_name(f"TIC {TIC}")
+    
     ax2.set_autoscale_on(False)
-    if gaia_pos is not None:
+    
+    if (gaia_pos is not None) and (len(gaia_pos)>0):
         ax2.scatter(gaia_pos.ra,gaia_pos.dec,
                     transform=ax2.get_transform('fk5'), s=6,
                     edgecolor=cmap(0.9),facecolor=cmap(0.9),zorder=10)
-
+    
     ax2.plot([7.5,9],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
     ax2.plot([11,12.5],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
     ax2.plot([10,10],[7.5,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
@@ -560,7 +562,7 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
 
     # del(im,pix,hdr)
     # del(twomass_images, pix_2mass, hdr_2mass)
-
+    
 
 if __name__=="__main__":
 
@@ -655,6 +657,7 @@ if __name__=="__main__":
             plt.suptitle(f"TIC {tic}: {lc_type}, {flux_col}, Sector {sector}",
                          y=0.91,fontsize=20)
 
+            print(i,output_filename)
             plt.savefig(output_filename)
             # plt.savefig(f"/data2/douglaslab/tess/cluster.lower()/inspect_plots/fig_inspect_{i}.eps".format(i+700))
             f.write(f"fig_inspect_{i}.eps & TIC {tic}: {lc_type}, {flux_col}, Sector {sector}\n")
