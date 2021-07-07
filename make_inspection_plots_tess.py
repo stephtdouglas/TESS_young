@@ -303,10 +303,10 @@ def plot_lcs(axes, TIC, row, data_dir, peaks):
     periods, pgram = ls_out[2], ls_out[3]
 
     if row["num_sig_peaks"]>=2:
-        peak_locs = np.where((peaks["TIC"]==row["target_name"][0]) &
-                             (peaks["sector"]==row["sequence_number"][0]) &
-                             (peaks["lc_type"]==row["provenance_name"][0]) &
-                             (peaks["flux_col"]==row["flux_cols"][0]))[0]
+        peak_locs = np.where((peaks["TIC"]==row["target_name"]) &
+                             (peaks["sector"]==row["sequence_number"]) &
+                             (peaks["lc_type"]==row["provenance_name"]) &
+                             (peaks["flux_col"]==row["flux_cols"]))[0]
         logging.debug(peak_locs)
         logging.debug(peaks[peak_locs])
         if len(peak_locs)>2:
@@ -324,20 +324,20 @@ def plot_lcs(axes, TIC, row, data_dir, peaks):
     axes[0].plot(periods,pgram,'k-')
     axes[0].set_xlim(0.1,70)
     axes[0].set_xscale("log")
-    axes[0].plot(row["sig_periods"][0],row["sig_powers"][0]*1.1,'v',
+    axes[0].plot(row["sig_periods"],row["sig_powers"]*1.1,'v',
                 mfc=color1,mec="none",ms=11)
-    axes[0].plot(row["sec_periods"][0],row["sec_powers"][0]*1.1,'v',
+    axes[0].plot(row["sec_periods"],row["sec_powers"]*1.1,'v',
                 mfc=color2,mec="none",ms=11)
     if third_period is not None:
         axes[0].plot(third_period, third_power*1.1,'v',
                     mfc=color3,mec="none",ms=11)
     if row["sig_powers"]>0:
-        ymax = row["sig_powers"][0]*1.15
+        ymax = row["sig_powers"]*1.15
     else:
         ymax = max(pgram)
     axes[0].set_ylim((0,ymax))
-    axes[0].axhline(row["thresholds"][0],color='grey',ls="-.",
-                    label="threshold {0:2f}".format(float(row["thresholds"][0])))
+    axes[0].axhline(row["thresholds"],color='grey',ls="-.",
+                    label="threshold {0:2f}".format(float(row["thresholds"])))
     #axes[0].set_xlabel("Period (d)",y=0.95)
     #axes[0].tick_params(labelbottom=False,labeltop=True)
     axes[0].set_xticklabels(["","0.1","1","10"])
@@ -354,13 +354,13 @@ def plot_lcs(axes, TIC, row, data_dir, peaks):
     axes[1].set_xlabel("Time (d)",fontsize=label_fontsize)
 
     ### Phase folded 1
-    if row["sig_periods"][0]>0:
-        plot_phased(axes[2],t,f,row["sig_periods"][0],row["sig_powers"][0],color=color1)
+    if row["sig_periods"]>0:
+        plot_phased(axes[2],t,f,row["sig_periods"],row["sig_powers"],color=color1)
         axes[2].set_ylim(ylims)
         axes[2].set_ylabel("P1",fontsize=label_fontsize)
 
         if row["sig_periods"]>=2:
-            repeats = np.arange(t[0],t[-1],row["sig_periods"][0])
+            repeats = np.arange(t[0],t[-1],row["sig_periods"])
             for r in repeats:
                 axes[1].axvline(r,ls="--",color=color1,lw=2)
         # axes[4].tick_params(labelbottom=False)
@@ -370,14 +370,14 @@ def plot_lcs(axes, TIC, row, data_dir, peaks):
 
 
     ### Phase folded 2
-    if row["sec_periods"][0]>0:
-        plot_phased(axes[3],t,f,row["sec_periods"][0],row["sec_powers"][0],color=color2)
+    if row["sec_periods"]>0:
+        plot_phased(axes[3],t,f,row["sec_periods"],row["sec_powers"],color=color2)
         axes[3].set_ylim(ylims)
         axes[3].set_ylabel("P2",fontsize=label_fontsize)
 
         # print(row["sec_periods"])
-        if row["sec_periods"][0]>=2:
-            repeats = np.arange(t[0],t[-1],row["sec_periods"][0])
+        if row["sec_periods"]>=2:
+            repeats = np.arange(t[0],t[-1],row["sec_periods"])
             # print(repeats)
             for r in repeats:
                 # print(r)
@@ -642,7 +642,7 @@ if __name__=="__main__":
     ###########################################################################
     #### Now a loop over all of them
     # Set up files that will be used for all stars
-    dir_ffi = "/data/douglaslab/tess/ffi/"
+    dir_ffi = "/data2/douglaslab/tess/ffi/"
     # hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
     hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
     with fits.open(hdbfile) as hdu:
@@ -680,8 +680,8 @@ if __name__=="__main__":
             plt.suptitle(f"TIC {tic}: {lc_type}, {flux_col}, Sector {sector}",
                          y=0.91,fontsize=20)
 
-            plt.savefig(f"/data2/douglaslab/cluster.lower()/inspect_plots/fig_inspect_{tic}_{lc_type}_{flux_col}_{sector}.png")
-            # plt.savefig(f"/data2/douglaslab/cluster.lower()/inspect_plots/fig_inspect_{i}.eps".format(i+700))
+            plt.savefig(f"/data2/douglaslab/tess/{cluster.lower()}/inspect_plots/fig_inspect_{tic}_{lc_type}_{flux_col}_{sector}.png")
+            # plt.savefig(f"/data2/douglaslab/tess/cluster.lower()/inspect_plots/fig_inspect_{i}.eps".format(i+700))
             f.write(f"fig_inspect_{i}.eps & TIC {tic}: {lc_type}, {flux_col}, Sector {sector}\n")
 #            plt.savefig("/home/stephanie/my_papers/praeK2/fig4.eps".format(ep))
             plt.close("all")
@@ -690,4 +690,5 @@ if __name__=="__main__":
             # IF trying to query for images!
             time.sleep(0.5)
 
-            break
+            if i>10:
+                break
