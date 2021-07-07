@@ -612,10 +612,15 @@ if __name__=="__main__":
 
         for i,row in enumerate(results):
 
+            tic = row["target_name"]
+            sector, lc_type, flux_col = row["sequence_number"], row["provenance_name"], row["flux_cols"]
+            output_filename = f"/data2/douglaslab/tess/{cluster.lower()}/inspect_plots/fig_inspect_{tic}_{lc_type}_{flux_col}_{sector}.png"
+            if os.path.exists(output_filename):
+                continue
+
             print(row["target_name","provenance_name","sequence_number",
                       "flux_cols"])
 
-            tic = row["target_name"]
             cutout_coord = SkyCoord.from_name(f"TIC {tic}")
             tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
             tess_file = tess_data[-1][0]
@@ -647,11 +652,10 @@ if __name__=="__main__":
                      "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/",
                      all_peaks)
                      # os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
-            sector, lc_type, flux_col = row["sequence_number"], row["provenance_name"], row["flux_cols"]
             plt.suptitle(f"TIC {tic}: {lc_type}, {flux_col}, Sector {sector}",
                          y=0.91,fontsize=20)
 
-            plt.savefig(f"/data2/douglaslab/tess/{cluster.lower()}/inspect_plots/fig_inspect_{tic}_{lc_type}_{flux_col}_{sector}.png")
+            plt.savefig(output_filename)
             # plt.savefig(f"/data2/douglaslab/tess/cluster.lower()/inspect_plots/fig_inspect_{i}.eps".format(i+700))
             f.write(f"fig_inspect_{i}.eps & TIC {tic}: {lc_type}, {flux_col}, Sector {sector}\n")
 #            plt.savefig("/home/stephanie/my_papers/praeK2/fig4.eps".format(ep))

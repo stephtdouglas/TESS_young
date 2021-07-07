@@ -548,13 +548,23 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
 
     plt.savefig(f"plots/periodtracks{plot_name}_page_clean{clean_limit}.png")
 
-if __name__=="__main__":
-    # _, _ = process_cluster("IC_2391","2021-06-22")
-    # _, _ = process_cluster("Collinder_135","2021-06-18")
-    # _, _ = process_cluster("NGC_2451A","2021-06-21")
-    # _, _ = process_cluster("NGC_2547","2021-06-21")
+def write_results():
+
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
+    dates2 = [None,None,None,None,"2021-07-03"]
+
+    for i in range(5):
+        print(clusters[i],dates[i],dates2[i])
+        summary, clean, results = process_cluster(clusters[i],dates[i],
+                                                  return_periodcolor=False,
+                                                  date2=dates2[i])
+
+        at.write(results,f"tables/{clusters[i]}_{dates[i]}_results_raw.csv",
+                 delimiter=",")
 
 
+def plot_results():
     # Cantat-Gaudin+2020
     cg20_ages = {"IC_2391": 28.8,
                  "IC_2602": 36.3,
@@ -581,3 +591,7 @@ if __name__=="__main__":
         clean_limit=clean_limit)
         plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
         clean_limit=clean_limit)
+
+if __name__=="__main__":
+
+    write_results()
