@@ -33,6 +33,7 @@ from astropy.wcs import WCS
 import astropy.io.ascii as at
 import astropy.io.fits as fits
 import astropy.table as table
+from astropy.table import Table, vstack
 from astropy import coordinates as coords
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -257,12 +258,12 @@ def read_tess(row,data_dir):
     Read in a lightcurve. row = a row in the output_#.csv table
     """
 
-    print(row["obs_id"][0],row["productFilename"][0])
-    full_file = os.path.join(row["obs_id"][0],row["productFilename"][0])
+    print(row["obs_id"],row["productFilename"])
+    full_file = os.path.join(row["obs_id"],row["productFilename"])
     full_path = os.path.join(data_dir,full_file)
-    lc_type = row["provenance_name"][0]
-    sector = row["sequence_number"][0]
-    flux_col = row["flux_cols"][0]
+    lc_type = row["provenance_name"]
+    sector = row["sequence_number"]#[0]
+    flux_col = row["flux_cols"]
 
     logging.debug(flux_col)
     lc = lk.read(full_path,quality_bitmask="default",flux_column=flux_col)
@@ -283,7 +284,7 @@ def read_tess(row,data_dir):
     return time, flux
 
 
-def plot_lcs(axes, TIC, row, data_dir):
+def plot_lcs(axes, TIC, row, data_dir, peaks):
     """
     Plot light curves for a given target
     """
@@ -564,10 +565,11 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
 if __name__=="__main__":
 
     # TODO: make these an input from the commandline
+    date = "2021-06-21"
     cluster = "NGC_2451A"
     # base_dir = os.path.expanduser(f"~/data/tess/")
     base_dir = "/data/douglaslab/tess/"
-    dir = os.path.join(base_dir,f"{cluster.lower()}/tables/")
+    base_dir = os.path.join(base_dir,f"{cluster.lower()}/tables/")
 
     filenames = glob.iglob(os.path.join(base_dir,f"*{date}*csv"))
 
@@ -640,7 +642,7 @@ if __name__=="__main__":
     ###########################################################################
     #### Now a loop over all of them
     # Set up files that will be used for all stars
-    dir_ffi = "./temp/" #"/data/douglaslab/tess/ffi/"
+    dir_ffi = "/data/douglaslab/tess/ffi/"
     # hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
     hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
     with fits.open(hdbfile) as hdu:
@@ -648,17 +650,17 @@ if __name__=="__main__":
     bright = hdbscan["GAIAEDR3_G"]<17.4
     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"][bright],
                         hdbscan["GAIAEDR3_DEC"][bright],unit=u.degree)
-
+    
     # TODO: change this all to be relevant to TESS, not K2
     with open("tables/fig_inspect.tbl","w") as f:
 
-        for i,row in enumerate(results:
+        for i,row in enumerate(results):
 
             print(row["target_name","provenance_name","sequence_number",
                       "flux_cols"])
 
             tic = row["target_name"]
-            cutout_coord = SkyCoord.from_name(f"TIC {test_tic}")
+            cutout_coord = SkyCoord.from_name(f"TIC {tic}")
             tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
             tess_file = tess_data[2][0]
 
@@ -671,7 +673,8 @@ if __name__=="__main__":
             fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
             plot_sky(sky_axes, tic, tess_wcs, cutout_coord, coadd, gaia_pos)
             plot_lcs(lc_axes, tic, row,
-                     "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/")
+                     "/data/douglaslab/.lightkurve-cache/mastDownload/HLSP/",
+                     all_peaks)
                      # os.path.expanduser("~/.lightkurve-cache/mastDownload/HLSP/"))
             sector, lc_type, flux_col = row["sequence_number"], row["provenance_name"], row["flux_cols"]
             plt.suptitle(f"TIC {tic}: {lc_type}, {flux_col}, Sector {sector}",
