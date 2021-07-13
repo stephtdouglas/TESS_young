@@ -581,6 +581,7 @@ if __name__=="__main__":
         print(cl_idx,cluster,"cluster not found")
         sys.exit(0)
     else:
+        print(cl_idx,cluster,"found")
         date = dates[cl_idx]
         date2 = dates2[cl_idx]
 
