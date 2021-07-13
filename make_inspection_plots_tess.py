@@ -566,14 +566,22 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
 
 if __name__=="__main__":
 
+    import itertools
     # TODO: make these an input from the commandline
-    date = "2021-06-21"
-    cluster = "NGC_2451A"
+#    date = "2021-06-21"
+#    cluster = "NGC_2451A"
+    date = "2021-07-02"
+    date2 = "2021-07-03"
+    cluster="IC_2602"
+
     # base_dir = os.path.expanduser(f"~/data/tess/")
     base_dir = "/data/douglaslab/tess/"
     base_dir = os.path.join(base_dir,f"{cluster.lower()}/tables/")
 
     filenames = glob.iglob(os.path.join(base_dir,f"*{date}*csv"))
+    if date2 is not None:
+        filenames2 = glob.iglob(os.path.join(base_dir,f"*{date2}*csv"))
+        filenames = itertools.chain(filenames,filenames2)
 
     all_res = []
     all_peaks0 = []
@@ -604,13 +612,13 @@ if __name__=="__main__":
 
     # HDBScan file, used for gaia positions
     # hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
-    hdbfile = "/data/douglaslab/EDR3/scats/NGC_2451A.fits"
+    hdbfile = f"/data/douglaslab/EDR3/scats/{cluster}.fits"
     with fits.open(hdbfile) as hdu:
         hdbscan = hdu[1].data
     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"],
                         hdbscan["GAIAEDR3_DEC"],unit=u.degree)
     # TODO: change this all to be relevant to TESS, not K2
-    with open("tables/fig_inspect.tbl","w") as f:
+    with open(f"tables/fig_inspect_{cluster.lower()}.tbl","a") as f:
 
         for i,row in enumerate(results):
 
