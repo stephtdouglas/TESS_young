@@ -572,13 +572,13 @@ if __name__=="__main__":
         cluster = sys.argv[1]
         logging.info(cluster)
 
-    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    clusters = np.array(["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"])
     dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
     dates2 = [None,None,None,None,"2021-07-03"]
 
     cl_idx = np.where(clusters==cluster)[0]
     if len(cl_idx)==0:
-        print("cluster not found")
+        print(cl_idx,cluster,"cluster not found")
         sys.exit(0)
     else:
         date = dates[cl_idx]
