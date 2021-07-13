@@ -4,6 +4,7 @@ import itertools
 import time
 import logging
 import urllib as urllib
+import zipfile
 
 logger = logging.getLogger("make_inspection_plots_tess")
 logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(message)s')
@@ -651,14 +652,22 @@ if __name__=="__main__":
                       "flux_cols"])
 
             cutout_coord = SkyCoord.from_name(f"TIC {tic}")
-            tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
-            tess_file = tess_data[-1][0]
 
-            with fits.open(tess_file) as hdu:
-                dataheader = hdu[1].header
-                pixels = hdu[1].data["FLUX"]
-                coadd = np.sum(pixels,axis=0)
-                tess_wcs = extract_wcs(dataheader)
+            try:
+                tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
+                tess_file = tess_data[-1][0]
+
+                with fits.open(tess_file) as hdu:
+                    dataheader = hdu[1].header
+                    pixels = hdu[1].data["FLUX"]
+                    coadd = np.sum(pixels,axis=0)
+                    tess_wcs = extract_wcs(dataheader)
+            except (zipfile.BadZipfile, UnicodeDecodeError):
+                with open(f"tables/fig_bad_{cluster.lower()}.tbl","a") as g:
+                    g.write(f"{tic},{row['target_name']},{row['provenance_name']},{row['sequence_number']},{row['flux_cols']},")
+                    g.write(tess_file)
+                    g.write("\n")
+                continue
 
             fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster=cluster)
 
