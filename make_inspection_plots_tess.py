@@ -168,8 +168,8 @@ def stereographic_map(ax, wcs, cluster=None, cluster_skycoord=None,
 
 
 def set_up_tess_sky(cluster, gs_sky, sky_ind=3):
-    clusters = np.array(["IC_2391","Collinder_135","NGC_2451A","NGC_2547"])
-    sector_list = [[8,9,10],[6,7,8],[7,8],[7,8,9]]
+    clusters = np.array(["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"])
+    sector_list = [[8,9,10],[6,7,8],[7,8],[7,8,9],[9,10,11]]
 
     i = np.where(clusters==cluster)[0][0]
     logging.debug(cluster)
@@ -582,8 +582,8 @@ if __name__=="__main__":
         sys.exit(0)
     else:
         print(cl_idx,cluster,"found")
-        date = dates[cl_idx]
-        date2 = dates2[cl_idx]
+        date = dates[cl_idx[0]]
+        date2 = dates2[cl_idx[0]]
 
     # base_dir = os.path.expanduser(f"~/data/tess/")
     base_dir = "/data/douglaslab/tess/"
@@ -627,6 +627,15 @@ if __name__=="__main__":
         hdbscan = hdu[1].data
     gaia_pos = SkyCoord(hdbscan["GAIAEDR3_RA"],
                         hdbscan["GAIAEDR3_DEC"],unit=u.degree)
+
+    # Make sure plot directory exists
+    cl_dir = f"/data2/douglaslab/tess/{cluster.lower()}/"
+    plot_dir = os.path.join(cl_dir,"inspect_plots/")
+    if os.path.exists(cl_dir)==False:
+        os.mkdir(cl_dir)
+    if os.path.exists(plot_dir)==False:
+        os.mkdir(plot_dir)
+
     # TODO: change this all to be relevant to TESS, not K2
     with open(f"tables/fig_inspect_{cluster.lower()}.tbl","a") as f:
 
