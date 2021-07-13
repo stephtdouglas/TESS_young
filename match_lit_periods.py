@@ -427,6 +427,14 @@ def compare_literature(clean_limit=10):
     ax2.set_xscale("log")
     ax2.set_yscale("log")
 
+
+    x = np.logspace(-1,2,200)
+    for p in [1,2,3,4,5,6,7]:
+        beat_period = 1/(1/x+1/p)
+        ax2.plot(x,beat_period,":",zorder=-5,color="lightgrey")
+        ax2.plot(beat_period,x,":",zorder=-5,color="lightgrey")
+
+
     # ax2.set_ylabel("TESS Period (d)")
     ax2.set_xlabel("Literature Period (d)")
     ax2.set_title(cluster.replace("_"," "))
@@ -459,7 +467,7 @@ def compare_literature(clean_limit=10):
     ax3.plot(x,x*2,"--",zorder=-5,color="grey")
 
     x = np.logspace(-1,2,200)
-    for p in [1,2,5]:
+    for p in [1,2,3,4,5,6,7]:
         beat_period = 1/(1/x+1/p)
         ax3.plot(x,beat_period,":",zorder=-5,color="lightgrey")
         ax3.plot(beat_period,x,":",zorder=-5,color="lightgrey")

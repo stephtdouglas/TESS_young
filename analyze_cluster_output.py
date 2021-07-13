@@ -356,11 +356,84 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
         ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
                  prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
     else:
-        ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",positions=[ages["IC_2391"]])
-        ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",positions=[ages["Collinder_135"]])
-        ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",positions=[ages["NGC_2451A"]])
-        ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",positions=[ages["NGC_2547"]])
-        ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",positions=[ages["IC_2602"]])
+        ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
+                   positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
+                   positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
+                   positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+    # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
+    #         "IC 2391",horizontalalignment="center",rotation="vertical",
+    #         fontsize=7,color="grey")
+    # ax.text(ages["Collinder_135"],max(prot_Collinder_135[solar_Collinder_135])*1.2,
+    #         "Collinder 135",horizontalalignment="center",rotation="vertical",
+    #         fontsize=7,color="grey")
+    # ax.text(ages["NGC_2451A"],max(prot_NGC_2451A[solar_NGC_2451A])*1.2,
+    #         "NGC 2451A",horizontalalignment="center",rotation="vertical",
+    #         fontsize=7,color="grey")
+    # ax.text(ages["NGC_2547"],max(prot_NGC_2547[solar_NGC_2547])*1.2,
+    #         "NGC 2547",horizontalalignment="center",rotation="vertical",
+    #         fontsize=7,color="grey")
+
+
+    mfile = at.read("models/spintracks_Matt_ea_15/spintrack10_Mea15.txt",
+                    names=["age(yr)","P0_0.7","P0_5","P0_18"])
+
+    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_0.7"])
+    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_5"])
+    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_18"])
+
+    ax.set_xlim(1,1e4)
+    ax.set_ylim(0.1,40)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    # ax.set_xlabel("Age (Myr)")
+    ax.set_ylabel("Period (d)")
+
+    ax.set_title(f"Matt et al. (2015)")#", Solar mass, C{clean_limit}{plot_title}")
+    # plt.savefig(f"plots/periodtracks{plot_name}_Matt2015_clean{clean_limit}.png")
+
+
+    ########################################################################
+    # Cecilia's models, TBD
+
+    ax = axes[0,1]
+    if plot_individual_stars:
+        ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
+                 prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
+        ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
+                 prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
+                 prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
+                 prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
+        ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
+                 prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    else:
+        ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
+                   positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
+                   positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
+                   positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -388,30 +461,39 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # ax.set_xlabel("Age (Myr)")
     ax.set_ylabel("Period (d)")
 
-    ax.set_title(f"Matt et al. (2015)")#", Solar mass, C{clean_limit}{plot_title}")
-    # plt.savefig(f"plots/periodtracks{plot_name}_Matt2015_clean{clean_limit}.png")
-
-
-    ########################################################################
-    # Cecilia's models, TBD
-
-    ax = axes[0,1]
     ax.set_title(f"Garraffo et al. (2018)")
 
 
     ########################################################################
     # Seth's models, Matt wind model
     ax = axes[1,0]
-    ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
-             prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
-    ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
-             prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
-             prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
-             prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
-    ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
-             prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    if plot_individual_stars:
+        ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
+                 prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
+        ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
+                 prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
+                 prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
+                 prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
+        ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
+                 prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    else:
+        ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
+                   positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
+                   positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
+                   positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -449,16 +531,33 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     ########################################################################
     # Seth's models, Garraffo wind model
     ax = axes[1,1]
-    ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
-             prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
-    ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
-             prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
-             prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
-             prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
-    ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
-             prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    if plot_individual_stars:
+        ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
+                 prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
+        ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
+                 prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
+                 prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
+                 prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
+        ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
+                 prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    else:
+        ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
+                   positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
+                   positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
+                   positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -496,16 +595,33 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     ########################################################################
     # Louis's models, 2019 version
     ax = axes[2,0]
-    ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
-             prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
-    ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
-             prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
-             prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
-    ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
-             prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
-    ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
-             prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    if plot_individual_stars:
+        ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
+                 prot_IC_2391[solar_IC_2391],"o",label="IC_2391",color="grey")
+        ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
+                 prot_Collinder_135[solar_Collinder_135],"s",label="Collinder_135",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
+                 prot_NGC_2451A[solar_NGC_2451A],"^",label="NGC_2451A",color="grey")
+        ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
+                 prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",color="grey")
+        ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
+                 prot_IC_2602[solar_IC_2602],"d",label="IC_2602",color="grey")
+    else:
+        ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
+                   positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
+                   positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
+                   positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False)
+        ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
+                   positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -594,4 +710,5 @@ def plot_results():
 
 if __name__=="__main__":
 
-    write_results()
+    # write_results()
+    plot_results()
