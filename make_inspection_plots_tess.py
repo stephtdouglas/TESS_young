@@ -566,13 +566,23 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
 
 if __name__=="__main__":
 
-    import itertools
-    # TODO: make these an input from the commandline
-#    date = "2021-06-21"
-#    cluster = "NGC_2451A"
-    date = "2021-07-02"
-    date2 = "2021-07-03"
-    cluster="IC_2602"
+    if len(sys.argv)<2:
+        print("Please provide a cluster name")
+    else:
+        cluster = sys.argv[1]
+        logging.info(cluster)
+
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
+    dates2 = [None,None,None,None,"2021-07-03"]
+
+    cl_idx = np.where(clusters==cluster)[0]
+    if len(cl_idx)==0:
+        print("cluster not found")
+        sys.exit(0)
+    else:
+        date = dates[cl_idx]
+        date2 = dates2[cl_idx]
 
     # base_dir = os.path.expanduser(f"~/data/tess/")
     base_dir = "/data/douglaslab/tess/"
@@ -611,7 +621,6 @@ if __name__=="__main__":
     cat = at.read(catfile,delimiter=",")
 
     # HDBScan file, used for gaia positions
-    # hdbfile = os.path.expanduser("~/Dropbox/EDR3/scats/NGC_2451A.fits")
     hdbfile = f"/data/douglaslab/EDR3/scats/{cluster}.fits"
     with fits.open(hdbfile) as hdu:
         hdbscan = hdu[1].data
@@ -625,7 +634,7 @@ if __name__=="__main__":
             tic = row["target_name"]
             sector, lc_type, flux_col = row["sequence_number"], row["provenance_name"], row["flux_cols"]
             output_filename = f"/data2/douglaslab/tess/{cluster.lower()}/inspect_plots/fig_inspect_{tic}_{lc_type}_{flux_col}_{sector}.png"
-            if os.path.exists(output_filename):
+            if (os.path.exists(output_filename)) or (lc_type=="PATHOS"):
                 continue
 
             print(row["target_name","provenance_name","sequence_number",
@@ -641,7 +650,7 @@ if __name__=="__main__":
                 coadd = np.sum(pixels,axis=0)
                 tess_wcs = extract_wcs(dataheader)
 
-            fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster="NGC_2451A")
+            fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster=cluster)
 
             # Define a faint mag limit for stars being plotted over the FFI stamp
             loc = np.where(cat["TIC"]==tic)[0]
@@ -667,12 +676,12 @@ if __name__=="__main__":
 
             print(i,output_filename)
             plt.savefig(output_filename)
-            plt.savefig(f"/data2/douglaslab/tess/cluster.lower()/inspect_plots/fig_inspect_{i}.eps".format(i+700))
+            plt.savefig(f"/data2/douglaslab/tess/{cluster.lower()}/inspect_plots/fig_inspect_{i}.eps".format(i+700))
             f.write(f"fig_inspect_{i}.eps & {cluster}, TIC {tic}: {lc_type}, {flux_col}, Sector {sector}\n")
 #            plt.savefig("/home/stephanie/my_papers/praeK2/fig4.eps".format(ep))
             plt.close("all")
 
-            # Pause 1 second in an attempt to reduce server time-out
+            # Pause in an attempt to reduce server time-out
             # IF trying to query for images!
             time.sleep(0.2)
 
