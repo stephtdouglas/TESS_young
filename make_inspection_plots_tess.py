@@ -662,11 +662,11 @@ if __name__=="__main__":
                     pixels = hdu[1].data["FLUX"]
                     coadd = np.sum(pixels,axis=0)
                     tess_wcs = extract_wcs(dataheader)
-            except (zipfile.BadZipfile, UnicodeDecodeError):
+            except Exception as error:
                 with open(f"tables/fig_bad_{cluster.lower()}.tbl","a") as g:
                     g.write(f"{tic},{row['target_name']},{row['provenance_name']},{row['sequence_number']},{row['flux_cols']},")
                     g.write(tess_file)
-                    g.write("\n")
+                    g.write(",{sys.exc_info()[0]},{error}\n")
                 continue
 
             fig, sky_axes, lc_axes = setup_figure(tess_wcs, cluster=cluster)
