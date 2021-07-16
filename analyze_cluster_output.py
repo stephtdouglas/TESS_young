@@ -4,9 +4,14 @@ import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.cm as cm
 import astropy.io.ascii as at
 from astropy.table import join,vstack,Table
 from scipy import stats
+
+norm = mpl.colors.LogNorm(vmin=0.1, vmax=20)
+mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
 
 # Read in and merge the outputs from k2spin
 
@@ -388,9 +393,9 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     mfile = at.read("models/spintracks_Matt_ea_15/spintrack10_Mea15.txt",
                     names=["age(yr)","P0_0.7","P0_5","P0_18"])
 
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_0.7"])
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_5"])
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_18"])
+    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_0.7"],color=mapper.to_rgba(0.7))
+    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_5"],color=mapper.to_rgba(5))
+    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_18"],color=mapper.to_rgba(18))
 
     ax.set_xlim(1,1e4)
     ax.set_ylim(0.1,40)
@@ -421,19 +426,19 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     else:
         ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
                    positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
                    positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
                    positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
                    positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
                    positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -447,12 +452,18 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     #         "NGC 2547",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
 
-    mfile = at.read("models/spintracks_Matt_ea_15/spintrack10_Mea15.txt",
-                    names=["age(yr)","P0_0.7","P0_5","P0_18"])
+    gar_dir = "models/spintracks_Garraffo_18/"
+    periods = [" 3"," 4"," 6"," 8","15","30","45","60","80","120"]
+    period_label = ["0.3d","0.4d","0.6d","0.8d","1.5d","3.0d","4.5d","6.0d","8.0d","12.0d"]
+    for i,p in enumerate(periods):
+        gfile = os.path.join(gar_dir,f"age_p_tau_Mass10_P0={p}.txt")
 
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_0.7"])
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_5"])
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_18"])
+        data = at.read(gfile,names=["age(Myr)","period(d)","unknown"])
+        good = (data["age(Myr)"]>=1) & (data["age(Myr)"]<2800)
+
+        color = mapper.to_rgba(float(period_label[i][:-1]))
+        ax.plot(data["age(Myr)"][good],data["period(d)"][good],
+                label=period_label[i],color=color)
 
     ax.set_xlim(1,1e4)
     ax.set_ylim(0.1,40)
@@ -481,19 +492,19 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     else:
         ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
                    positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
                    positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
                    positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
                    positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
                    positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -516,7 +527,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
         # extract rotation periods at all ages
         periods = 2*np.pi/(86400*data['surf_avg_omega'])
 
-        ax.plot(data["star_age"]/1e6,periods,label=p)
+        color = mapper.to_rgba(float(p[:-1]))
+        ax.plot(data["star_age"]/1e6,periods,label=p,color=color)
 
     # plt.xlim(1,1e4)
     # plt.ylim(0.1,40)
@@ -545,19 +557,19 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     else:
         ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
                    positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
                    positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
                    positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
                    positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
                    positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
     # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
     #         "IC 2391",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
@@ -571,7 +583,7 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     #         "NGC 2547",horizontalalignment="center",rotation="vertical",
     #         fontsize=7,color="grey")
 
-    periods = ["0.3d","0.4d","0.6d","0.8d","1.5d","12d","3d","4.5d","6d","8d"]
+    periods = ["0.3d","0.4d","0.6d","0.8d","1.5d","3d","4.5d","6d","8d","12d"]
     for p in periods:
         hfile = f"models/MIST_G18_mbraking_feh_p0.00_histfiles/00100M_dir/LOGS/1.0M_history_prot{p}0_G18_d02d4_0.5hp_1d_3.2d41c_0.5b_0.03a_3myr_alt3prot_henyey1.82mlta.data"
         # read in the history file (for a particular mass, initial period, and braking formalism)
@@ -580,7 +592,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
         # extract rotation periods at all ages
         periods = 2*np.pi/(86400*data['surf_avg_omega'])
 
-        ax.plot(data["star_age"]/1e6,periods,label=p)
+        color = mapper.to_rgba(float(p[:-1]))
+        ax.plot(data["star_age"]/1e6,periods,label=p,color=color)
 
     # plt.xlim(1,1e4)
     # plt.ylim(0.1,40)
@@ -609,16 +622,16 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     else:
         ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
                    positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
                    positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
                    positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
                    positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
-                   flierprops={"markersize":4},manage_ticks=False)
+                   flierprops={"markersize":4},manage_ticks=False,zorder=10)
         ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
                    positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
                    flierprops={"markersize":4},manage_ticks=False,zorder=10)
@@ -645,7 +658,9 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
 
         data = at.read(os.path.join(model_dir,tfile),data_start=3)
 
-        ax.plot(data["time"]/1e6,data["Prot"],label=f"V{p}")
+
+        color = mapper.to_rgba(data["Prot"][0])
+        ax.plot(data["time"]/1e6,data["Prot"],label=f"V{p}",color=color)
 
 
     # plt.xlim(1,1e4)
@@ -701,12 +716,12 @@ def plot_results():
                  "Collinder_135": 26}
     for clean_limit in ["",10,30,60]:
         # plot_all(clean_limit)
-        plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", CG20 Ages",
-        clean_limit=clean_limit)
+        # plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", CG20 Ages",
+        # clean_limit=clean_limit)
         plot_model_tracks(khar_ages,plot_name="_Kharages",plot_title=", Khar Ages",
         clean_limit=clean_limit)
-        plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
-        clean_limit=clean_limit)
+        # plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
+        # clean_limit=clean_limit)
 
 if __name__=="__main__":
 
