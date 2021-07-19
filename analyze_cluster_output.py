@@ -16,7 +16,7 @@ mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
 # Read in and merge the outputs from k2spin
 
 def process_cluster(cluster, date, clean_limit=10,
-                    return_periodcolor=True, date2=None):
+                    return_periodcolor=True, date2=None, to_plot=False):
     """
     Read in results from period measurement, select periods for each star.
 
@@ -272,7 +272,7 @@ def process_cluster(cluster, date, clean_limit=10,
     bp_rp = summary_gaia["GAIAEDR3_BP"] - summary_gaia["GAIAEDR3_RP"]
     bp_rp2 = summary2_gaia["GAIAEDR3_BP"] - summary2_gaia["GAIAEDR3_RP"]
 
-    if return_periodcolor:
+    if to_plot:
         plt.figure()
         plt.plot(bp_rp,summary_gaia["Prot"],'.',color="grey",alpha=0.5)
         plt.plot(bp_rp[clean],summary_gaia["Prot"][clean],'d',ms=5,zorder=5)
@@ -291,6 +291,8 @@ def process_cluster(cluster, date, clean_limit=10,
 
         plt.title(cluster)
         plt.savefig(f"plots/periodmass_{cluster}_clean{clean_limit}.png")
+
+    if return_periodcolor:
 
         # return bp_rp[clean],summary_gaia["Prot"][clean]
         return bp_rp2[clean2],summary2_gaia["Prot"][clean2]
@@ -723,7 +725,80 @@ def plot_results():
         # plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
         # clean_limit=clean_limit)
 
+
+
+def compare_visual_results():
+
+    plt.figure(figsize=(9,9))
+
+    cluster="NGC_2451A"
+    print(cluster,"\n-------")
+
+    # Read in my visual inspection results
+    vis_file = "tables/NGC_2451A_2021-06-21_results_comments.csv"
+    vis = at.read(vis_file,delimiter=",")
+    good = np.where(vis["Select"].mask==False)[0]
+    print(len(good))
+
+    # Limit the table to only the light curves I analyzed
+    vis = vis[good]
+    vis.rename_column("\ufefftarget_name","TIC")
+
+    vis["final_period"] = np.copy(vis["sig_periods"])
+    vis["final_Q"] = np.copy(vis["Q"])
+    replace2 = (vis["Q"]==2) & ((vis["Q2"]==1) | (vis["Q2"]==0))
+    replace3 = (vis["Q"]==2) & ((vis["Q3"]==1) | (vis["Q3"]==0))
+    vis["final_period"][replace2] = vis["sec_periods"][replace2]
+    vis["final_Q"][replace2]==vis["Q2"][replace2]
+    vis["final_period"][replace3] = -99 # Not bothering with peaks file right now
+    vis["final_Q"][replace3]==vis["Q3"][replace3]
+
+    # Retrieve the automated results
+    for i,clean_limit in enumerate([60,30,10,""]):
+        ax1 = plt.subplot(2,2,i+1)
+        summary, clean, results = process_cluster(cluster,"2021-06-21",clean_limit=clean_limit,
+                                         return_periodcolor=False)
+
+        match = join(vis,summary,join_type="left",keys=["TIC"],
+                     table_names=["vis","auto"])
+
+        ax1.plot(match["final_period"][match["final_Q"]==0],
+                 match["Prot"][match["final_Q"]==0],'o',color=f"C{i}",
+                 label=f"Q=0",ms=5)
+        ax1.plot(match["final_period"][match["final_Q"]==1],
+                 match["Prot"][match["final_Q"]==1],'o',color=f"C{i}",mfc="none",
+                 label=f"Q=1",ms=5)
+        ax1.plot(match["final_period"][match["final_Q"]==2],
+                 match["Prot"][match["final_Q"]==2],'k+',
+                 label=f"Q=2")
+        # ax1.plot(match["final_period"][match["final_Q"]==3],
+        #          match["Prot"][match["final_Q"]==3],'kx',
+        #          label=f"Q=3")
+        ax1.legend(loc=4)
+
+        ax1.set_title(f"clean={clean_limit}")
+
+        x = np.linspace(0.1,50,20)
+        ax1.plot(x,x,"-",zorder=-5,color="grey")
+        ax1.plot(x,x/2,"--",zorder=-5,color="grey")
+        ax1.plot(x,x*2,"--",zorder=-5,color="grey")
+
+        ax1.set_xlim(0.1,50)
+        ax1.set_ylim(0.1,50)
+        ax1.set_xscale("log")
+        ax1.set_yscale("log")
+
+        if (i==0) or (i==2):
+            ax1.set_ylabel("Automated Period (d)")
+        if (i==2) or (i==3):
+            ax1.set_xlabel("Visual Inspection Period (d)")
+
+    plt.suptitle(cluster.replace("_"," "),y=0.93)
+    plt.savefig(f"plots/visual_compare_{cluster}.png",bbox_inches="tight")
+    # plt.show()
+
 if __name__=="__main__":
 
     # write_results()
-    plot_results()
+    # plot_results()
+    compare_visual_results()
