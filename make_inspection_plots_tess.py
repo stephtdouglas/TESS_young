@@ -654,8 +654,12 @@ if __name__=="__main__":
             cutout_coord = SkyCoord.from_name(f"TIC {tic}")
 
             try:
-                tess_data = Tesscut.download_cutouts(cutout_coord, size=20, path=dir_ffi)
+                tess_data = Tesscut.download_cutouts(cutout_coord, size=19, path=dir_ffi)
+                sector_string = f"s{sector:04}"
                 tess_file = tess_data[-1][0]
+                for i in range(len(tess_data)):
+                    if sector_string in tess_data[i][0]:
+                        tess_file = tess_data[i][0]
 
                 with fits.open(tess_file) as hdu:
                     dataheader = hdu[1].header
@@ -704,5 +708,5 @@ if __name__=="__main__":
             # IF trying to query for images!
             time.sleep(0.2)
 
-#            if i>10:
-#                break
+           if i>1:
+               break
