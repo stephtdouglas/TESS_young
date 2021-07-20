@@ -511,10 +511,10 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
                     transform=ax2.get_transform('fk5'), s=6,
                     edgecolor=cmap(0.9),facecolor=cmap(0.9),zorder=10)
 
-    ax2.plot([7.5,9],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
-    ax2.plot([11,12.5],[10,10],color=cmap(0.5),transform=ax2.get_transform('pixel'))
-    ax2.plot([10,10],[7.5,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
-    ax2.plot([10,10],[11,12.5],color=cmap(0.5),transform=ax2.get_transform('pixel'))
+    ax2.plot([7,8.5],[9,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
+    ax2.plot([9.5,11],[9,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
+    ax2.plot([9,9],[7,8.5],color=cmap(0.5),transform=ax2.get_transform('pixel'))
+    ax2.plot([9,9],[9.5,11],color=cmap(0.5),transform=ax2.get_transform('pixel'))
 
     # if pix is not None:
     #     # median = np.median(pix)
@@ -708,5 +708,5 @@ if __name__=="__main__":
             # IF trying to query for images!
             time.sleep(0.2)
 
-           if i>1:
-               break
+            #if i>1:
+            #    break
