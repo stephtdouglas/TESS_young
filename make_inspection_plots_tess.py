@@ -513,7 +513,8 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
                     edgecolor=cmap(0.1),facecolor=cmap(0.9),zorder=10)
     ax2.scatter(pos.ra,pos.dec,transform=ax2.get_transform('fk5'), s=12,
                 linewidths=0.5,
-                edgecolor=cmap(0.01),facecolor=cmap(0.7),zorder=12,marker="*")
+                edgecolor=cmap(0.7),facecolor=cmap(0.1),zorder=12,marker="s")
+    
 
     # ax2.plot([7,8.5],[9,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
     # ax2.plot([9.5,11],[9,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
