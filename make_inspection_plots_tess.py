@@ -215,15 +215,17 @@ def setup_figure(wcs,cluster):
     two sky survey images, light curve and periodogram plots.
     """
 
-    fig = plt.figure(figsize=(14,14))
+    fig = plt.figure(figsize=(14,13))
 
     gs_base = gridspec.GridSpec(1,2,width_ratios=[1,3])
 
-    gs_sky = gridspec.GridSpecFromSubplotSpec(4,1,subplot_spec=gs_base[0])
+    sky_n = 3
 
-    sky_axes = [plt.subplot(gs_sky[i],projection=wcs) for i in range(3)]
+    gs_sky = gridspec.GridSpecFromSubplotSpec(sky_n,1,subplot_spec=gs_base[0])
 
-    sky_axes.append(set_up_tess_sky(cluster, gs_sky, sky_ind=3))
+    sky_axes = [plt.subplot(gs_sky[i],projection=wcs) for i in range(sky_n-1)]
+
+    sky_axes.append(set_up_tess_sky(cluster, gs_sky, sky_ind=sky_n-1))
 
     lc_n = 5
 
@@ -497,6 +499,12 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
     ax1.matshow(tess_img, origin="lower", cmap=cmap, norm=colors.LogNorm(),
                 zorder=-10)
 
+    targ_x, targ_y = wcs.world_to_pixel(pos)
+    ax1.plot([targ_x-2,targ_x-0.5],[targ_y,targ_y],color="w",transform=ax2.get_transform('pixel'))
+    ax1.plot([targ_x+0.5,targ_x+2],[targ_y,targ_y],color="w",transform=ax2.get_transform('pixel'))
+    ax1.plot([targ_x,targ_x],[targ_y-2,targ_y-0.5],color="w",transform=ax2.get_transform('pixel'))
+    ax1.plot([targ_x,targ_x],[targ_y+0.5,targ_y+2],color="w",transform=ax2.get_transform('pixel'))
+
     # Plot TESS image
     # Plot the pixel stamp as usual, except with the WCS
     ax2 = axes[1]
@@ -514,7 +522,7 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
     ax2.scatter(pos.ra,pos.dec,transform=ax2.get_transform('fk5'), s=18,
                 linewidths=0.5,
                 edgecolor=cmap(0.1),facecolor=cmap(0.75),zorder=12,marker="s")
-    
+
 
     # ax2.plot([7,8.5],[9,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
     # ax2.plot([9.5,11],[9,9],color=cmap(0.5),transform=ax2.get_transform('pixel'))
