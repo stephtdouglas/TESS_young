@@ -727,15 +727,14 @@ def plot_results():
 
 
 
-def compare_visual_results():
+def compare_visual_results(cluster, date):
 
     plt.figure(figsize=(9,9))
 
-    cluster="NGC_2451A"
     print(cluster,"\n-------")
 
     # Read in my visual inspection results
-    vis_file = "tables/NGC_2451A_2021-06-21_results_comments.csv"
+    vis_file = f"tables/{cluster}_{date}_results_comments.csv"
     vis = at.read(vis_file,delimiter=",")
     good = np.where(vis["Select"].mask==False)[0]
     print(len(good))
@@ -801,4 +800,5 @@ if __name__=="__main__":
 
     # write_results()
     # plot_results()
-    compare_visual_results()
+    # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
+    compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
