@@ -93,6 +93,14 @@ def polar_map(save=True, sector_colors=True, legend=True,
         else:
             ax.plot(x_rad, y_rad, color='b', alpha=0.5)
 
+    x_rad = 325*np.pi/180
+    y_rad = -10
+    x_step = (350/13)*np.pi/180
+    for i in range(13):
+        ax.text(x_rad,y_rad,f"{i+1}",color=colors[i],fontsize=12,
+                horizontalalignment="center",verticalalignment="center")
+        x_rad = x_rad + x_step
+
         # print("plotted")
     # print("done plotting sectors")
     # print(hemisphere,ax.get_rmin(),ax.get_rmax())
@@ -139,7 +147,7 @@ def polar_cluster(ax,cluster=None,cluster_skycoord=None,save=True,
     if cluster is not None:
         x_avg = np.average(x_clu)
         y_avg = np.average(y_clu)
-        ax.text(x_avg,y_avg+5,cluster,color="k",horizontalalignment="right")
+        ax.text(x_avg,y_avg+5,cluster.replace("_"," "),color="k",horizontalalignment="right")
 
     if save:
         plt.savefig('plots/TESS_sectors_{0}_{1}.png'.format(hemisphere.lower(),
@@ -151,11 +159,12 @@ def plot_all_clusters():
 
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     for cluster in clusters:
-        cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
+        # cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
+        cat = at.read(f"{cluster}_crossmatch_xmatch_TIC.csv",delimiter=",")
         cat_pos = SkyCoord(cat["GAIAEDR3_RA"],cat["GAIAEDR3_DEC"],unit=u.degree)
         ax = polar_cluster(ax,cluster,cat_pos,save=False)
 
-    plt.savefig("plots/TESS_sectors_South_all.png")
+    plt.savefig("plots/TESS_sectors_South_all.png",bbox_inches="tight")
 
     return ax
 
