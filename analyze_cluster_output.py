@@ -15,6 +15,20 @@ mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
 
 # Read in and merge the outputs from k2spin
 
+colors = {"IC_2391": "C0",
+         "IC_2602": "C4",
+         "NGC_2547": "C3",
+         "NGC_2451A": "C2",
+         "Collinder_135": "C1"}
+
+shapes= {"IC_2391": "o",
+         "IC_2602": "d",
+         "NGC_2547": "v",
+         "NGC_2451A": "^",
+         "Collinder_135": "s"}
+
+
+
 def process_cluster(cluster, date, clean_limit=10,
                     return_periodcolor=True, date2=None, to_plot=False):
     """
@@ -25,14 +39,19 @@ def process_cluster(cluster, date, clean_limit=10,
         of the primary peak
     """
     base_dir = os.path.expanduser(f"~/data/tess/{cluster.lower()}/tables/")
+    print(base_dir)
+    print(os.path.join(base_dir,f"*{date}*csv"))
     filenames = glob.iglob(os.path.join(base_dir,f"*{date}*csv"))
     if date2 is not None:
         filenames2 = glob.iglob(os.path.join(base_dir,f"*{date2}*csv"))
+        # filenames = np.append(filenames,filenames2)
         filenames = itertools.chain(filenames,filenames2)
+
 
     all_res = []
     all_peaks0 = []
     for filename in filenames:
+        # print(filename)
         if "allpeaks" in filename:
             all_peaks0.append(at.read(filename))
         else:
@@ -45,9 +64,9 @@ def process_cluster(cluster, date, clean_limit=10,
     all_peaks.rename_column("sector","sequence_number")
     all_peaks.rename_column("TIC","target_name")
 
-    print(results.dtype)
+    # print(results.dtype)
     tic_ids = results["target_name"]
-    print(tic_ids)
+    # print(tic_ids)
 
     # Delete all PATHOS results, since they are dominated by long trends
     pathos = np.where(results["provenance_name"]=="PATHOS")[0]
@@ -280,7 +299,7 @@ def process_cluster(cluster, date, clean_limit=10,
         print(len(np.where(clean2)[0]))
 
         plt.ylim(0.1,50)
-        plt.xlim(-0.5,3.5)
+        plt.xlim(0.5,3.5)
         plt.yscale("log")
 
         plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
@@ -300,24 +319,91 @@ def process_cluster(cluster, date, clean_limit=10,
     else:
         return summary2_gaia, clean2, results2
 
+def read_cluster_visual(cluster, date, clean_limit=None,
+                        return_periodcolor=True, date2=None, to_plot=False):
+    # Read in my visual inspection results
+    vis_file = f"tables/{cluster}_{date}_results_comments.csv"
+    vis = at.read(vis_file,delimiter=",")
+    good = np.where(vis["Select"].mask==False)[0]
+    print(len(good))
+
+    # Limit the table to only the light curves I analyzed
+    vis = vis[good]
+    vis.rename_column("\ufefftarget_name","TIC")
+
+    vis["final_period"] = np.copy(vis["sig_periods"])
+    vis["final_Q"] = np.copy(vis["Q"])
+    replace2 = (vis["Q"]==2) & ((vis["Q2"]==1) | (vis["Q2"]==0))
+    replace3 = (vis["Q"]==2) & ((vis["Q3"]==1) | (vis["Q3"]==0))
+    vis["final_period"][replace2] = vis["sec_periods"][replace2]
+    vis["final_Q"][replace2]==vis["Q2"][replace2]
+    vis["final_period"][replace3] = -99 # Not bothering with peaks file right now
+    vis["final_Q"][replace3]==vis["Q3"][replace3]
+
+    x_file = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    xmatch = at.read(x_file,delimiter=",")
+    xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_G","GAIAEDR3_BP",
+                    "GAIAEDR3_RP","GAIAEDR3_RUWE","GAIAEDR3_G_CORRECTED",
+                    "MemBool","angDist_GES","prob_p","angDist_Cantat-Gaudin",
+                    "proba","TIC"]
+
+    match = join(vis,xmatch,join_type="left",keys=["TIC"],table_names=["vis","xmatch"])
+
+    bp_rp = match["GAIAEDR3_BP"] - match["GAIAEDR3_RP"]
+    clean = match["final_Q"]==0
+    all_possible = (match["final_Q"]==0) | (match["final_Q"]==1)
+
+    if to_plot:
+        plt.figure()
+        plt.plot(bp_rp,match["final_period"],'.',color="grey",alpha=0.5,
+                 label="all detections")
+        plt.plot(bp_rp[all_possible],match["final_period"][all_possible],
+                 shapes[cluster],color=colors[cluster],ms=6,zorder=5,mfc="none",
+                 label="possible")
+        plt.plot(bp_rp[clean],match["final_period"][clean],
+                 shapes[cluster],color=colors[cluster],ms=6,zorder=6,
+                 label="Definite")
+
+        plt.legend(loc=2)
+
+        plt.ylim(0.1,50)
+        plt.xlim(0.5,3.5)
+        plt.yscale("log")
+
+        plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
+        plt.ylabel("Period (d)")
+
+        ax = plt.gca()
+        ax.axhline(12,linestyle="--",color="C2")
+
+        plt.title(cluster)
+        plt.savefig(f"plots/periodmass_{cluster}_visual.png")
+
+    if return_periodcolor:
+
+        return bp_rp[all_possible],match["final_period"][all_possible]
+
+    else:
+        return match
+
 def plot_all(clean_limit=10):
-    bp_rp_IC_2391, prot_IC_2391 = process_cluster("IC_2391","2021-06-22",clean_limit)
-    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit)
-    bp_rp_NGC_2451A, prot_NGC_2451A = process_cluster("NGC_2451A","2021-06-21",clean_limit)
-    bp_rp_NGC_2547, prot_NGC_2547 = process_cluster("NGC_2547","2021-06-21",clean_limit)
-    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit)
+    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=True)
+    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=True)
+    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=True)
+    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=True)
+    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=True)
 
 
     plt.figure()
-    plt.plot(bp_rp_IC_2391, prot_IC_2391,"o",label="IC_2391")
-    plt.plot(bp_rp_Collinder_135, prot_Collinder_135,"s",label="Collinder_135")
-    plt.plot(bp_rp_NGC_2451A, prot_NGC_2451A,"^",label="NGC_2451A")
-    plt.plot(bp_rp_NGC_2547, prot_NGC_2547,"v",label="NGC_2547")
-    plt.plot(bp_rp_IC_2602, prot_IC_2602,"d",label="IC_2602")
+    plt.plot(bp_rp_IC_2391, prot_IC_2391,"o",label="IC_2391",ms=5)
+    plt.plot(bp_rp_Collinder_135, prot_Collinder_135,"s",label="Collinder_135",ms=5)
+    plt.plot(bp_rp_NGC_2451A, prot_NGC_2451A,"^",label="NGC_2451A",ms=5)
+    plt.plot(bp_rp_NGC_2547, prot_NGC_2547,"v",label="NGC_2547",ms=5)
+    plt.plot(bp_rp_IC_2602, prot_IC_2602,"d",label="IC_2602",ms=5)
     plt.legend(loc=2)
 
     plt.ylim(0.1,50)
-    plt.xlim(-0.5,3.5)
+    plt.xlim(0.5,3.5)
     plt.yscale("log")
 
     plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
@@ -333,11 +419,11 @@ def id_solar(bp_rp):
 
 def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                       plot_individual_stars=False):
-    bp_rp_IC_2391, prot_IC_2391 = process_cluster("IC_2391","2021-06-22",clean_limit)
-    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit)
-    bp_rp_NGC_2451A, prot_NGC_2451A = process_cluster("NGC_2451A","2021-06-21",clean_limit)
-    bp_rp_NGC_2547, prot_NGC_2547 = process_cluster("NGC_2547","2021-06-21",clean_limit)
-    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit)
+    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=False)
+    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=False)
+    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=False)
+    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=False)
+    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=False)
 
     solar_IC_2391 = id_solar(bp_rp_IC_2391)
     solar_Collinder_135 = id_solar(bp_rp_Collinder_135)
@@ -345,8 +431,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     solar_NGC_2547 = id_solar(bp_rp_NGC_2547)
     solar_IC_2602 = id_solar(bp_rp_IC_2602)
 
-    fig, axes = plt.subplots(nrows=3,ncols=2,sharex=True,sharey=True,figsize=(8,10))
-    plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}")
+    fig, axes = plt.subplots(nrows=3,ncols=2,sharey=True,figsize=(8,10))
+    plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}",y=0.93)
 
     ########################################################################
     # Sean's models
@@ -400,6 +486,7 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     ax.plot(mfile["age(yr)"]/1e6,mfile["P0_18"],color=mapper.to_rgba(18))
 
     ax.set_xlim(1,1e4)
+    ax.tick_params(labelbottom=False)
     ax.set_ylim(0.1,40)
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -468,6 +555,7 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                 label=period_label[i],color=color)
 
     ax.set_xlim(1,1e4)
+    ax.tick_params(labelbottom=False)
     ax.set_ylim(0.1,40)
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -532,9 +620,10 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
         color = mapper.to_rgba(float(p[:-1]))
         ax.plot(data["star_age"]/1e6,periods,label=p,color=color)
 
-    # plt.xlim(1,1e4)
+    ax.set_xlim(1,1e4)
+    ax.tick_params(labelbottom=False)
+    ax.set_xscale("log")
     # plt.ylim(0.1,40)
-    # plt.xscale("log")
     # plt.yscale("log")
     # plt.xlabel("Age (Myr)")
     ax.set_ylabel("Period (d)")
@@ -597,7 +686,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
         color = mapper.to_rgba(float(p[:-1]))
         ax.plot(data["star_age"]/1e6,periods,label=p,color=color)
 
-    # plt.xlim(1,1e4)
+    ax.set_xlim(1,1e4)
+    ax.set_xscale("log")
     # plt.ylim(0.1,40)
     # plt.xscale("log")
     # plt.yscale("log")
@@ -665,7 +755,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
         ax.plot(data["time"]/1e6,data["Prot"],label=f"V{p}",color=color)
 
 
-    # plt.xlim(1,1e4)
+    ax.set_xlim(1,1e4)
+    ax.set_xscale("log")
     # plt.ylim(0.1,40)
     # plt.xscale("log")
     # plt.yscale("log")
@@ -679,7 +770,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # remove the lower right panel unless I find another model
     axes[2,1].axis("off")
 
-    plt.savefig(f"plots/periodtracks{plot_name}_page_clean{clean_limit}.png")
+    plt.savefig(f"plots/periodtracks{plot_name}_page_clean{clean_limit}.png",
+                bbox_inches="tight")
 
 def write_results():
 
@@ -718,12 +810,12 @@ def plot_results():
                  "Collinder_135": 26}
     for clean_limit in ["",10,30,60]:
         # plot_all(clean_limit)
-        # plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", CG20 Ages",
-        # clean_limit=clean_limit)
+        plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", CG20 Ages",
+        clean_limit=clean_limit)
         plot_model_tracks(khar_ages,plot_name="_Kharages",plot_title=", Khar Ages",
         clean_limit=clean_limit)
-        # plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
-        # clean_limit=clean_limit)
+        plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza Ages",
+        clean_limit=clean_limit)
 
 
 
@@ -755,7 +847,7 @@ def compare_visual_results(cluster, date):
     # Retrieve the automated results
     for i,clean_limit in enumerate([60,30,10,""]):
         ax1 = plt.subplot(2,2,i+1)
-        summary, clean, results = process_cluster(cluster,"2021-06-21",clean_limit=clean_limit,
+        summary, clean, results = process_cluster(cluster,date,clean_limit=clean_limit,
                                          return_periodcolor=False)
 
         match = join(vis,summary,join_type="left",keys=["TIC"],
@@ -799,6 +891,9 @@ def compare_visual_results(cluster, date):
 if __name__=="__main__":
 
     # write_results()
-    # plot_results()
+    plot_results()
     # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
-    compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
+    # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
+    # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
+
+    # plot_all()

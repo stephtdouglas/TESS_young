@@ -16,7 +16,7 @@ from astropy.table import join, Table
 # from astroquery.xmatch import XMatch
 from astropy import units as u
 
-from analyze_cluster_output import process_cluster
+from analyze_cluster_output import process_cluster, read_cluster_visual
 
 def vizier_tic(simbad_name,gaia_dr2):
     print("Find TIC for ",simbad_name,gaia_dr2)
@@ -361,15 +361,19 @@ def compare_literature(clean_limit=10):
     # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
     # cat = at.read(catfile,delimiter=",")
 
-    summary, clean, results = process_cluster(cluster,"2021-06-22",clean_limit=clean_limit,
-                                     return_periodcolor=False)
+    summary = read_cluster_visual(cluster,"2021-06-22",return_periodcolor=False)
+    clean = (summary["final_Q"]==0) | (summary["final_Q"]==1)
+    period_col = "final_period"
+    # summary, clean, results = process_cluster(cluster,"2021-06-22",clean_limit=clean_limit,
+    #                                  return_periodcolor=False)
+    # period_col = "Prot"
     # print(summary.dtype)
 
     match = join(simbad,summary,join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
 
     ax1 = plt.subplot(131)
-    ax1.plot(match["Period"],match["Prot"],'o',color="C0",label="Patten & Simon (1996)")
+    ax1.plot(match["Period"],match[period_col],'o',color="C0",label="Patten & Simon (1996)")
     ax1.legend(loc=2)
 
     x = np.linspace(0.1,50,20)
@@ -451,15 +455,20 @@ def compare_literature(clean_limit=10):
     # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
     # cat = at.read(catfile,delimiter=",")
 
-    summary, clean, results = process_cluster(cluster,"2021-06-21",clean_limit=clean_limit,
-                                     return_periodcolor=False)
+    summary = read_cluster_visual(cluster,"2021-06-21",return_periodcolor=False)
+    clean = (summary["final_Q"]==0) | (summary["final_Q"]==1)
+    period_col = "final_period"
+
+    # summary, clean, results = process_cluster(cluster,"2021-06-21",clean_limit=clean_limit,
+    #                                  return_periodcolor=False)
+    # period_col = "Prot"
     # print(summary.dtype)
 
     match = join(simbad[simbad["TIC"]!=0],summary[clean],join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
 
     ax3 = plt.subplot(133)
-    ax3.plot(match["Per"],match["Prot"],'v',color="C3",label="Irwin+ (2008)")
+    ax3.plot(match["Per"],match[period_col],'v',color="C3",label="Irwin+ (2008)")
     ax3.legend(loc=2)
     x = np.linspace(0.1,50,20)
     ax3.plot(x,x,"-",zorder=-5,color="grey")
