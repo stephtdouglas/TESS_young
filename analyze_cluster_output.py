@@ -10,7 +10,7 @@ import astropy.io.ascii as at
 from astropy.table import join,vstack,Table
 from scipy import stats
 
-norm = mpl.colors.LogNorm(vmin=0.1, vmax=20)
+norm = mpl.colors.LogNorm(vmin=0.1, vmax=30)
 mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
 
 # Read in and merge the outputs from k2spin
@@ -306,7 +306,7 @@ def process_cluster(cluster, date, clean_limit=10,
         plt.ylabel("Period (d)")
 
         ax = plt.gca()
-        ax.axhline(12,linestyle="--",color="C2")
+        ax.axhline(12,linestyle="--",color="tab:grey")
 
         plt.title(cluster)
         plt.savefig(f"plots/periodmass_{cluster}_clean{clean_limit}.png")
@@ -355,14 +355,14 @@ def read_cluster_visual(cluster, date, clean_limit=None,
 
     if to_plot:
         plt.figure()
-        plt.plot(bp_rp,match["final_period"],'.',color="grey",alpha=0.5,
-                 label="all detections")
+        # plt.plot(bp_rp,match["final_period"],'.',color="grey",alpha=0.5,
+        #          label="all detections")
         plt.plot(bp_rp[all_possible],match["final_period"][all_possible],
                  shapes[cluster],color=colors[cluster],ms=6,zorder=5,mfc="none",
-                 label="possible")
+                 label="Possible TESS")
         plt.plot(bp_rp[clean],match["final_period"][clean],
                  shapes[cluster],color=colors[cluster],ms=6,zorder=6,
-                 label="Definite")
+                 label="Definite TESS")
 
         plt.legend(loc=2)
 
@@ -374,7 +374,7 @@ def read_cluster_visual(cluster, date, clean_limit=None,
         plt.ylabel("Period (d)")
 
         ax = plt.gca()
-        ax.axhline(12,linestyle="--",color="C2")
+        ax.axhline(12,linestyle="--",color="tab:grey")
 
         plt.title(cluster)
         plt.savefig(f"plots/periodmass_{cluster}_visual.png")
@@ -410,7 +410,7 @@ def plot_all(clean_limit=10):
     plt.ylabel("Period (d)")
 
     ax = plt.gca()
-    ax.axhline(12,linestyle="--",color="C2")
+    ax.axhline(12,linestyle="--",color="tab:grey")
 
     plt.savefig(f"plots/periodmass_all_clean{clean_limit}.png")
 
