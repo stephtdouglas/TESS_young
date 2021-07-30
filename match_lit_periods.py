@@ -6,6 +6,8 @@ import os, sys
 from datetime import date
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.cm as cm
 import numpy as np
 import astropy.io.ascii as at
 import astropy.io.fits as fits
@@ -19,11 +21,19 @@ from astropy import units as u
 from analyze_cluster_output import process_cluster, read_cluster_visual
 
 
-colors = {"IC_2391": "C0",
-         "IC_2602": "C4",
-         "NGC_2547": "C3",
-         "NGC_2451A": "C2",
-         "Collinder_135": "C1"}
+# colors = {"IC_2391": "C0",
+#          "IC_2602": "C4",
+#          "NGC_2547": "C3",
+#          "NGC_2451A": "C2",
+#          "Collinder_135": "C1"}
+
+cmap2 = cm.get_cmap("viridis",7)
+colors = {"IC_2391": cmap2(0),
+         "IC_2602": cmap2(4),
+         "NGC_2547": cmap2(3),
+         "NGC_2451A": cmap2(2),
+         "Collinder_135": cmap2(1)}
+
 
 shapes= {"IC_2391": "o",
          "IC_2602": "d",
@@ -362,7 +372,7 @@ def catalog_numbers():
 
 def compare_literature(clean_limit=10):
 
-    plt.figure(figsize=(11,4))
+    plt.figure(figsize=(11,3.5))
 
 
     ############################################################################
@@ -390,9 +400,9 @@ def compare_literature(clean_limit=10):
     ax1 = plt.subplot(131)
     q0 = (match["final_Q"]==0) & (match["final_Q"].mask==False)
     q1 = (match["final_Q"]==1) & (match["final_Q"].mask==False)
-    ax1.plot(match["Period"][q0],match[period_col][q0],'o',color="C0",label="Patten & Simon (1996)")
+    ax1.plot(match["Period"][q0],match[period_col][q0],'o',color=colors[cluster],label="Patten & Simon (1996)")
     ax1.legend(loc=2)
-    ax1.plot(match["Period"][q1],match[period_col][q1],'o',color="C0",
+    ax1.plot(match["Period"][q1],match[period_col][q1],'o',color=colors[cluster],
              mfc="none")
 
     x = np.linspace(0.1,50,20)
@@ -434,9 +444,9 @@ def compare_literature(clean_limit=10):
                  table_names=["lit","new"])
 
     ax2 = plt.subplot(132)
-    ax2.plot(match["Prot_lit"],match["Prot_new"],'d',color="C4",
+    ax2.plot(match["Prot_lit"],match["Prot_new"],'d',color=colors[cluster],
              label="Barnes+ (1999)")
-    ax2.plot(match2["Prot_lit"],match2["Prot_new"],'D',mec="midnightblue",mfc="none",
+    ax2.plot(match2["Prot_lit"],match2["Prot_new"],'D',mec="#174f34",mfc="none",
              label="Tschape & Rudiger (2001)",mew=1.5)
     ax2.legend(loc=2)
 
@@ -489,11 +499,11 @@ def compare_literature(clean_limit=10):
     ax3 = plt.subplot(133)
     q0 = (match["final_Q"]==0) & (match["final_Q"].mask==False)
     q1 = (match["final_Q"]==1) & (match["final_Q"].mask==False)
-    ax3.plot(match["Per"][q0],match[period_col][q0],'v',color="C3",label="Irwin+ (2008)")
+    ax3.plot(match["Per"][q0],match[period_col][q0],'v',color=colors[cluster],label="Irwin+ (2008)")
     ax3.legend(loc=2)
-    ax3.plot(match["Per"][q1],match[period_col][q1],'v',color="C3",mfc="none")
-    multi = ((match["MultiProt"]=="m") | (match["MultiProt"]=="y")) & (match["MultiProt"].mask==False)
-    ax3.plot(match["Per"][multi],match[period_col][multi],'v',color="k",mfc="none",ms=12)
+    ax3.plot(match["Per"][q1],match[period_col][q1],'v',color=colors[cluster],mfc="none")
+    # multi = ((match["MultiProt"]=="m") | (match["MultiProt"]=="y")) & (match["MultiProt"].mask==False)
+    # ax3.plot(match["Per"][multi],match[period_col][multi],'v',color="k",mfc="none",ms=12)
 
     x = np.linspace(0.1,50,20)
     ax3.plot(x,x,"-",zorder=-5,color="grey")
@@ -556,7 +566,7 @@ def plot_literature_periodmass():
              label="Possible TESS")
     plt.plot(bp_rp[clean],summary[period_col][clean],
              shapes[cluster],color=colors[cluster],ms=6,zorder=6,
-             label="Definite TESS")
+             label="Confident TESS")
 
     plt.legend(loc=2)
 
@@ -617,7 +627,7 @@ def plot_literature_periodmass():
              label="Possible TESS")
     plt.plot(bp_rp[clean],summary["final_period"][clean],
              shapes[cluster],color=colors[cluster],ms=6,zorder=6,
-             label="Definite TESS")
+             label="Confident TESS")
 
     plt.legend(loc=2)
 
@@ -641,9 +651,9 @@ if __name__=="__main__":
     # xmatch_ngc2547()
 
     # catalog_numbers()
-    # compare_literature(clean_limit="")
-    # compare_literature(clean_limit=10)
-    # compare_literature(clean_limit=30)
-    # compare_literature(clean_limit=60)
+    compare_literature(clean_limit="")
+    compare_literature(clean_limit=10)
+    compare_literature(clean_limit=30)
+    compare_literature(clean_limit=60)
     plot_literature_periodmass()
     plt.close("all")
