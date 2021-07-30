@@ -3,6 +3,21 @@ import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 import astropy.io.ascii as at
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+from astropy.stats import sigma_clipped_stats
+
+
+colors = {"IC_2391": "C0",
+         "IC_2602": "C4",
+         "NGC_2547": "C3",
+         "NGC_2451A": "C2",
+         "Collinder_135": "C1"}
+
+shapes= {"IC_2391": "o",
+         "IC_2602": "d",
+         "NGC_2547": "v",
+         "NGC_2451A": "^",
+         "Collinder_135": "s"}
 
 def calc_gaia_extinction(bp_rp0,A0,band="G"):
     """
@@ -36,6 +51,18 @@ def calc_gaia_reddening(bp_rp0,A0):
     E_BP_RP = A_BP - A_RP
     return E_BP_RP
 
+def plot_gaia_cmd(ax,cluster,gdr="EDR3",**kwargs):
+    cat = at.read(f"{cluster}_crossmatch_xmatch_TIC.csv",delimiter=",")
+    bp_rp = cat[f"GAIA{gdr}_BP"] - cat[f"GAIA{gdr}_RP"]
+    dist = 1000/cat["GAIAEDR3_PARALLAX_CORRECTED"]
+    # This is a fudge factor because the MIST isochrones aren't lining
+    # up with the gaia data
+    cmd_off = 0#0.1
+    abs_G = cat[f"GAIA{gdr}_G"] - 5*np.log10(dist) + 5 + cmd_off
+    ax.plot(bp_rp,abs_G,shapes[cluster],label=cluster,**kwargs)
+
+
+
 def plot_clusters_mist(ages,avs,plot_name="",plot_title="",model_colors=True):
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     symbols = ["o","s","^","v","d"]
@@ -46,7 +73,7 @@ def plot_clusters_mist(ages,avs,plot_name="",plot_title="",model_colors=True):
     ax1 = plt.subplot(111)
     ax2 = ax1.inset_axes([0.5, 0.5, 0.47, 0.47])
     for i,cluster in enumerate(clusters):
-        cat = at.read(f"tables/{cluster}_crossmatch.csv",delimiter=",")
+        cat = at.read(f"{cluster}_crossmatch_xmatch_TIC.csv",delimiter=",")
         bp_rp = cat[f"GAIA{gdr}_BP"] - cat[f"GAIA{gdr}_RP"]
         dist = 1000/cat["GAIAEDR3_PARALLAX_CORRECTED"]
         # This is a fudge factor because the MIST isochrones aren't lining
@@ -122,8 +149,85 @@ def plot_clusters_mist(ages,avs,plot_name="",plot_title="",model_colors=True):
     # plt.show()
     plt.close()
 
-if __name__=="__main__":
+def plot_clusters_spots(ages,avs,plot_name="",plot_title="",model_colors=True,
+                        gdr="EDR3"):
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    symbols = ["o","s","^","v","d"]
 
+
+
+    plt.figure(figsize=(8,8))
+    ax1 = plt.subplot(111)
+    ax2 = ax1.inset_axes([0.5, 0.5, 0.47, 0.47])
+    for i,cluster in enumerate(clusters):
+        cat = at.read(f"{cluster}_crossmatch_xmatch_TIC.csv",delimiter=",")
+        bp_rp = cat[f"GAIA{gdr}_BP"] - cat[f"GAIA{gdr}_RP"]
+        dist = 1000/cat["GAIAEDR3_PARALLAX_CORRECTED"]
+        abs_G = cat[f"GAIA{gdr}_G"] - 5*np.log10(dist) + 5
+        plot_gaia_cmd(ax1,cluster,color=colors[cluster],ms=3,alpha=0.5)
+        plot_gaia_cmd(ax2,cluster,color=colors[cluster],ms=3,alpha=0.5)
+        # ax1.plot(bp_rp,abs_G,symbols[i],label=cluster,ms=3,alpha=0.5)
+        # ax2.plot(bp_rp,abs_G,symbols[i],label=cluster,ms=3)
+
+    spot_dir = os.path.expanduser("~/Dropbox/Models/SPOTS_Somers2020/")
+
+    # model_ind = np.argmin(abs(spots["logAge"]-log10_age))
+    # model_age = spots["logAge"][model_ind]
+    # model_age_Myr = 10**(model_age-6)
+    # print(model_age_Myr,model_ind)
+    # model = (spots["logAge"]==model_age) & (spots["G_mag"]>0)
+
+    linestyles = ["-","--",":"]
+    for j,fspot in enumerate(["000","017","051"]):
+        spots = at.read(os.path.join(spot_dir, f"f{fspot}.isoc"),header_start=2,comment="##")
+
+        for i, cluster in enumerate(clusters):
+            model_ind = np.argmin(abs(spots["logAge"]-np.log10(ages[cluster]*1e6)))
+            model_age = spots["logAge"][model_ind]
+            model_age_Myr = 10**(model_age-6)
+            model = (spots["logAge"]==model_age) & (spots["G_mag"]>0)
+            # NOTE: these are DR2 magnitudes
+            model_bp_rp0 = spots["BP_mag"][model] - spots["RP_mag"][model]
+            model_g = spots["G_mag"][model]
+
+            if avs[cluster]>0:
+                _, A_G = calc_gaia_extinction(model_bp_rp0,avs[cluster],"G")
+                E_BP_RP = calc_gaia_reddening(model_bp_rp0,avs[cluster])
+            else:
+                A_G, E_BP_RP = 0,0
+                A_G2, E_BP_RP2 = 0,0
+
+            if model_colors:
+                ax1.plot(model_bp_rp0 + E_BP_RP, model_g + A_G,linestyles[j],color=f"C{i}",
+                         label=f"{model_age_Myr:.0f} Myr, A_V={avs[cluster]:.2f}, fspot={fspot}")
+                ax2.plot(model_bp_rp0 + E_BP_RP, model_g + A_G,linestyles[j],color=f"C{i}")
+
+            else:
+                ax1.plot(model_bp_rp0 + E_BP_RP, model_g + A_G,linestyles[j],color=f"grey",
+                         label=f"{model_age_Myr:.0f} Myr, A_V={avs[cluster]:.2f}, fspot={fspot}")
+                ax2.plot(model_bp_rp0 + E_BP_RP, model_g + A_G,linestyles[j],color=f"grey")
+
+
+    # ax1.plot([],[],":",color="k",label="vvcrit0.4")
+    # ax1.legend(loc=3)
+
+    ax1.set_xlabel(f"BP-RP")
+    ax1.set_ylabel(r"M$_G$")
+
+    ax1.set_ylim(13,-5)
+    ax1.set_xlim(-0.6,4)
+
+    ax2.set_xlim(1.8,2.6)
+    ax2.set_ylim(9,7)
+
+    ax1.set_title(plot_title)
+    plt.savefig(f"plots/CMD_SPOTS{plot_name}.png")
+
+    # plt.show()
+    plt.close()
+
+
+def overlay_models():
     # Cantat-Gaudin+2020
     cg20_ages = {"IC_2391": 28.8,
                  "IC_2602": 36.3,
@@ -165,7 +269,92 @@ if __name__=="__main__":
                  "NGC_2547": 0.25,
                  "NGC_2451A": 0.25,
                  "Collinder_135": 0.25}
+    plot_clusters_spots(cg20_ages,cg20_av,"_CG20","Cantat-Gaudin+2020 Ages")
+    plot_clusters_spots(khar_ages,khar_av,"_khar","Kharchenko+2013 Ages")
     plot_clusters_mist(cg20_ages,cg20_av,"_CG20","Cantat-Gaudin+2020 Ages")
     plot_clusters_mist(khar_ages,khar_av,"_khar","Kharchenko+2013 Ages")
     # plot_clusters_mist(g12_ages,"_G12","Ghoza+2012 Ages")
     plot_clusters_mist(age_span,fake_av,"_20_120","Ages 20-120 Myr",model_colors=False)
+    plot_clusters_spots(age_span,fake_av,"_20_120","Ages 20-120 Myr",model_colors=False)
+
+def plot_all_cmd():
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    plt.figure(figsize=(8,8))
+    ax1 = plt.subplot(111)
+    ax2 = ax1.inset_axes([0.5, 0.5, 0.47, 0.47])
+    for cluster in clusters:
+        plot_gaia_cmd(ax1,cluster,alpha=0.5)
+        plot_gaia_cmd(ax2,cluster,alpha=0.75)
+    plt.legend(loc=3)
+    ax1.set_xlabel(f"BP-RP (EDR3)")
+    ax1.set_ylabel(f"M_G (EDR3)")
+
+    ax1.set_ylim(13,-5)
+    ax1.set_xlim(-0.6,4)
+
+    ax2.set_xlim(-0.3,0.45)
+    ax2.set_ylim(2.5,-3)
+    plt.savefig("plots/CMD_all.png",bbox_inches="tight")
+
+def plot_cmd_offset(gdr="EDR3"):
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    nbins = 25
+    bp_rp_bins = np.linspace(-0.5,3,nbins)
+    half_step = (bp_rp_bins[1] - bp_rp_bins[0])/2
+    bin_centers = bp_rp_bins[:-1] + half_step
+    median_MG = np.zeros_like(bin_centers)
+
+    # Define the "average" sequence using IC_2602
+    cluster = "IC_2602"
+    cat = at.read(f"{cluster}_crossmatch_xmatch_TIC.csv",delimiter=",")
+    bp_rp = cat[f"GAIA{gdr}_BP"] - cat[f"GAIA{gdr}_RP"]
+    dist = 1000/cat["GAIAEDR3_PARALLAX_CORRECTED"]
+    abs_G = cat[f"GAIA{gdr}_G"] - 5*np.log10(dist) + 5
+    for i in range(nbins-1):
+        loc = (bp_rp>bp_rp_bins[i]) & (bp_rp<=bp_rp_bins[i+1]) & np.isfinite(bp_rp) & (abs_G<11)
+        _, median_MG[i], _ = sigma_clipped_stats(abs_G[loc],maxiters=10,sigma=3)
+
+    calc_expected_MG = interp1d(bin_centers,median_MG,bounds_error=False)
+
+    plt.figure(figsize=(8,10))
+    ax1 = plt.subplot2grid((4,1),(0,0),rowspan=3)
+    ax = plt.subplot2grid((4,1),(3,0),rowspan=1)
+    ax1.plot(bin_centers,median_MG,'ko',zorder=20)
+
+    for cluster in clusters:
+        median_MG_cat = np.zeros_like(bin_centers)
+        cat = at.read(f"{cluster}_crossmatch_xmatch_TIC.csv",delimiter=",")
+        bp_rp = cat[f"GAIA{gdr}_BP"] - cat[f"GAIA{gdr}_RP"]
+        dist = 1000/cat["GAIAEDR3_PARALLAX_CORRECTED"]
+        abs_G = cat[f"GAIA{gdr}_G"] - 5*np.log10(dist) + 5
+        expected_MG = calc_expected_MG(bp_rp.filled(np.nan))
+        MG_diff = expected_MG - abs_G
+        ax.plot(bp_rp,MG_diff,shapes[cluster],color=colors[cluster],label=cluster,ms=3,alpha=0.5)
+        plot_gaia_cmd(ax1,cluster,alpha=0.5)
+        median_diff = np.zeros_like(bin_centers)
+        for i in range(nbins-1):
+            loc = (bp_rp>bp_rp_bins[i]) & (bp_rp<=bp_rp_bins[i+1]) & np.isfinite(bp_rp) & (abs_G<11)
+            _, median_diff[i], _ = sigma_clipped_stats(np.copy(MG_diff[loc]),maxiters=10,sigma=3)
+        ax.plot(bin_centers,median_diff,shapes[cluster],color=colors[cluster],ms=8,mec="k")
+
+    # ax1.set_xlabel(f"BP-RP (EDR3)")
+    ax1.set_ylabel(f"M_G (EDR3)")
+
+    ax1.set_ylim(13,-3)
+    ax1.set_xlim(-0.6,4)
+    ax1.legend(loc=1)
+
+    ax.set_ylim(-0.5,0.5)
+    ax.set_xlim(-0.6,4)
+    ax.set_xlabel("BP-RP (EDR3)")
+    ax.set_ylabel(r"M$_{G,expected}$ - M$_{G} (EDR3)$")
+    plt.savefig("plots/CMD_and_offsets.png",bbox_inches="tight")
+
+
+
+
+if __name__=="__main__":
+
+    overlay_models()
+    # plot_all_cmd()
+    # plot_cmd_offset()

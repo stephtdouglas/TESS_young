@@ -240,14 +240,14 @@ def setup_figure(wcs,cluster):
 # (Probably just time and flux in this case)
 
 
-def plot_phased(ax, t, f, period, power, color):
+def plot_phased(ax, t, f, period, power, color,ms=6):
     """
     Plot the input light curve, phased on the requested period
     """
 
     phased_t = t % period / period
 
-    ax.plot(phased_t,f,'.',color=color,label="Prot={0:.2f}, Power={1:.2f}".format(float(period),float(power)))
+    ax.plot(phased_t,f,'.',color=color,ms=ms,label="Prot={0:.2f}, Power={1:.2f}".format(float(period),float(power)))
     ax.set_xlim(0,1)
     ax.set_yticklabels([])
     ax.legend(loc="best",numpoints=1,borderaxespad=0)

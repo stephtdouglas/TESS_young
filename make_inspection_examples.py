@@ -31,7 +31,7 @@ def plot_lcs(TIC, row, data_dir):
     periods, pgram = ls_out[2], ls_out[3]
 
 
-    plt.figure(figsize=(5,3))
+    plt.figure(figsize=(6,3))
     ax0 = plt.subplot(211)
     ### Full light curve
     ax0.plot(t,f,'k.',ms=3)
@@ -95,6 +95,7 @@ if __name__=="__main__":
     cluster = "Collinder_135"
     date = "2021-06-18"
     TIC, lc_type, flux_col, sector = 23160350,"CDIPS","PCA1",7
+    # TIC, lc_type, flux_col, sector = 173378082,"CDIPS","PCA1",8
 
     # Read in results for this cluster
     resfile = f"tables/{cluster}_{date}_results_raw.csv"
@@ -113,13 +114,15 @@ if __name__=="__main__":
     else:
         print("uh oh",loc)
 
-    plt.suptitle(f"TIC {TIC}; Peaks don't match light curve",y=0.93)
-    plt.savefig("plots/inspect_example_1.png")
+    plt.suptitle(f"TIC {TIC}: Peaks don't match light curve",y=0.93)
+    plt.savefig("plots/inspect_example_1.png",bbox_inches="tight")
 
     ### Double dip, selected longer period
     cluster = "Collinder_135"
     date = "2021-06-18"
-    TIC, lc_type, flux_col, sector = 97796539,"CDIPS","PCA1",7
+    # TIC, lc_type, flux_col, sector = 97796539,"CDIPS","PCA1",7
+    TIC, lc_type, flux_col, sector = 22937969,"QLP","sap_flux",7
+    # NGC 2547 06-21 238733955	CDIPS	PCA1	8
 
     # Read in results for this cluster
     resfile = f"tables/{cluster}_{date}_results_raw.csv"
@@ -138,8 +141,8 @@ if __name__=="__main__":
     else:
         print("uh oh",loc)
 
-    plt.suptitle(f"TIC {TIC}; Double dip",y=0.93)
-    plt.savefig("plots/inspect_example_2.png")
+    plt.suptitle(f"TIC {TIC}: Double dip",y=0.93)
+    plt.savefig("plots/inspect_example_2.png",bbox_inches="tight")
 
 
     ### Spurious high power
@@ -164,14 +167,14 @@ if __name__=="__main__":
     else:
         print("uh oh",loc)
 
-    plt.suptitle(f"TIC {TIC}; Spurious, high power",y=0.93)
-    plt.savefig("plots/inspect_example_3.png")
+    plt.suptitle(f"TIC {TIC}: Spurious, high power",y=0.93)
+    plt.savefig("plots/inspect_example_3.png",bbox_inches="tight")
 
 
     ### Two periods
-    cluster = "Collinder_135"
-    date = "2021-06-18"
-    TIC, lc_type, flux_col, sector = 173134217,"CDIPS","PCA1",7
+    cluster = "NGC_2451A"
+    date = "2021-06-21"
+    TIC, lc_type, flux_col, sector = 175024957,"CDIPS","PCA1",8
 
     # Read in results for this cluster
     resfile = f"tables/{cluster}_{date}_results_raw.csv"
@@ -190,5 +193,5 @@ if __name__=="__main__":
     else:
         print("uh oh",loc)
 
-    plt.suptitle(f"TIC {TIC}; Two periods",y=0.93)
-    plt.savefig("plots/inspect_example_4.png")
+    plt.suptitle(f"TIC {TIC}: Two periods",y=0.93)
+    plt.savefig("plots/inspect_example_4.png",bbox_inches="tight")

@@ -9,6 +9,7 @@ import matplotlib.cm as cm
 import astropy.io.ascii as at
 from astropy.table import join,vstack,Table
 from scipy import stats
+from scipy.interpolate import interp1d
 
 norm = mpl.colors.LogNorm(vmin=0.1, vmax=30)
 mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
@@ -27,6 +28,13 @@ shapes= {"IC_2391": "o",
          "NGC_2451A": "^",
          "Collinder_135": "s"}
 
+
+mamajek_file = os.path.expanduser("~/Dropbox/Models/mamajek_colors.dat")
+mamajek = at.read(mamajek_file,fill_values=[("...","NaN")])
+mamajek_mass_to_bp_rp = interp1d(mamajek["Msun"],mamajek["Bp-Rp"],bounds_error=False)
+
+def mass_to_bp_rp(mass):
+    return mamajek_mass_to_bp_rp(mass)
 
 
 def process_cluster(cluster, date, clean_limit=10,
@@ -386,21 +394,21 @@ def read_cluster_visual(cluster, date, clean_limit=None,
     else:
         return match
 
-def plot_all(clean_limit=10):
-    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=True)
-    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=True)
-    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=True)
-    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=True)
-    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=True)
+def plot_all(clean_limit=10,to_plot_indiv=True):
+    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=to_plot_indiv)
 
 
     plt.figure()
-    plt.plot(bp_rp_IC_2391, prot_IC_2391,"o",label="IC_2391",ms=5)
-    plt.plot(bp_rp_Collinder_135, prot_Collinder_135,"s",label="Collinder_135",ms=5)
-    plt.plot(bp_rp_NGC_2451A, prot_NGC_2451A,"^",label="NGC_2451A",ms=5)
-    plt.plot(bp_rp_NGC_2547, prot_NGC_2547,"v",label="NGC_2547",ms=5)
-    plt.plot(bp_rp_IC_2602, prot_IC_2602,"d",label="IC_2602",ms=5)
-    plt.legend(loc=2)
+    plt.plot(bp_rp_IC_2391, prot_IC_2391,"o",label="IC_2391",ms=5,color=colors["IC_2391"])
+    plt.plot(bp_rp_Collinder_135, prot_Collinder_135,"s",label="Collinder_135",ms=5,color=colors["Collinder_135"])
+    plt.plot(bp_rp_NGC_2451A, prot_NGC_2451A,"^",label="NGC_2451A",ms=5,color=colors["NGC_2451A"])
+    plt.plot(bp_rp_NGC_2547, prot_NGC_2547,"v",label="NGC_2547",ms=5,color=colors["NGC_2547"])
+    plt.plot(bp_rp_IC_2602, prot_IC_2602,"d",label="IC_2602",ms=5,color=colors["IC_2602"])
+    plt.legend(loc=1)
 
     plt.ylim(0.1,50)
     plt.xlim(0.5,3.5)
@@ -414,8 +422,222 @@ def plot_all(clean_limit=10):
 
     plt.savefig(f"plots/periodmass_all_clean{clean_limit}.png")
 
+def plot_periodcolor(clean_limit=10,to_plot_indiv=False):
+    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=to_plot_indiv)
+
+
+    plt.figure()
+    plt.plot(bp_rp_IC_2391, prot_IC_2391,"o",label="IC_2391",ms=5,color="k")#colors["IC_2391"])
+    plt.plot(bp_rp_Collinder_135, prot_Collinder_135,"s",label="Collinder_135",ms=5,color="k")#colors["Collinder_135"])
+    plt.plot(bp_rp_NGC_2451A, prot_NGC_2451A,"^",label="NGC_2451A",ms=5,color="k")#colors["NGC_2451A"])
+    plt.plot(bp_rp_NGC_2547, prot_NGC_2547,"v",label="NGC_2547",ms=5,color="k")#colors["NGC_2547"])
+    plt.plot(bp_rp_IC_2602, prot_IC_2602,"d",label="IC_2602",ms=5,color="k")#colors["IC_2602"])
+    plt.legend(loc=1)
+
+    plt.ylim(0.1,50)
+    plt.xlim(0.5,3.5)
+    plt.yscale("log")
+
+    plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
+    plt.ylabel("Period (d)")
+
+    ax = plt.gca()
+    ax.axhline(12,linestyle="--",color="tab:grey")
+
+    return ax
+
+def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False):
+    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=to_plot_indiv)
+
+    bp_rp = np.concatenate([bp_rp_IC_2391,bp_rp_Collinder_135,bp_rp_NGC_2451A,bp_rp_NGC_2547,bp_rp_IC_2602])
+    prot = np.concatenate([prot_IC_2391,prot_Collinder_135,prot_NGC_2451A,prot_NGC_2547,prot_IC_2602])
+
+    plt.figure()
+    counts, xedges, yedges, image = plt.hist2d(bp_rp,prot,bins=[np.linspace(0.5,3.5,22),
+                                          np.logspace(-1,np.log10(50),20)],cmap="Greys")
+    xx = xedges[:-1] + (xedges[1:] - xedges[:-1])/2
+    yy = yedges[:-1] + (yedges[1:] - yedges[:-1])/2
+    cs = plt.contour(xx,yy,counts.transpose(),linewidths=2,levels=[1,3,10,13,20],colors="k",antialiased=True)
+    # plt.clabel(cs,fmt="%1.0f",inline=False)
+
+    plt.ylim(0.1,50)
+    plt.xlim(0.5,3.5)
+    plt.yscale("log")
+
+    plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
+    plt.ylabel("Period (d)")
+
+    ax = plt.gca()
+    ax.axhline(12,linestyle="--",color="tab:grey")
+
+    return ax
+
+def plot_periodcolor_models(clean_limit=10):
+
+    ### Matt models, USco init
+    ax = plot_periodcolor_histogram(clean_limit)
+    # ax = plot_periodcolor(clean_limit)
+    model = "Matt et al. (2020), USco initialization"
+    model_f = "Matt2020_USco"
+    mfile = os.path.expanduser("~/Dropbox/Models/Mattea2020_00040Myr_USco.txt")
+    matt = at.read(mfile,names=["mass","prot"])
+    matt_bp_rp = mass_to_bp_rp(matt["mass"])
+    ax.plot(matt_bp_rp,matt["prot"],'*',color="teal",alpha=0.75)
+    ax.axvline(0.9,color="k",linestyle=":")
+    ax.axvline(0.78,color="k",linestyle=":")
+    ax.set_title(model)
+    plt.savefig(f"plots/periodmass_all_clean{clean_limit}_{model_f}.png")
+    plt.close("all")
+
+    ### Matt models
+    ax = plot_periodcolor_histogram(clean_limit)
+    # ax = plot_periodcolor(clean_limit)
+    model = "Matt et al. (2020)"
+    model_f = "Matt2020"
+    mfile = os.path.expanduser("~/Dropbox/Models/Mattea2020_00040Myr.txt")
+    matt = at.read(mfile,names=["mass","prot"])
+    matt_bp_rp = mass_to_bp_rp(matt["mass"])
+    ax.plot(matt_bp_rp,matt["prot"],'*',color="teal",alpha=0.75)
+    ax.axvline(0.9,color="k",linestyle=":")
+    ax.axvline(0.78,color="k",linestyle=":")
+    ax.set_title(model)
+    plt.savefig(f"plots/periodmass_all_clean{clean_limit}_{model_f}.png")
+    plt.close("all")
+
+    ### Gossage models, M15 wind
+    ax = plot_periodcolor_histogram(clean_limit)
+    # ax = plot_periodcolor(clean_limit)
+    model = "Gossage et al. (2021), M15 Wind"
+    model_f = "Gossage21_M15"
+
+    goss_mass = np.zeros(15*11)
+    goss_prot = np.zeros(15*11)
+
+    mass = ["010","020","030","040","050","060","070","080","090","100","110","120","130"]
+    init_periods = ["0.3d","0.4d","0.6d","0.8d","1.5d","12d","3d","4.5d","6d","8d"]
+    desired_age = 40
+
+    ct = 0
+    for m in mass:
+        for p in init_periods:
+            goss_mass[ct] = float(m)/100
+            hfile = f"models/MIST_M15_mbraking_feh_p0.00_histfiles/00{m}M_dir/LOGS/{goss_mass[ct]:.1f}M_history_prot{p}0_M15_d02d4_0.5hp_1.4d30K_0.22m_2.6p_3myr_alt3prot_henyey1.82mlta.data"
+            # read in the history file (for a particular mass, initial period, and braking formalism)
+            data = np.genfromtxt(hfile, skip_header=5, names=True)
+
+            # extract rotation periods at all ages
+            periods = 2*np.pi/(86400*data['surf_avg_omega'])
+
+            # mark the index of a desired age [Myr]
+            ages_myr = data['star_age']/1e6
+            age_diffs = abs(ages_myr - desired_age)
+            age_index = np.where(age_diffs == min(age_diffs))[0][0]
+
+            # then extract the rotation period at the desired age
+            goss_prot[ct] = periods[age_index]
+            ct += 1
+
+    goss_bp_rp = mass_to_bp_rp(goss_mass)
+    ax.plot(goss_bp_rp,goss_prot,'*',color="teal",ms=12)
+    ax.axvline(0.9,color="k",linestyle=":")
+    ax.axvline(0.78,color="k",linestyle=":")
+    ax.set_title(model)
+    plt.savefig(f"plots/periodmass_all_clean{clean_limit}_{model_f}.png")
+    plt.close("all")
+
+    ### Gossage models, G18 wind
+    ax = plot_periodcolor_histogram(clean_limit)
+    # ax = plot_periodcolor(clean_limit)
+    model = "Gossage et al. (2021), G18 Wind"
+    model_f = "Gossage21_G18"
+
+    goss_mass = np.zeros(15*11)
+    goss_prot = np.zeros(15*11)
+
+    mass = ["010","020","030","040","050","060","070","080","090","100","110","120","130"]
+    init_periods = ["0.3d","0.4d","0.6d","0.8d","1.5d","12d","3d","4.5d","6d","8d"]
+    desired_age = 40
+
+    ct = 0
+    for m in mass:
+        for p in init_periods:
+            goss_mass[ct] = float(m)/100
+            hfile = f"models/MIST_G18_mbraking_feh_p0.00_histfiles/00{m}M_dir/LOGS/{goss_mass[ct]:.1f}M_history_prot{p}0_G18_d02d4_0.5hp_1d_3.2d41c_0.5b_0.03a_3myr_alt3prot_henyey1.82mlta.data"
+            # read in the history file (for a particular mass, initial period, and braking formalism)
+            data = np.genfromtxt(hfile, skip_header=5, names=True)
+
+            # extract rotation periods at all ages
+            periods = 2*np.pi/(86400*data['surf_avg_omega'])
+
+            # mark the index of a desired age [Myr]
+            ages_myr = data['star_age']/1e6
+            age_diffs = abs(ages_myr - desired_age)
+            age_index = np.where(age_diffs == min(age_diffs))[0][0]
+
+            # then extract the rotation period at the desired age
+            goss_prot[ct] = periods[age_index]
+            ct += 1
+
+    goss_bp_rp = mass_to_bp_rp(goss_mass)
+    ax.plot(goss_bp_rp,goss_prot,'*',color="teal",ms=12)
+    ax.axvline(0.9,color="k",linestyle=":")
+    ax.axvline(0.78,color="k",linestyle=":")
+    ax.set_title(model)
+    plt.savefig(f"plots/periodmass_all_clean{clean_limit}_{model_f}.png")
+    plt.close("all")
+
+    ### Garraffo models
+    ax = plot_periodcolor_histogram(clean_limit)
+    # ax = plot_periodcolor(clean_limit)
+    model = "Garraffo et al. (2018)"
+    model_f = "Garr18"
+
+    garr_mass = np.zeros(15*11)
+    garr_prot = np.zeros(15*11)
+
+    mass = ["06","07","08","09","10","11","12","13"]
+    init_periods = [" 3"," 4"," 6"," 8","15","30","45","60","80","120"]
+    desired_age = 40
+    gar_dir = os.path.expanduser("~/Dropbox/Models/spintracks_Garraffo_18/")
+
+    ct = 0
+    for m in mass:
+        for p in init_periods:
+            garr_mass[ct] = float(m)/10
+            gfile = os.path.join(gar_dir,f"age_p_tau_Mass{m}_P0={p}.txt")
+
+            data = at.read(gfile,names=["age(Myr)","period(d)","unknown"])
+
+            # mark the index of a desired age [Myr]
+            ages_myr = data["age(Myr)"]
+            age_diffs = abs(ages_myr - desired_age)
+            age_index = np.where(age_diffs == min(age_diffs))[0][0]
+
+            # then extract the rotation period at the desired age
+            garr_prot[ct] = data["period(d)"][age_index]
+            ct += 1
+
+    garr_bp_rp = mass_to_bp_rp(garr_mass)
+    ax.plot(garr_bp_rp,garr_prot,'*',color="teal",ms=12)
+    ax.axvline(0.9,color="k",linestyle=":")
+    ax.axvline(0.78,color="k",linestyle=":")
+    ax.set_title(model)
+    plt.savefig(f"plots/periodmass_all_clean{clean_limit}_{model_f}.png")
+    plt.close("all")
+
+
+
 def id_solar(bp_rp):
-    return (bp_rp<=1.2) & (bp_rp>=0.8)
+    # return (bp_rp<=1.2) & (bp_rp>=0.8)
+    return (bp_rp<=0.9) & (bp_rp>=0.78)
 
 def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                       plot_individual_stars=False):
@@ -891,9 +1113,12 @@ def compare_visual_results(cluster, date):
 if __name__=="__main__":
 
     # write_results()
-    plot_results()
+    # plot_results()
     # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
     # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
     # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
 
     # plot_all()
+    # plot_periodcolor_models()
+    ax = plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False)
+    plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
