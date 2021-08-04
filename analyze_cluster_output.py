@@ -358,10 +358,16 @@ def read_cluster_visual(cluster, date, clean_limit=None,
 
     x_file = f"{cluster}_crossmatch_xmatch_TIC.csv"
     xmatch = at.read(x_file,delimiter=",")
-    xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_G","GAIAEDR3_BP",
-                    "GAIAEDR3_RP","GAIAEDR3_RUWE","GAIAEDR3_G_CORRECTED",
-                    "MemBool","angDist_GES","prob_p","angDist_Cantat-Gaudin",
-                    "proba","TIC"]
+    if cluster!="Collinder_135":
+        xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_G","GAIAEDR3_BP",
+                        "GAIAEDR3_RP","GAIAEDR3_RUWE","GAIAEDR3_G_CORRECTED",
+                        "MemBool","angDist_GES","prob_p","angDist_Cantat-Gaudin",
+                        "proba","TIC"]
+    else:
+        xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_G","GAIAEDR3_BP",
+                        "GAIAEDR3_RP","GAIAEDR3_RUWE","GAIAEDR3_G_CORRECTED",
+                        "MemBool","angDist_Cantat-Gaudin",
+                        "proba","TIC"]
 
     match = join(vis,xmatch,join_type="left",keys=["TIC"],table_names=["vis","xmatch"])
 
@@ -650,7 +656,7 @@ def id_solar(bp_rp):
 def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                       which_plot="individual clusters"):
     bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=False)
-    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=False)
+    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=False)
     bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=False)
     bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=False)
     bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=False)
@@ -995,12 +1001,12 @@ def compare_visual_results(cluster, date):
 if __name__=="__main__":
 
     # write_results()
-    # plot_results()
+    plot_results()
     # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
     # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
     # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
 
-    # plot_all()
-    # plot_periodcolor_models()
+    plot_all()
+    plot_periodcolor_models()
     ax = plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False)
     plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
