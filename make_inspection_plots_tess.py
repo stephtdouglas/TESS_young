@@ -500,10 +500,10 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
                 zorder=-10)
 
     targ_x, targ_y = wcs.world_to_pixel(pos)
-    ax1.plot([targ_x-2,targ_x-0.5],[targ_y,targ_y],color="w",transform=ax2.get_transform('pixel'))
-    ax1.plot([targ_x+0.5,targ_x+2],[targ_y,targ_y],color="w",transform=ax2.get_transform('pixel'))
-    ax1.plot([targ_x,targ_x],[targ_y-2,targ_y-0.5],color="w",transform=ax2.get_transform('pixel'))
-    ax1.plot([targ_x,targ_x],[targ_y+0.5,targ_y+2],color="w",transform=ax2.get_transform('pixel'))
+    ax1.plot([targ_x-2,targ_x-0.75],[targ_y,targ_y],color="w",transform=ax1.get_transform('pixel'))
+    ax1.plot([targ_x+0.75,targ_x+2],[targ_y,targ_y],color="w",transform=ax1.get_transform('pixel'))
+    ax1.plot([targ_x,targ_x],[targ_y-2,targ_y-0.75],color="w",transform=ax1.get_transform('pixel'))
+    ax1.plot([targ_x,targ_x],[targ_y+0.75,targ_y+2],color="w",transform=ax1.get_transform('pixel'))
 
     # Plot TESS image
     # Plot the pixel stamp as usual, except with the WCS
@@ -562,7 +562,7 @@ def plot_sky(axes, TIC, wcs, pos, tess_img, gaia_pos):
 
 
     # Plot TESS stereographic plot of the cluster
-    ax3 = axes[3]
+    ax3 = axes[-1]
     ax3.plot(pos.ra.value,pos.dec.value,'*',color=cmap(0.01),ms=24,
              mec=cmap(0.99))
     # ax3.set_yticks(np.arange(8,25,4))
