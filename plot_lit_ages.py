@@ -36,16 +36,19 @@ if __name__=="__main__":
         dat.sort("Year")
         dat["yvals"] = np.arange(len(dat))
 
-        print(cluster,dat.dtype)
+        # print(cluster,dat.dtype)
 
-        # TODO: I should fix those inputs so they have an upper and lower
-        # uncertainty for everything
-        # TODO: also need to figure out something for those range or ~ ages
-        # because right now that's making the columns into strings which
-        # is causing some issues
-        ax.plot(dat["Age (Myr)"],dat["yvals"],marker=shapes[cluster],
-                color=colors[cluster],linewidth=0)
 
+        asym_err = np.asarray([dat["e_dn_Age"],dat["e_up_Age"]])
+        # print(asym_err)
+
+        # ax.plot(dat["Age (Myr)"],dat["yvals"],marker=shapes[cluster],
+        #         color=colors[cluster],linewidth=0)
+        ax.errorbar(dat["Age (Myr)"],dat["yvals"],
+                    xerr=asym_err,marker=shapes[cluster],
+                    color=colors[cluster],linewidth=0,elinewidth=1.5)
+
+        # break
 
     ax.set_xlim(1,300)
     ax.set_xscale("log")
