@@ -14,7 +14,8 @@ import astropy.io.fits as fits
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 from astroquery.vizier import Vizier
-from astropy.table import join, Table
+from astroquery.gaia import Gaia
+from astropy.table import join, Table, vstack
 # from astroquery.xmatch import XMatch
 from astropy import units as u
 
@@ -529,8 +530,7 @@ def compare_literature(clean_limit=10):
                 bbox_inches="tight")
     # plt.show()
 
-def plot_literature_periodmass():
-
+def plot_periodcolor_with_literature():
     ############################################################################
     ############################################################################
     # IC 2391
@@ -651,9 +651,9 @@ if __name__=="__main__":
     # xmatch_ngc2547()
 
     # catalog_numbers()
-    compare_literature(clean_limit="")
-    compare_literature(clean_limit=10)
-    compare_literature(clean_limit=30)
-    compare_literature(clean_limit=60)
-    plot_literature_periodmass()
+    # compare_literature(clean_limit="")
+    # compare_literature(clean_limit=10)
+    # compare_literature(clean_limit=30)
+    # compare_literature(clean_limit=60)
+    # plot_periodcolor_with_literature()
     plt.close("all")
