@@ -373,16 +373,22 @@ def read_cluster_visual(cluster, date, clean_limit=None,
 
     bp_rp = match["GAIAEDR3_BP"] - match["GAIAEDR3_RP"]
     clean = match["final_Q"]==0
-    all_possible = (match["final_Q"]==0) | (match["final_Q"]==1)
+    if clean_limit is not None:
+        if clean_limit==0:
+            all_possible = (match["final_Q"]==0)
+        else:
+            all_possible = (match["final_Q"]==0) | (match["final_Q"]==1)
+    else:
+        all_possible = (match["final_Q"]==0) | (match["final_Q"]==1)
 
     if to_plot:
         plt.figure()
         # plt.plot(bp_rp,match["final_period"],'.',color="grey",alpha=0.5,
         #          label="all detections")
-        plt.plot(bp_rp[all_possible],match["final_period"][all_possible],
+        plt.plot(bp_rp[match["final_Q"]==1],match["final_period"][match["final_Q"]==1],
                  shapes[cluster],color=colors[cluster],ms=6,zorder=5,mfc="none",
                  label="Possible TESS")
-        plt.plot(bp_rp[clean],match["final_period"][clean],
+        plt.plot(bp_rp[match["final_Q"]==0],match["final_period"][match["final_Q"]==0],
                  shapes[cluster],color=colors[cluster],ms=6,zorder=6,
                  label="Confident TESS")
 
@@ -410,10 +416,10 @@ def read_cluster_visual(cluster, date, clean_limit=None,
 
 def plot_all(clean_limit=10,to_plot_indiv=True):
     bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
     bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
     bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=to_plot_indiv)
 
 
     plt.figure()
@@ -438,10 +444,10 @@ def plot_all(clean_limit=10,to_plot_indiv=True):
 
 def plot_periodcolor(clean_limit=10,to_plot_indiv=False):
     bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
     bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
     bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=to_plot_indiv)
 
 
     plt.figure()
@@ -466,10 +472,10 @@ def plot_periodcolor(clean_limit=10,to_plot_indiv=False):
 
 def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False):
     bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_Collinder_135, prot_Collinder_135 = process_cluster("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
     bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
     bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=to_plot_indiv)
+    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=to_plot_indiv)
 
     bp_rp = np.concatenate([bp_rp_IC_2391,bp_rp_Collinder_135,bp_rp_NGC_2451A,bp_rp_NGC_2547,bp_rp_IC_2602])
     prot = np.concatenate([prot_IC_2391,prot_Collinder_135,prot_NGC_2451A,prot_NGC_2547,prot_IC_2602])
@@ -659,7 +665,7 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=False)
     bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=False)
     bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=False)
-    bp_rp_IC_2602, prot_IC_2602 = process_cluster("IC_2602","2021-06-30",clean_limit,to_plot=False)
+    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=False)
 
     solar_IC_2391 = id_solar(bp_rp_IC_2391)
     solar_Collinder_135 = id_solar(bp_rp_Collinder_135)
@@ -916,7 +922,7 @@ def plot_results():
                  "NGC_2547": 38,
                  "NGC_2451A": 60,
                  "Collinder_135": 26}
-    for clean_limit in ["",10,30,60]:
+    for clean_limit in [0,1]:
         plot_model_tracks(cg20_ages,plot_name="_medages",plot_title=", Combined Clusters",
                           clean_limit=clean_limit,which_plot="single age")
         # plot_all(clean_limit)
@@ -1006,7 +1012,7 @@ if __name__=="__main__":
     # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
     # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
 
-    plot_all()
-    plot_periodcolor_models()
-    ax = plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False)
+    plot_all(clean_limit=0)
+    plot_periodcolor_models(clean_limit=0)
+    ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
     plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
