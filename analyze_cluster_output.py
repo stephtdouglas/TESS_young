@@ -359,12 +359,14 @@ def read_cluster_visual(cluster, date, clean_limit=None,
     x_file = f"{cluster}_crossmatch_xmatch_TIC.csv"
     xmatch = at.read(x_file,delimiter=",")
     if cluster!="Collinder_135":
-        xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_G","GAIAEDR3_BP",
+        xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC",
+                        "GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_G","GAIAEDR3_BP",
                         "GAIAEDR3_RP","GAIAEDR3_RUWE","GAIAEDR3_G_CORRECTED",
                         "MemBool","angDist_GES","prob_p","angDist_Cantat-Gaudin",
                         "proba","TIC"]
     else:
-        xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_G","GAIAEDR3_BP",
+        xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC",
+                        "GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_G","GAIAEDR3_BP",
                         "GAIAEDR3_RP","GAIAEDR3_RUWE","GAIAEDR3_G_CORRECTED",
                         "MemBool","angDist_Cantat-Gaudin",
                         "proba","TIC"]
@@ -1004,15 +1006,48 @@ def compare_visual_results(cluster, date):
     plt.savefig(f"plots/visual_compare_{cluster}.png",bbox_inches="tight")
     # plt.show()
 
+def count_targets():
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
+    dates2 = [None,None,None,None,"2021-07-03"]
+
+    all_count = 0
+    good_count = 0
+
+    for i, cluster in enumerate(clusters):
+        date = dates[i]
+        # Read in my visual inspection results
+        vis_file = f"tables/{cluster}_{date}_results_comments.csv"
+        vis = at.read(vis_file,delimiter=",")
+        vis.rename_column("\ufefftarget_name","TIC")
+        good = np.where((vis["Select"].mask==False) & (vis["Select"]=="y"))[0]
+
+        all = len(np.unique(vis["TIC"]))
+
+        print("\n",cluster)
+        print(all,"with TESS data")
+        print(len(good),"with periods")
+
+        all_count += all
+        good_count += len(good)
+
+    print("\n",all_count,"with TESS data")
+    print(good_count,"with periods")
+
+
+
+
 if __name__=="__main__":
 
-    # write_results()
-    plot_results()
-    # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
-    # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
-    # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
+    # # write_results()
+    # plot_results()
+    # # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
+    # # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
+    # # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
+    #
+    # plot_all(clean_limit=0)
+    # plot_periodcolor_models(clean_limit=0)
+    # ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
+    # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
 
-    plot_all(clean_limit=0)
-    plot_periodcolor_models(clean_limit=0)
-    ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
-    plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
+    count_targets()
