@@ -341,7 +341,7 @@ def read_cluster_visual(cluster, date, clean_limit=None,
     vis_file = f"tables/{cluster}_{date}_results_comments.csv"
     vis = at.read(vis_file,delimiter=",")
     good = np.where(vis["Select"].mask==False)[0]
-    print(len(good))
+    # print(len(good))
 
     # Limit the table to only the light curves I analyzed
     vis = vis[good]
@@ -472,7 +472,7 @@ def plot_periodcolor(clean_limit=10,to_plot_indiv=False):
 
     return ax
 
-def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False):
+def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False,ax=None):
     bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
     bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
     bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
@@ -482,22 +482,23 @@ def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False):
     bp_rp = np.concatenate([bp_rp_IC_2391,bp_rp_Collinder_135,bp_rp_NGC_2451A,bp_rp_NGC_2547,bp_rp_IC_2602])
     prot = np.concatenate([prot_IC_2391,prot_Collinder_135,prot_NGC_2451A,prot_NGC_2547,prot_IC_2602])
 
-    plt.figure()
-    counts, xedges, yedges, image = plt.hist2d(bp_rp,prot,bins=[np.linspace(0.5,3.5,22),
+    if ax is None:
+        plt.figure()
+        ax = plt.subplot(111)
+    counts, xedges, yedges, image = ax.hist2d(bp_rp,prot,bins=[np.linspace(0.5,3.5,22),
                                           np.logspace(-1,np.log10(50),20)],cmap="Greys")
     xx = xedges[:-1] + (xedges[1:] - xedges[:-1])/2
     yy = yedges[:-1] + (yedges[1:] - yedges[:-1])/2
-    cs = plt.contour(xx,yy,counts.transpose(),linewidths=2,levels=[1,3,10,13,20],colors="k",antialiased=True)
+    cs = ax.contour(xx,yy,counts.transpose(),linewidths=2,levels=[1,3,10,13,20],colors="k",antialiased=True)
     # plt.clabel(cs,fmt="%1.0f",inline=False)
 
-    plt.ylim(0.1,50)
-    plt.xlim(0.5,3.5)
-    plt.yscale("log")
+    ax.set_ylim(0.1,50)
+    ax.set_xlim(0.5,3.5)
+    ax.set_yscale("log")
 
-    plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
-    plt.ylabel("Period (d)")
+    ax.set_xlabel(r"G$_{BP}$ - G$_{RP}$")
+    ax.set_ylabel("Period (d)")
 
-    ax = plt.gca()
     ax.axhline(12,linestyle="--",color="tab:grey")
 
     return ax
