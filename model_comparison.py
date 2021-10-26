@@ -432,17 +432,40 @@ def plot_results():
         plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza et al. (2012) Ages",
         clean_limit=clean_limit)
 
+def usco_init():
 
+    usco_file = os.path.expanduser("~/Dropbox/data/catalogs/usco_rhooph_rotation_rebull2018.csv")
+    usco = at.read(usco_file,delimiter="|",data_start=3)
+    print(usco.dtype)
+    print(usco[0])
+
+    # For 5-30 Myr stars, Pecaut & Mamajek (2013) place G0-G8 stars
+    # between 1.37 < V-Ks < 2.02
+    # Rebull give the color error as 0.4 mag
+    # but each object also has a color error given; that makes things worse though
+
+    solar = (usco["(V-Ks)0"]>=1.37) & (usco["(V-Ks)0"]<=2.02) & (usco["Per1"].mask==False)
+    print(len(np.where(solar)[0]))
+    solar_wide = (usco["(V-Ks)0"]>=(1.37-0.4)) & (usco["(V-Ks)0"]<=(2.02+0.4)) & (usco["Per1"].mask==False)
+    print(len(np.where(solar_wide)[0]))
+    solar_wide2 = ((usco["(V-Ks)0"]+usco["E(V-Ks)"])>=(1.37)) & ((usco["(V-Ks)0"]-usco["E(V-Ks)"])<=(2.02)) & (usco["Per1"].mask==False)
+    print(len(np.where(solar_wide2)[0]))
+
+    print(np.percentile(usco["Per1"][solar],[5,25,50,75,95]))
+    print(np.percentile(usco["Per1"][solar_wide],[5,25,50,75,95]))
+    print(np.percentile(usco["Per1"][solar_wide2],[5,25,50,75,95]))
 
 if __name__=="__main__":
 
-    # write_results()
-    plot_results()
-    # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
-    # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
-    # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
+    # # write_results()
+    # plot_results()
+    # # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
+    # # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
+    # # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
+    #
+    # plot_all(clean_limit=0)
+    # plot_periodcolor_models(clean_limit=0)
+    # ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
+    # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
 
-    plot_all(clean_limit=0)
-    plot_periodcolor_models(clean_limit=0)
-    ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
-    plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
+    usco_init()
