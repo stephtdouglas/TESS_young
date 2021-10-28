@@ -3,6 +3,7 @@ import glob
 import itertools
 
 import numpy as np
+from numpy.random import default_rng
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.cm as cm
@@ -454,6 +455,49 @@ def usco_init():
     print(np.percentile(usco["Per1"][solar],[5,25,50,75,95]))
     print(np.percentile(usco["Per1"][solar_wide],[5,25,50,75,95]))
     print(np.percentile(usco["Per1"][solar_wide2],[5,25,50,75,95]))
+
+    ##############################################################
+    # OK. So let's Monte Carlo this.
+    ##############################################################
+
+    # Select all stars with V-K and errors, and periods
+    benchmarks = (usco["(V-Ks)0"].mask==False)& (usco["(V-Ks)0"].mask==False) & (usco["Per1"].mask==False)
+    nb = len(np.where(benchmarks)[0])
+
+    # Number of tests
+    ntests = 10
+
+    # Randomly re-draw colors from within each star’s uncertainty distribution
+    rng = default_rng()
+    new_colors = rng.normal(loc=usco["(V-Ks)0"][benchmarks],
+                            scale=usco["E(V-Ks)"][benchmarks],size=(ntests,nb))
+    print(ntests,nb)
+    print(len(new_colors[0]))
+
+    # Select all stars with re-drawn colors consistent with solar-mass (or whatever) colors
+    solar = id_solar(new_colors)
+    print(np.shape(solar))
+
+    # Recompute 25th, 50th, and 90th percentiles
+    p25,p50,p90 = np.zeros(ntests),np.zeros(ntests),np.zeros(ntests)
+    for i in range(ntests):
+        p25[i],p50[i],p90[i] = np.percentile(usco["Per1"][benchmarks][solar[i]],
+                                            [25,50,90])
+
+    # Compute the median value for each percentile
+    p25_med = np.median(p25)
+    p50_med = np.median(p50)
+    p90_med = np.median(p90)
+
+    # Compute the error on each percentile using the absolute deviation of the individual estimates around the median
+    p25_mad = stats.median_abs_deviation(p25)
+    p50_mad = stats.median_abs_deviation(p50)
+    p90_mad = stats.median_abs_deviation(p90)
+
+    print("25",p25_med,p25_mad)
+    print("50",p50_med,p50_mad)
+    print("90",p90_med,p90_mad)
+
 
 if __name__=="__main__":
 
