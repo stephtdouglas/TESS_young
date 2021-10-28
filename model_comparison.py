@@ -464,8 +464,8 @@ def usco_init():
     # print(usco.dtype)
     # print(usco[0])
 
-    perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K")
-    return perc
+    # perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K")
+    # return perc
 
 
 
