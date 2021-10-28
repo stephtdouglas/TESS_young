@@ -192,6 +192,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}",y=0.93)
     plt.suptitle(f"Solar mass{plot_title}",y=0.93)
 
+    usco_perc = usco_init()
+    eightmyr = np.ones_like(usco_perc)*8
 
     for i in range(3):
         for j in range(2):
@@ -257,6 +259,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                            positions=[45],widths=[30],
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
                            whis=(5,95))
+
+            ax.plot(eightmyr,usco_perc,"k*")
 
 
     ########################################################################
@@ -433,28 +437,37 @@ def plot_results():
         plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza et al. (2012) Ages",
         clean_limit=clean_limit)
 
+
+def calc_percentiles(cdat,color_col,period_col,color_name="V-K"):
+
+    # For 5-30 Myr stars, Pecaut & Mamajek (2013) place G0-G8 stars
+    # between 1.37 < V-Ks < 2.02
+    if color_name=="V-K":
+        color_min = 1.37
+        color_max = 2.02
+
+    # solar = (cdat[color_col]>=1.37) & (cdat[color_col]<=2.02) & (cdat[period_col].mask==False)
+    # print(len(np.where(solar)[0]))
+    solar = ((cdat[color_col]+cdat["E(V-Ks)"])>=(1.37)) & ((cdat[color_col]-cdat["E(V-Ks)"])<=(2.02)) & (cdat[period_col].mask==False)
+
+    # perc = np.percentile(cdat[period_col][solar],[5,25,50,75,95])
+    perc = np.percentile(cdat[period_col][solar],[25,50,90])
+
+    print(perc)
+    return perc
+
+
 def usco_init():
 
     usco_file = os.path.expanduser("~/Dropbox/data/catalogs/usco_rhooph_rotation_rebull2018.csv")
     usco = at.read(usco_file,delimiter="|",data_start=3)
-    print(usco.dtype)
-    print(usco[0])
+    # print(usco.dtype)
+    # print(usco[0])
 
-    # For 5-30 Myr stars, Pecaut & Mamajek (2013) place G0-G8 stars
-    # between 1.37 < V-Ks < 2.02
-    # Rebull give the color error as 0.4 mag
-    # but each object also has a color error given; that makes things worse though
+    perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K")
+    return perc
 
-    solar = (usco["(V-Ks)0"]>=1.37) & (usco["(V-Ks)0"]<=2.02) & (usco["Per1"].mask==False)
-    print(len(np.where(solar)[0]))
-    solar_wide = (usco["(V-Ks)0"]>=(1.37-0.4)) & (usco["(V-Ks)0"]<=(2.02+0.4)) & (usco["Per1"].mask==False)
-    print(len(np.where(solar_wide)[0]))
-    solar_wide2 = ((usco["(V-Ks)0"]+usco["E(V-Ks)"])>=(1.37)) & ((usco["(V-Ks)0"]-usco["E(V-Ks)"])<=(2.02)) & (usco["Per1"].mask==False)
-    print(len(np.where(solar_wide2)[0]))
 
-    print(np.percentile(usco["Per1"][solar],[5,25,50,75,95]))
-    print(np.percentile(usco["Per1"][solar_wide],[5,25,50,75,95]))
-    print(np.percentile(usco["Per1"][solar_wide2],[5,25,50,75,95]))
 
     ##############################################################
     # OK. So let's Monte Carlo this.
@@ -502,7 +515,7 @@ def usco_init():
 if __name__=="__main__":
 
     # # write_results()
-    # plot_results()
+    plot_results()
     # # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
     # # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
     # # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
@@ -512,4 +525,4 @@ if __name__=="__main__":
     # ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
     # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
 
-    usco_init()
+    # usco_init()
