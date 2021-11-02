@@ -437,17 +437,29 @@ def plot_results():
         clean_limit=clean_limit)
 
 
-def calc_percentiles(cdat,color_col,period_col,color_name="V-K"):
+def calc_percentiles(cdat,color_col,period_col,color_name="V-K",e_color_col=None):
 
     # For 5-30 Myr stars, Pecaut & Mamajek (2013) place G0-G8 stars
     # between 1.37 < V-Ks < 2.02
     if color_name=="V-K":
         color_min = 1.37
         color_max = 2.02
+    elif color_name=="Mass":
+        # Need to confirm this is the right range
+        color_min = 0.95
+        color_max = 1.05
 
     # solar = (cdat[color_col]>=1.37) & (cdat[color_col]<=2.02) & (cdat[period_col].mask==False)
     # print(len(np.where(solar)[0]))
-    solar = ((cdat[color_col]+cdat["E(V-Ks)"])>=(1.37)) & ((cdat[color_col]-cdat["E(V-Ks)"])<=(2.02)) & (cdat[period_col].mask==False)
+    if e_color_col is not None:
+        solar = (((cdat[color_col]+cdat[e_color_col])>=color_min) &
+                 ((cdat[color_col]-cdat[e_color_col])<=color_max) &
+                 (cdat[period_col].mask==False))
+    else:
+        solar = ((cdat[color_col]>=color_min) &
+                 (cdat[color_col]<=color_max) &
+                 (cdat[period_col].mask==False))
+
 
     # perc = np.percentile(cdat[period_col][solar],[5,25,50,75,95])
     perc = np.percentile(cdat[period_col][solar],[25,50,90])
@@ -463,7 +475,19 @@ def usco_init():
     # print(usco.dtype)
     # print(usco[0])
 
-    perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K")
+    perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
+    return perc
+
+
+def hper_init():
+
+    cat_file = os.path.expanduser("~/Dropbox/data/catalogs/hper_rotation_moraux2013.tsv")
+    cat = at.read(cat_file,delimiter="|",data_start=3)
+    cat = Table(cat, masked=True, copy=False)
+    # print(usco.dtype)
+    # print(usco[0])
+
+    perc = calc_percentiles(cat,"Mass","Per",color_name="Mass")
     return perc
 
 
@@ -471,7 +495,7 @@ def usco_init():
 if __name__=="__main__":
 
     # # write_results()
-    plot_results()
+    # plot_results()
     # # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
     # # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
     # # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
@@ -481,4 +505,5 @@ if __name__=="__main__":
     # ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
     # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
 
-    # usco_init()
+    usco_init()
+    hper_init()
