@@ -440,69 +440,60 @@ def plot_results():
 
 def calc_percentiles(cdat,color_col,period_col,color_name="V-K",e_color_col=None):
 
-    # For 5-30 Myr stars, Pecaut & Mamajek (2013) place G0-G8 stars
-    # between 1.37 < V-Ks < 2.02
+    # For 5-30 Myr stars, Pecaut & Mamajek (2013) place G0-G9 stars
+    # between 1.35 < V-Ks < 2.10
     if color_name=="V-K":
-        color_min = 1.37
-        color_max = 2.02
+        color_min = 1.35
+        color_max = 2.10
     elif color_name=="Mass":
-        # Need to confirm this is the right range
-        color_min = 0.95
-        color_max = 1.05
-
-    # solar = (cdat[color_col]>=1.37) & (cdat[color_col]<=2.02) & (cdat[period_col].mask==False)
-    # print(len(np.where(solar)[0]))
-    if e_color_col is not None:
-        solar = (((cdat[color_col]+cdat[e_color_col])>=color_min) &
-                 ((cdat[color_col]-cdat[e_color_col])<=color_max) &
-                 (cdat[period_col].mask==False))
-    else:
-        solar = ((cdat[color_col]>=color_min) &
-                 (cdat[color_col]<=color_max) &
-                 (cdat[period_col].mask==False))
-
-
-    # perc = np.percentile(cdat[period_col][solar],[5,25,50,75,95])
-    perc = np.percentile(cdat[period_col][solar],[25,50,90])
-
-    print(perc)
-    return perc
-
-
-def usco_init():
-
-    usco_file = os.path.expanduser("~/Dropbox/data/catalogs/usco_rhooph_rotation_rebull2018.csv")
-    usco = at.read(usco_file,delimiter="|",data_start=3)
-    # print(usco.dtype)
-    # print(usco[0])
-
+        color_min = 0.9
+        color_max = 1.1
+        if e_color_col is None:
+            e_color = 0.05 #making this up
 
     ##############################################################
     # OK. So let's Monte Carlo this.
     ##############################################################
 
-    # Select all stars with V-K and errors, and periods
-    benchmarks = (usco["(V-Ks)0"].mask==False)& (usco["(V-Ks)0"].mask==False) & (usco["Per1"].mask==False)
+    # Select all stars with color/mass and errors, and periods
+    if e_color_col is not None:
+        benchmarks = ((cdat[color_col].mask==False) &
+                      (cdat[e_color_col].mask==False) &
+                      (cdat[period_col].mask==False))
+    else:
+        benchmarks = ((cdat[color_col].mask==False) &
+                      (cdat[period_col].mask==False))
     nb = len(np.where(benchmarks)[0])
 
+
+    # # perc = np.percentile(cdat[period_col][solar],[5,25,50,75,95])
+    # perc = np.percentile(cdat[period_col][solar],[25,50,90])
+
+
     # Number of tests
-    ntests = 10
+    ntests = 1000
 
     # Randomly re-draw colors from within each star’s uncertainty distribution
     rng = default_rng()
-    new_colors = rng.normal(loc=usco["(V-Ks)0"][benchmarks],
-                            scale=usco["E(V-Ks)"][benchmarks],size=(ntests,nb))
+    if e_color_col is not None:
+        new_colors = rng.normal(loc=cdat[color_col][benchmarks],
+                                scale=cdat[e_color_col][benchmarks],
+                                size=(ntests,nb))
+    else:
+        new_colors = rng.normal(loc=cdat[color_col][benchmarks],
+                                scale=e_color,size=(ntests,nb))
+
     print(ntests,nb)
     print(len(new_colors[0]))
 
     # Select all stars with re-drawn colors consistent with solar-mass (or whatever) colors
-    solar = id_solar(new_colors)
+    solar = (new_colors>=color_min) & (new_colors<=color_max)
     print(np.shape(solar))
 
     # Recompute 25th, 50th, and 90th percentiles
     p25,p50,p90 = np.zeros(ntests),np.zeros(ntests),np.zeros(ntests)
     for i in range(ntests):
-        p25[i],p50[i],p90[i] = np.percentile(usco["Per1"][benchmarks][solar[i]],
+        p25[i],p50[i],p90[i] = np.percentile(cdat[period_col][benchmarks][solar[i]],
                                             [25,50,90])
 
     # Compute the median value for each percentile
@@ -515,16 +506,35 @@ def usco_init():
     p50_mad = stats.median_abs_deviation(p50)
     p90_mad = stats.median_abs_deviation(p90)
 
+    p25_std = np.std(p25)
+    p50_std = np.std(p50)
+    p90_std = np.std(p90)
 
-    print("25",p25_med,p25_mad)
-    print("50",p50_med,p50_mad)
-    print("90",p90_med,p90_mad)
 
-    # perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
-    # return perc
+    print(f"25% {p25_med:.3f} +/- {p25_mad:.3f} or {p25_std:.3f}")
+    print(f"50% {p50_med:.3f} +/- {p50_mad:.3f} or {p50_std:.3f}")
+    print(f"90% {p90_med:.3f} +/- {p90_mad:.3f} or {p90_std:.3f}")
+
+    return [p25_med,p50_med,p90_med]
+
+
+def usco_init():
+
+    print("\nUSco")
+
+    usco_file = os.path.expanduser("~/Dropbox/data/catalogs/usco_rhooph_rotation_rebull2018.csv")
+    usco = at.read(usco_file,delimiter="|",data_start=3)
+    # print(usco.dtype)
+    # print(usco[0])
+
+
+    perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
+    return perc
 
 
 def hper_init():
+
+    print("\nhPer")
 
     cat_file = os.path.expanduser("~/Dropbox/data/catalogs/hper_rotation_moraux2013.tsv")
     cat = at.read(cat_file,delimiter="|",data_start=3)
