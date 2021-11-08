@@ -193,7 +193,7 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}",y=0.93)
     plt.suptitle(f"Solar mass{plot_title}",y=0.93)
 
-    usco_perc = usco_init()
+    usco_perc, usco_solar_periods = usco_init()
     eightmyr = np.ones_like(usco_perc)*8
 
     for i in range(3):
@@ -217,39 +217,39 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                 ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
                          prot_IC_2602[solar_IC_2602],"d",label="IC_2602",
                          color="grey",zorder=20)
+                ax.plot(eightmyr,usco_perc,"k*")
+
             elif which_plot=="individual clusters":
                 ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
                            positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(5,95))
+                           whis=(10,75))
+                           # whis=(5,95))
                 ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
                            positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(5,95))
+                           whis=(10,75))
+                           # whis=(5,95))
                 ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
                            positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(5,95))
+                           whis=(10,75))
+                           # whis=(5,95))
                 ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
                            positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(5,95))
+                           whis=(10,75))
+                           # whis=(5,95))
                 ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
                            positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(5,95))
-            # ax.text(ages["IC_2391"],max(prot_IC_2391[solar_IC_2391])*1.2,
-            #         "IC 2391",horizontalalignment="center",rotation="vertical",
-            #         fontsize=7,color="grey")
-            # ax.text(ages["Collinder_135"],max(prot_Collinder_135[solar_Collinder_135])*1.2,
-            #         "Collinder 135",horizontalalignment="center",rotation="vertical",
-            #         fontsize=7,color="grey")
-            # ax.text(ages["NGC_2451A"],max(prot_NGC_2451A[solar_NGC_2451A])*1.2,
-            #         "NGC 2451A",horizontalalignment="center",rotation="vertical",
-            #         fontsize=7,color="grey")
-            # ax.text(ages["NGC_2547"],max(prot_NGC_2547[solar_NGC_2547])*1.2,
-            #         "NGC 2547",horizontalalignment="center",rotation="vertical",
-            #         fontsize=7,color="grey")
+                           whis=(10,75))
+                           # whis=(5,95))
+                ax.boxplot(usco_solar_periods,sym="*",medianprops={"color":"grey"},
+                           positions=[8],widths=[8*0.25],
+                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
+                           whis=(10,75))
+                           # whis=(5,95))
             elif which_plot=="single age":
                 prot = np.concatenate((prot_IC_2391[solar_IC_2391],
                                       prot_Collinder_135[solar_Collinder_135],
@@ -259,9 +259,14 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                 ax.boxplot(prot,sym="*",medianprops={"color":"k"},
                            positions=[45],widths=[30],
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(5,95))
+                           whis=(10,75))
+                           # whis=(5,95))
+                ax.boxplot(usco_solar_periods,sym="*",medianprops={"color":"grey"},
+                           positions=[8],widths=[8*0.25],
+                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
+                           whis=(10,75))
+                           # whis=(5,95))
 
-            ax.plot(eightmyr,usco_perc,"k*")
 
 
     ########################################################################
@@ -464,6 +469,7 @@ def calc_percentiles(cdat,color_col,period_col,color_name="V-K",e_color_col=None
     else:
         benchmarks = ((cdat[color_col].mask==False) &
                       (cdat[period_col].mask==False))
+    raw_solar = benchmarks & (cdat[color_col]<=color_max) & (cdat[color_col]>=color_min)
     nb = len(np.where(benchmarks)[0])
 
 
@@ -484,42 +490,41 @@ def calc_percentiles(cdat,color_col,period_col,color_name="V-K",e_color_col=None
         new_colors = rng.normal(loc=cdat[color_col][benchmarks],
                                 scale=e_color,size=(ntests,nb))
 
-    print(ntests,nb)
-    print(len(new_colors[0]))
+    # print(ntests,nb)
+    # print(len(new_colors[0]))
 
     # Select all stars with re-drawn colors consistent with solar-mass (or whatever) colors
     solar = (new_colors>=color_min) & (new_colors<=color_max)
-    print(np.shape(solar))
+    # print(np.shape(solar))
 
     # Recompute 25th, 50th, and 90th percentiles
-    p25,p50,p90 = np.zeros(ntests),np.zeros(ntests),np.zeros(ntests)
+    p10,p50,p75 = np.zeros(ntests),np.zeros(ntests),np.zeros(ntests)
     for i in range(ntests):
         if len(np.where(solar[i])[0])>0:
-            p25[i],p50[i],p90[i] = np.percentile(cdat[period_col][benchmarks][solar[i]],
-                                                [25,50,90])
+            p10[i],p50[i],p75[i] = np.percentile(cdat[period_col][benchmarks][solar[i]],
+                                                [10,50,75])
 
 
     # Compute the median value for each percentile
-    p25_med = np.median(p25)
+    p10_med = np.median(p10)
     p50_med = np.median(p50)
-    p90_med = np.median(p90)
+    p75_med = np.median(p75)
 
     # Compute the error on each percentile using the absolute deviation of the individual estimates around the median
-    p25_mad = stats.median_abs_deviation(p25)
+    p10_mad = stats.median_abs_deviation(p10)
     p50_mad = stats.median_abs_deviation(p50)
-    p90_mad = stats.median_abs_deviation(p90)
+    p75_mad = stats.median_abs_deviation(p75)
 
-    p25_std = np.std(p25)
+    p10_std = np.std(p10)
     p50_std = np.std(p50)
-    p90_std = np.std(p90)
-
-
-    print(f"25% {p25_med:.3f} +/- {p25_mad:.3f} or {p25_std:.3f}")
-    print(f"50% {p50_med:.3f} +/- {p50_mad:.3f} or {p50_std:.3f}")
-    print(f"90% {p90_med:.3f} +/- {p90_mad:.3f} or {p90_std:.3f}")
+    p75_std = np.std(p75)
 
     print("Prot")
-    return [p25_med,p50_med,p90_med]
+    print(f"10% {p10_med:.3f} +/- {p10_mad:.3f} or {p10_std:.3f}")
+    print(f"50% {p50_med:.3f} +/- {p50_mad:.3f} or {p50_std:.3f}")
+    print(f"75% {p75_med:.3f} +/- {p75_mad:.3f} or {p75_std:.3f}")
+
+    return [p10_med,p50_med,p75_med], cdat[period_col][raw_solar]
 
 
 def calc_percentiles_omega(cdat,color_col,period_col,color_name="V-K",e_color_col=None):
@@ -618,6 +623,18 @@ def calc_percentiles_omega(cdat,color_col,period_col,color_name="V-K",e_color_co
     return [p25_med,p50_med,p90_med]
 
 
+def usco_init():
+    ## Upper Sco ##############################################
+    print("\nUSco")
+
+    usco_file = os.path.expanduser("~/Dropbox/data/catalogs/usco_rhooph_rotation_rebull2018.csv")
+    usco = at.read(usco_file,delimiter="|",data_start=3)
+    # print(usco.dtype)
+    # print(usco[0])
+
+    perc, raw_solar_periods = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
+    return perc, raw_solar_periods
+
 def young_stars_init():
 
 
@@ -675,7 +692,7 @@ def young_stars_init():
 if __name__=="__main__":
 
     # # write_results()
-    # plot_results()
+    plot_results()
     # # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
     # # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
     # # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
@@ -685,4 +702,4 @@ if __name__=="__main__":
     # ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
     # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
 
-    young_stars_init()
+    # young_stars_init()
