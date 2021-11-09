@@ -193,13 +193,13 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}",y=0.93)
     plt.suptitle(f"Solar mass{plot_title}",y=0.93)
 
-    usco_perc, usco_solar_periods = usco_init()
-    eightmyr = np.ones_like(usco_perc)*8
+    y_age,y_perc,y_prot = young_stars_init()
+    # eightmyr = np.ones_like(usco_perc)*8
 
     for i in range(3):
         for j in range(2):
-            if (i==2) and (j==1):
-                break
+            # if (i==2) and (j==1):
+            #     break
             ax = axes[i,j]
             if which_plot=="individual stars":
                 ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
@@ -217,7 +217,8 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                 ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
                          prot_IC_2602[solar_IC_2602],"d",label="IC_2602",
                          color="grey",zorder=20)
-                ax.plot(eightmyr,usco_perc,"k*")
+                for k in range(4):
+                    ax.plot(np.ones_like(y_prot[k]),y_prot[k],'*',color="grey")
 
             elif which_plot=="individual clusters":
                 ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
@@ -245,11 +246,12 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
                            whis=(10,75))
                            # whis=(5,95))
-                ax.boxplot(usco_solar_periods,sym="*",medianprops={"color":"grey"},
-                           positions=[8],widths=[8*0.25],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
+                for k in range(4):
+                    ax.plot(np.ones(3)*y_age[k],y_perc[k],'k*')
+                    # ax.boxplot(y_prot[k],sym="*",medianprops={"color":"grey"},
+                    #            positions=[y_age[k]],widths=[y_age[k]*0.25],
+                    #            flierprops={"markersize":4},manage_ticks=False,zorder=20,
+                    #            whis=(10,75))
             elif which_plot=="single age":
                 prot = np.concatenate((prot_IC_2391[solar_IC_2391],
                                       prot_Collinder_135[solar_Collinder_135],
@@ -261,11 +263,12 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                            flierprops={"markersize":4},manage_ticks=False,zorder=20,
                            whis=(10,75))
                            # whis=(5,95))
-                ax.boxplot(usco_solar_periods,sym="*",medianprops={"color":"grey"},
-                           positions=[8],widths=[8*0.25],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
+                for k in range(4):
+                    ax.plot(np.ones(3)*y_age[k],y_perc[k],'k*')
+                    # ax.boxplot(y_prot[k],sym="*",medianprops={"color":"grey"},
+                    #            positions=[y_age[k]],widths=[y_age[k]*0.25],
+                    #            flierprops={"markersize":4},manage_ticks=False,zorder=20,
+                    #            whis=(10,75))
 
 
 
@@ -369,7 +372,7 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # plt.ylim(0.1,40)
     # plt.xscale("log")
     # plt.yscale("log")
-    ax.set_xlabel("Age (Myr)")
+    # ax.set_xlabel("Age (Myr)")
     # plt.ylabel("Period (d)")
 
     ax.set_title(f"Gossage et al. (2021), G18 wind")#, Solar Mass, C{clean_limit}{plot_title}")
@@ -404,9 +407,33 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     ax.set_title(f"Amard et al. (2019)")#", Solar Mass, C{clean_limit}{plot_title}")
     # plt.savefig(f"plots/periodtracks{plot_name}_Amard2019_clean{clean_limit}.png")
 
-    #######
-    # remove the lower right panel unless I find another model
-    axes[2,1].axis("off")
+    ########################################################################
+    # Sean's new models
+    ax = axes[2,1]
+
+    linestyle=["--","-",":"]
+    for j,model in enumerate(["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque"]):
+        mfiles = glob.glob(f"models/{model}*csv")
+        for mfilename in mfiles:
+            mfile = at.read(mfilename)
+            pinit = float(mfilename.split("/")[-1].split("_")[3][1:5])
+
+            ax.plot(mfile["age(Myr)"],mfile["per"],
+                    color=mapper.to_rgba(pinit),linestyle=linestyle[j])
+            if j==1:
+                ax.plot([0,mfile["age(Myr)"][0]],[mfile["per"][0],mfile["per"][0]],
+                        color=mapper.to_rgba(pinit),linestyle=linestyle[j])
+
+    ax.set_xlim(1,1e4)
+    ax.tick_params(labelbottom=False)
+    ax.set_ylim(0.1,40)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Age (Myr)")
+    ax.set_ylabel("Period (d)")
+
+    ax.set_title(f"Matt et al. (New)")#", Solar mass, C{clean_limit}{plot_title}")
+    # plt.savefig(f"plots/periodtracks{plot_name}_Matt2015_clean{clean_limit}.png")
 
     plt.savefig(f"plots/periodtracks{plot_name}_page_clean{clean_limit}.png",
                 bbox_inches="tight")
@@ -442,6 +469,7 @@ def plot_results():
         clean_limit=clean_limit)
         plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza et al. (2012) Ages",
         clean_limit=clean_limit)
+        break
 
 
 def calc_percentiles(cdat,color_col,period_col,color_name="V-K",e_color_col=None):
@@ -481,7 +509,7 @@ def calc_percentiles(cdat,color_col,period_col,color_name="V-K",e_color_col=None
     ntests = 1000
 
     # Randomly re-draw colors from within each star’s uncertainty distribution
-    rng = default_rng()
+    rng = default_rng(42)
     if e_color_col is not None:
         new_colors = rng.normal(loc=cdat[color_col][benchmarks],
                                 scale=cdat[e_color_col][benchmarks],
@@ -565,7 +593,7 @@ def calc_percentiles_omega(cdat,color_col,period_col,color_name="V-K",e_color_co
     ntests = 1000
 
     # Randomly re-draw colors from within each star’s uncertainty distribution
-    rng = default_rng()
+    rng = default_rng(42)
     if e_color_col is not None:
         new_colors = rng.normal(loc=cdat[color_col][benchmarks],
                                 scale=cdat[e_color_col][benchmarks],
@@ -645,8 +673,8 @@ def young_stars_init():
     cat = at.read(cat_file,delimiter="|",data_start=3)
     cat = Table(cat, masked=True, copy=False)
 
-    perc = calc_percentiles(cat,"Mass","Per",color_name="Mass")
-    perc = calc_percentiles_omega(cat,"Mass","Per",color_name="Mass")
+    perc1,raw_solar_periods1 = calc_percentiles(cat,"Mass","Per",color_name="Mass")
+    # perc = calc_percentiles_omega(cat,"Mass","Per",color_name="Mass")
 
 
     ## Sco Cen ##############################################
@@ -656,8 +684,8 @@ def young_stars_init():
     cat = at.read(cat_file,delimiter="|",data_start=3)
     cat = Table(cat, masked=True, copy=False)
 
-    perc = calc_percentiles(cat,"Mass","Per",color_name="Mass")
-    perc = calc_percentiles_omega(cat,"Mass","Per",color_name="Mass")
+    perc11,raw_solar_periods11 = calc_percentiles(cat,"Mass","Per",color_name="Mass")
+    # perc = calc_percentiles_omega(cat,"Mass","Per",color_name="Mass")
 
 
 
@@ -670,8 +698,8 @@ def young_stars_init():
     # print(usco[0])
 
 
-    perc = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
-    perc = calc_percentiles_omega(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
+    perc8,raw_solar_periods8 = calc_percentiles(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
+    # perc = calc_percentiles_omega(usco,"(V-Ks)0","Per1",color_name="V-K",e_color_col="E(V-Ks)")
 
     ## h Per ##############################################
     print("\nhPer")
@@ -682,10 +710,10 @@ def young_stars_init():
     # print(usco.dtype)
     # print(usco[0])
 
-    perc = calc_percentiles(cat,"Mass","Per",color_name="Mass")
-    perc = calc_percentiles_omega(cat,"Mass","Per",color_name="Mass")
+    perc13,raw_solar_periods13 = calc_percentiles(cat,"Mass","Per",color_name="Mass")
+    # perc = calc_percentiles_omega(cat,"Mass","Per",color_name="Mass")
 
-
+    return [1,8,11,13], [perc1,perc8,perc11,perc13], [raw_solar_periods1,raw_solar_periods8,raw_solar_periods11,raw_solar_periods13]
 
 
 
