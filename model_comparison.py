@@ -174,10 +174,9 @@ def plot_periodcolor_models(clean_limit=10):
     plt.savefig(f"plots/periodmass_all_clean{clean_limit}_{model_f}.png")
     plt.close("all")
 
+def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
+                      which_plot="individual clusters")
 
-
-def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
-                      which_plot="individual clusters"):
     bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=False)
     bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=False)
     bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=False)
@@ -189,10 +188,6 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     solar_NGC_2451A = id_solar(bp_rp_NGC_2451A)
     solar_NGC_2547 = id_solar(bp_rp_NGC_2547)
     solar_IC_2602 = id_solar(bp_rp_IC_2602)
-
-    fig, axes = plt.subplots(nrows=3,ncols=2,sharey=True,figsize=(8,10))
-    # plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}",y=0.93)
-    plt.suptitle(f"Solar mass{plot_title}",y=0.93)
 
     y_age,y_perc,y_prot = young_stars_init()
     # eightmyr = np.ones_like(usco_perc)*8
@@ -276,6 +271,16 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
                     #            whis=(10,75))
 
 
+
+def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
+                      which_plot="individual clusters"):
+
+    fig, axes = plt.subplots(nrows=3,ncols=2,sharey=True,figsize=(8,10))
+    # plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}",y=0.93)
+    plt.suptitle(f"Solar mass{plot_title}",y=0.93)
+
+    plot_data_boxes(fig, axes, ages, plot_name,plot_title,clean_limit,
+                          which_plot)
 
     ########################################################################
     # Sean's models
