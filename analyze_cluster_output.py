@@ -358,6 +358,7 @@ def read_cluster_visual(cluster, date, clean_limit=None,
 
     x_file = f"{cluster}_crossmatch_xmatch_TIC.csv"
     xmatch = at.read(x_file,delimiter=",")
+    # print(xmatch.dtype)
     if cluster!="Collinder_135":
         xmatch = xmatch["angDist","GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC",
                         "GAIAEDR3_PMRA","GAIAEDR3_PMDEC","GAIAEDR3_G","GAIAEDR3_BP",
