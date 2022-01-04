@@ -192,7 +192,11 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
 
     y_age,y_perc,y_prot = young_stars_init()
     # eightmyr = np.ones_like(usco_perc)*8
-    z_perc, z_solar = zams_percentiles()
+    z_perc, z_solar, z_perc_indiv, z_solar_indiv, = zams_percentiles()
+
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    prot = [prot_IC_2391, prot_Collinder_135, prot_NGC_2451A, prot_NGC_2547, prot_IC_2602]
+    solar = [solar_IC_2391, solar_Collinder_135, solar_NGC_2451A, solar_NGC_2547, solar_IC_2602]
 
     for i in range(3):
         for j in range(2):
@@ -202,57 +206,33 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
             ax.plot([45,45,45],z_perc,'o',mec="grey",mfc="none",
                     mew=2,zorder=100)
 
-            if which_plot=="individual stars":
-                ax.plot(np.ones_like(prot_IC_2391[solar_IC_2391])*ages["IC_2391"],
-                         prot_IC_2391[solar_IC_2391],"o",label="IC_2391",
-                         color="grey",zorder=20)
-                ax.plot(np.ones_like(prot_Collinder_135[solar_Collinder_135])*ages["Collinder_135"],
-                         prot_Collinder_135[solar_Collinder_135],"s",
-                         label="Collinder_135",color="grey",zorder=20)
-                ax.plot(np.ones_like(prot_NGC_2451A[solar_NGC_2451A])*ages["NGC_2451A"],
-                         prot_NGC_2451A[solar_NGC_2451A],"^",
-                         label="NGC_2451A",color="grey",zorder=20)
-                ax.plot(np.ones_like(prot_NGC_2547[solar_NGC_2547])*ages["NGC_2547"],
-                         prot_NGC_2547[solar_NGC_2547],"v",label="NGC_2547",
-                         color="grey",zorder=20)
-                ax.plot(np.ones_like(prot_IC_2602[solar_IC_2602])*ages["IC_2602"],
-                         prot_IC_2602[solar_IC_2602],"d",label="IC_2602",
-                         color="grey",zorder=20)
-                for k in range(4):
-                    ax.plot(np.ones_like(y_prot[k]),y_prot[k],'*',color="grey")
+            if which_plot=="individual clusters":
+                # Plot the ZAMS clusters
+                boxes = []
+                for k in range(5):
+                    boxes.append({"whislo": np.min(prot[k][solar[k]]),
+                                  "q1": z_perc_indiv[k][0],
+                                  "med": z_perc_indiv[k][1],
+                                  "q3": z_perc_indiv[k][2],
+                                  "whishi": np.max(prot[k][solar[k]])
+                                 })
+                ax.bxp(bxpstats=boxes,medianprops={"color":"grey"},
+                       # TODO: ages is currently a dict, fix
+                       positions=[ages],widths=[ages*0.25],
+                       manage_ticks=False,zorder=20)
 
-            elif which_plot=="individual clusters":
-                ax.boxplot(prot_IC_2391[solar_IC_2391],sym="o",medianprops={"color":"grey"},
-                           positions=[ages["IC_2391"]],widths=[ages["IC_2391"]*0.25],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
-                ax.boxplot(prot_Collinder_135[solar_Collinder_135],sym="s",medianprops={"color":"grey"},
-                           positions=[ages["Collinder_135"]],widths=[ages["Collinder_135"]*0.25],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
-                ax.boxplot(prot_NGC_2451A[solar_NGC_2451A],sym="^",medianprops={"color":"grey"},
-                           positions=[ages["NGC_2451A"]],widths=[ages["NGC_2451A"]*0.25],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
-                ax.boxplot(prot_NGC_2547[solar_NGC_2547],sym="v",medianprops={"color":"grey"},
-                           positions=[ages["NGC_2547"]],widths=[ages["NGC_2547"]*0.25],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
-                ax.boxplot(prot_IC_2602[solar_IC_2602],sym="d",medianprops={"color":"grey"},
-                           positions=[ages["IC_2602"]],widths=[ages["IC_2602"]*0.25],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
+                # Plot the younger clusters
+                boxes = []
                 for k in range(4):
-                    ax.plot(np.ones(3)*y_age[k],y_perc[k],'k*')
-                    # ax.boxplot(y_prot[k],sym="*",medianprops={"color":"grey"},
-                    #            positions=[y_age[k]],widths=[y_age[k]*0.25],
-                    #            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                    #            whis=(10,75))
+                    boxes.append({"whislo": np.min(y_prot[k]),
+                                  "q1": y_perc[k][0],
+                                  "med": y_perc[k][1],
+                                  "q3": y_perc[k][2],
+                                  "whishi": np.max(y_prot[k])
+                                 })
+                ax.bxp(bxpstats=boxes,medianprops={"color":"grey"},
+                       positions=[ages],widths=[ages*0.25],
+                       manage_ticks=False,zorder=20)
             elif which_plot=="single age":
                 prot = np.concatenate((prot_IC_2391[solar_IC_2391],
                                       prot_Collinder_135[solar_Collinder_135],

@@ -4,14 +4,15 @@ import itertools
 
 import numpy as np
 from numpy.random import default_rng
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.cm as cm
+# import matplotlib.pyplot as plt
+# import matplotlib as mpl
+# import matplotlib.cm as cm
 import astropy.io.ascii as at
 import astropy.units as u
 from astropy.table import join,vstack,Table
 from scipy import stats
 from scipy.interpolate import interp1d
+from analyze_cluster_output import read_cluster_visual
 
 from analyze_cluster_output import read_cluster_visual
 
@@ -268,12 +269,16 @@ def zams_percentiles(clean_limit=0):
     dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
     all_cat0 = []
+    indiv_perc = []
+    indiv_solar = []
     for i in range(5):
         print("\n",clusters[i])
         cat = read_cluster_visual(clusters[i],dates[i],clean_limit,to_plot=False,return_periodcolor=False)
         cat = Table(cat, masked=True, copy=False)
         cat["BP-RP"] = cat["GAIAEDR3_BP"]-cat["GAIAEDR3_RP"]
         perc,raw_solar = calc_percentiles(cat, "BP-RP","final_period",color_name="BP-RP")
+        indiv_perc.append(perc)
+        indiv_solar.append(raw_solar)
         all_cat0.append(cat)
 
 
@@ -283,7 +288,7 @@ def zams_percentiles(clean_limit=0):
 
     # all_cat["BP-RP"] = all_cat["GAIAEDR3_BP"]-all_cat["GAIAEDR3_RP"]
     perc,raw_solar = calc_percentiles(all_cat, "BP-RP","final_period",color_name="BP-RP")
-    return perc, raw_solar
+    return perc, raw_solar, indiv_perc, indiv_solar
 
 if __name__=="__main__":
 
