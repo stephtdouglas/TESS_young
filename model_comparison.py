@@ -209,16 +209,19 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
             if which_plot=="individual clusters":
                 # Plot the ZAMS clusters
                 boxes = []
+                list_ages = []
                 for k in range(5):
                     boxes.append({"whislo": np.min(prot[k][solar[k]]),
                                   "q1": z_perc_indiv[k][0],
                                   "med": z_perc_indiv[k][1],
                                   "q3": z_perc_indiv[k][2],
-                                  "whishi": np.max(prot[k][solar[k]])
+                                  "whishi": np.max(prot[k][solar[k]]),
+                                  "fliers": []
                                  })
-                ax.bxp(bxpstats=boxes,medianprops={"color":"grey"},
-                       # TODO: ages is currently a dict, fix
-                       positions=[ages],widths=[ages*0.25],
+                    list_ages.append(ages[clusters[k]])
+                print(list_ages)
+                ax.bxp(bxpstats=boxes,medianprops={"color":"k"},
+                       positions=list_ages,widths=np.asarray(list_ages)*0.25,
                        manage_ticks=False,zorder=20)
 
                 # Plot the younger clusters
@@ -228,28 +231,48 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
                                   "q1": y_perc[k][0],
                                   "med": y_perc[k][1],
                                   "q3": y_perc[k][2],
-                                  "whishi": np.max(y_prot[k])
+                                  "whishi": np.max(y_prot[k]),
+                                  "fliers": []
                                  })
-                ax.bxp(bxpstats=boxes,medianprops={"color":"grey"},
-                       positions=[ages],widths=[ages*0.25],
+                ax.bxp(bxpstats=boxes,medianprops={"color":"k"},
+                       positions=y_age,widths=np.asarray(y_age)*0.25,
                        manage_ticks=False,zorder=20)
             elif which_plot=="single age":
-                prot = np.concatenate((prot_IC_2391[solar_IC_2391],
+                z_prot = np.concatenate((prot_IC_2391[solar_IC_2391],
                                       prot_Collinder_135[solar_Collinder_135],
                                       prot_NGC_2451A[solar_NGC_2451A],
                                       prot_NGC_2547[solar_NGC_2547],
                                       prot_IC_2602[solar_IC_2602]))
-                ax.boxplot(prot,sym="*",medianprops={"color":"k"},
-                           positions=[45],widths=[30],
-                           flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                           whis=(10,75))
-                           # whis=(5,95))
+                # ax.boxplot(prot,sym="*",medianprops={"color":"k"},
+                #            positions=[45],widths=[30],
+                #            flierprops={"markersize":4},manage_ticks=False,zorder=20,
+                #            whis=(10,75))
+                #            # whis=(5,95))
+
+                single_box = {"whislo": np.min(z_prot),
+                              "q1": z_perc[0],
+                              "med": z_perc[1],
+                              "q3": z_perc[2],
+                              "whishi": np.max(z_prot),
+                              "fliers": []
+                             }
+                print(single_box)
+                ax.bxp(bxpstats=[single_box],medianprops={"color":"k"},
+                       positions=[45],widths=[45*0.25],
+                       manage_ticks=False,zorder=20)
+                # Plot the younger clusters
+                boxes = []
                 for k in range(4):
-                    ax.plot(np.ones(3)*y_age[k],y_perc[k],'k*')
-                    # ax.boxplot(y_prot[k],sym="*",medianprops={"color":"grey"},
-                    #            positions=[y_age[k]],widths=[y_age[k]*0.25],
-                    #            flierprops={"markersize":4},manage_ticks=False,zorder=20,
-                    #            whis=(10,75))
+                    boxes.append({"whislo": np.min(y_prot[k]),
+                                  "q1": y_perc[k][0],
+                                  "med": y_perc[k][1],
+                                  "q3": y_perc[k][2],
+                                  "whishi": np.max(y_prot[k]),
+                                  "fliers": []
+                                 })
+                ax.bxp(bxpstats=boxes,medianprops={"color":"k"},
+                       positions=y_age,widths=np.asarray(y_age)*0.25,
+                       manage_ticks=False,zorder=20)
 
 
 
