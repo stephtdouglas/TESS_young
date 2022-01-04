@@ -18,7 +18,8 @@ mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
 
 from analyze_cluster_output import colors, shapes
 from analyze_cluster_output import mass_to_bp_rp, id_solar
-from analyze_cluster_output import plot_periodcolor_histogram,read_cluster_visual
+from analyze_cluster_output import read_cluster_visual
+from plot_periods import plot_periodcolor_histogram
 from model_data_percentiles import young_stars_init, zams_percentiles
 
 def plot_periodcolor_models(clean_limit=10):
@@ -175,7 +176,7 @@ def plot_periodcolor_models(clean_limit=10):
     plt.close("all")
 
 def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
-                      which_plot="individual clusters")
+                      which_plot="individual clusters"):
 
     bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=False)
     bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=False)

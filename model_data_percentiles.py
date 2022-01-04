@@ -13,6 +13,8 @@ from astropy.table import join,vstack,Table
 from scipy import stats
 from scipy.interpolate import interp1d
 
+from analyze_cluster_output import read_cluster_visual
+
 def calc_percentiles(cdat,color_col,period_col,color_name="V-K",e_color_col=None):
 
     # For 5-30 Myr stars, Pecaut & Mamajek (2013) place G0-G9 stars
