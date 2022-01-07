@@ -336,9 +336,13 @@ def process_cluster(cluster, date, clean_limit=10,
         return summary2_gaia, clean2, results2
 
 def read_cluster_visual(cluster, date, clean_limit=None,
-                        return_periodcolor=True, date2=None, to_plot=False):
+                        return_periodcolor=True, date2=None, to_plot=False,
+                        which=None):
     # Read in my visual inspection results
-    vis_file = f"tables/{cluster}_{date}_results_comments.csv"
+    if which is None:
+        vis_file = f"tables/{cluster}_{date}_results_comments.csv"
+    else:
+        vis_file = f"tables/{cluster}_{date}_results_comments{which}.csv"
     vis = at.read(vis_file,delimiter=",")
     good = np.where(vis["Select"].mask==False)[0]
     # print(len(good))
