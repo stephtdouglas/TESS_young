@@ -438,10 +438,10 @@ if __name__=="__main__":
     cgfile = "catalogs/cantat-gaudin2020_ngc2547_10deg_GaiaEDR3_xmatch.csv"
     xmatch("NGC_2547",hdbscanfile,cgfile,to_plot=False)
 
-    # #IC 2391
-    # hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
-    # cgfile = "catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch_new.csv"
-    # xmatch("IC_2391",hdbscanfile,cgfile,to_plot=False)
+    #IC 2391
+    hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2391.fits")
+    cgfile = "catalogs/cantat-gaudin2020_ic2391_10deg_GaiaEDR3_xmatch_new.csv"
+    xmatch("IC_2391",hdbscanfile,cgfile,to_plot=False)
 
     #IC 2602
     hdbscanfile = os.path.expanduser("~/Dropbox/EDR3/scats/IC_2602.fits")
