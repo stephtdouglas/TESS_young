@@ -8,6 +8,7 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import astropy.io.ascii as at
 from astropy.table import join,vstack,Table
+import astropy.table as table
 from scipy import stats
 from scipy.interpolate import interp1d
 
@@ -441,6 +442,48 @@ def write_results():
         at.write(results,f"tables/{clusters[i]}_{dates[i]}_results_raw.csv",
                  delimiter=",")
 
+def write_peak_results():
+
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
+    dates2 = [None,None,None,None,"2021-07-03"]
+
+
+    for i in range(5):
+        print(clusters[i],dates[i],dates2[i])
+        cluster, date, date2 = clusters[i],dates[i],dates2[i]
+
+        base_dir = os.path.expanduser(f"~/data/tess/{cluster.lower()}/tables/")
+        print(base_dir)
+        print(os.path.join(base_dir,f"*{date}*csv"))
+        filenames = glob.iglob(os.path.join(base_dir,f"*{date}*csv"))
+        if date2 is not None:
+            filenames2 = glob.iglob(os.path.join(base_dir,f"*{date2}*csv"))
+            # filenames = np.append(filenames,filenames2)
+            filenames = itertools.chain(filenames,filenames2)
+
+        all_peaks0 = []
+        for filename in filenames:
+            # print(filename)
+            if "allpeaks" in filename:
+                all_peaks0.append(at.read(filename))
+            else:
+                continue
+
+        all_peaks = vstack(all_peaks0)
+
+        all_peaks.rename_column("lc_type","provenance_name")
+        all_peaks.rename_column("sector","sequence_number")
+        all_peaks.rename_column("flux_col","flux_cols")
+
+        all_peaks_final = table.unique(all_peaks)
+
+        # Sort the table. NOTE that this will make the peak with the highest
+        # power the last peak in a given section
+        all_peaks_final.sort(["TIC","provenance_name","sequence_number",
+                             "flux_cols","power"])
+        at.write(all_peaks_final,f"tables/{clusters[i]}_{dates[i]}_allpeaks.csv",
+                 delimiter=",")
 
 def compare_visual_results(cluster, date):
 
@@ -555,4 +598,6 @@ if __name__=="__main__":
     # ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
     # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
 
-    count_targets()
+    # count_targets()
+
+    write_peak_results()
