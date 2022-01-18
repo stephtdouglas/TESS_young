@@ -35,6 +35,10 @@ def read_validation_results(cluster, date, which=None):
     vis["final_period"] = np.copy(vis["sig_periods"])
     vis["final_power"] = np.copy(vis["sig_powers"])
     vis["final_Q"] = np.copy(vis["Q"])
+    vis["second_period"] = np.ones_like(vis["final_period"])
+    vis["second_power"] = np.ones_like(vis["final_power"])
+    vis["second_Q"] = np.ones_like(vis["final_Q"])
+
     # If I flaggged the highest peak as bad, but selected another peak,
     # Select that one instead
     replace2 = (vis["Q"]==2) & ((vis["Q2"]==1) | (vis["Q2"]==0))
@@ -62,10 +66,38 @@ def read_validation_results(cluster, date, which=None):
                       "Q","Q2","Q3","Notes"][i])
             print(peaks[ploc])
 
-    # vis["final_period"][replace3] = -99
-    # vis["final_Q"][replace3]==vis["Q3"][replace3]
-    # vis["final_power"][replace3] = -99
-    # TODO: identify second periods, for multiperiodic targets
+
+    # The MultiProt column didn't necessarily mean that two good periods
+    # were detected, so use the Q values to find multiperiodic stars
+    good1 = (vis["Q"]==0) | (vis["Q"]==1)
+    good2 = (vis["Q2"]==0) | (vis["Q2"]==1)
+    good3 = (vis["Q3"]==0) | (vis["Q3"]==1)
+    multi_q = (good1 & good2) | (good1 & good3) | (good2 & good3)
+
+    q2 = ["Q2","Q3","Q3"]
+
+    for gi in np.where((good1 & good2))[0]:
+        vis["second_period"][gi] = vis["sec_periods"][gi]
+        vis["second_power"][gi] = vis["sec_powers"][gi]
+        vis["second_Q"][gi] = vis["Q2"][gi]
+
+    for i in np.where((good1 & good3) | (good2 & good3))[0]:
+        ploc0[:] = True
+        for col in ["TIC","provenance_name","sequence_number","flux_cols"]:
+            ploc0 = ploc0 & (vis[col][i]==peaks[col])
+
+        ploc = np.where(ploc0)[0]
+        if len(ploc)>2:
+            # The peaks are sorted in ascending order when I created the peaks
+            # file, so I just need to go backwards within the matching set
+            vis["second_period"][i] = peaks["period"][-3]
+            vis["second_Q"][i]==vis["Q3"][i]
+            vis["second_power"][i] = peaks["power"][-3]
+        else:
+            print(f"Insufficient peaks for {vis['TIC'][i]}!")
+            print(vis["TIC","provenance_name","sequence_number","flux_cols",
+                      "Q","Q2","Q3","Notes"][i])
+            print(peaks[ploc])
 
     # Return the output table
     return vis
