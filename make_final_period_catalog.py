@@ -24,6 +24,9 @@ def read_validation_results(cluster, date, which=None):
     good = np.where(vis["Select"].mask==False)[0]
     # print(len(good))
 
+    # Read in all the peaks, for ID'ing third periods
+    peaks = at.read(f"tables/{cluster}_{date}_allpeaks.csv",delimiter=",")
+
     # Limit the table to only the light curves I analyzed
     vis = vis[good]
     vis.rename_column("\ufefftarget_name","TIC")
@@ -39,11 +42,29 @@ def read_validation_results(cluster, date, which=None):
     vis["final_period"][replace2] = vis["sec_periods"][replace2]
     vis["final_Q"][replace2]==vis["Q2"][replace2]
     vis["final_power"][replace2] = vis["sec_powers"][replace2]
-    # TODO: peak files are on other laptop, need to look there for third-
-    # highest peaks
-    vis["final_period"][replace3] = -99
-    vis["final_Q"][replace3]==vis["Q3"][replace3]
-    vis["final_power"][replace3] = -99
+
+    ploc0 = np.ones(len(peaks),bool)
+    for i in np.where(replace3)[0]:
+        ploc0[:] = True
+        for col in ["TIC","provenance_name","sequence_number","flux_cols"]:
+            ploc0 = ploc0 & (vis[col][i]==peaks[col])
+
+        ploc = np.where(ploc0)[0]
+        if len(ploc)>2:
+            # The peaks are sorted in ascending order when I created the peaks
+            # file, so I just need to go backwards within the matching set
+            vis["final_period"][i] = peaks["period"][-3]
+            vis["final_Q"][i]==vis["Q3"][i]
+            vis["final_power"][i] = peaks["power"][-3]
+        else:
+            print(f"Insufficient peaks for {vis['TIC'][i]}!")
+            print(vis["TIC","provenance_name","sequence_number","flux_cols",
+                      "Q","Q2","Q3","Notes"][i])
+            print(peaks[ploc])
+
+    # vis["final_period"][replace3] = -99
+    # vis["final_Q"][replace3]==vis["Q3"][replace3]
+    # vis["final_power"][replace3] = -99
     # TODO: identify second periods, for multiperiodic targets
 
     # Return the output table
