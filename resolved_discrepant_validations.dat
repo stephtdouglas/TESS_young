@@ -1,0 +1,11 @@
+TIC       provenance_name flux_cols sequence_number final_period final_Q second_period second_Q Cluster      Which
+93550171  CDIPS            PCA1      8               0.6292       2      nan           4      IC_2391        _2
+93550865  QLP              sap_flux  8               5.648        2      nan           4      IC_2391        _1
+94184691  CDIPS            PCA1      8               0.106        0      nan           4      IC_2391        _1
+93549541  QLP              sap_flux  8               3.1761       0      nan           2      IC_2391        _1
+93549555  QLP              sap_flux  8               3.2482       1      nan           2      IC_2391        _1
+157527562 CDIPS            PCA2      7               1.0627       0      nan           4      Collinder_135  _1
+173386188 CDIPS            PCA1      8               0.4403       1      nan           4      Collinder_135  _1
+175024957 QLP              sap_flux  8               3.4815       0      0.3821        0      NGC_2451A      _2
+175525086 CDIPS            PCA1      8               0.7148       1      nan           4      NGC_2451A      _1
+238645199 QLP              sap_flux  7               5.5747       1      nan           4      NGC_2547       _2
