@@ -326,7 +326,36 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["obs_id"][i] = allcat[f"obs_id{which}"][i]
             allcat["Sig"][i] = allcat[f"thresholds{which}"][i]
 
-    ##### TODO: Output a pure period table
+    #### Finally, transfer the multiperiodic and spot evolution flags
+    allcat["MP?"][:] = "n"
+    allcat["MP?"][(allcat["MultiProt_1"]=="y") &
+                  (allcat["MultiProt_2"]=="y")] = "y"
+    allcat["MP?"][(allcat["MultiProt_1"]=="m") |
+                  (allcat["MultiProt_2"]=="m")] = "m"
+
+    allcat["SE?"][:] = "n"
+    allcat["SE?"][(allcat["SpotEvol_1"]=="y") &
+                  (allcat["SpotEvol_2"]=="y")] = "y"
+    allcat["SE?"][(allcat["SpotEvol_1"]=="m") |
+                  (allcat["SpotEvol_2"]=="m")] = "m"
+
+    ##### Output a pure period table
+    periods = allcat["TIC","provenance_name","flux_cols","sequence_number",
+                   "obs_id","Prot1", "Q1", "Pw1","Prot2", "Q2", "Pw2", "Sig",
+                   "MP?","SE?"]
+
+    formats = {"Prot1":'%.2f',
+               "Pw1":'%.3f',
+               "Prot2":'%.2f',
+               "Pw2":'%.3f',
+               "Sig":'%.3f'}
+
+    # Write out the table. I'm not going to write a tex table - I'll just put
+    # the colnames in the manuscript proper
+    if os.path.exists("tab_all_tess_periods.csv"):
+        print("WARNING: Period table already exists; not re-recreating it")
+    else:
+        at.write(periods,"tab_all_tess_periods.csv",delimiter=",",formats=formats)
 
     ##### Crossmatch to the Gaia catalogs, save relevant columns
 
@@ -347,6 +376,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     tic_match.rename_column("Tmag","TIC_Tmag")
     tic_match.rename_column("Flag","TIC_Flag")
 
+    ##########################################################################
+    ##########################################################################
+    ##########################################################################
 
     # Then match back to my original catalogs (and when I get Phill's
     # MINESweeper results, those should have the same columns, plus extras)
