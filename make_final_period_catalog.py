@@ -35,9 +35,9 @@ def read_validation_results(cluster, date, which=None):
     vis["final_period"] = np.copy(vis["sig_periods"])
     vis["final_power"] = np.copy(vis["sig_powers"])
     vis["final_Q"] = np.copy(vis["Q"])
-    vis["second_period"] = np.ones_like(vis["final_period"])
-    vis["second_power"] = np.ones_like(vis["final_power"])
-    vis["second_Q"] = np.ones_like(vis["final_Q"])
+    vis["second_period"] = np.ones_like(vis["final_period"])*-9999
+    vis["second_power"] = np.ones_like(vis["final_power"])*-9999
+    vis["second_Q"] = np.ones_like(vis["final_Q"])*-9999
 
     # If I flaggged the highest peak as bad, but selected another peak,
     # Select that one instead
@@ -133,31 +133,54 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     allcat.add_column(np.zeros(len(allcat),"U200"),name="obs_id")
 
     ##### Identify cases where my results differed between steps
+    # For both primary and possible secondary periods
     check_columns = np.array(["provenance_name","flux_cols","sequence_number",
                               "final_period","final_Q"])
+    check_columns2 = np.array(["provenance_name","flux_cols","sequence_number",
+                              "second_period","second_Q"])
     diff_results = np.zeros(len(allcat),bool)
+    diff_results2 = np.zeros(len(allcat),bool)
     for col in check_columns:
         diff_results = diff_results | (allcat[f"{col}_1"]!=allcat[f"{col}_2"])
+    for col in check_columns2:
+        diff_results2 = diff_results2 | (allcat[f"{col}_1"]!=allcat[f"{col}_2"])
 
     ## If my results agreed, just assign the first parameters to the final cols
     good = diff_results==False
+    good2 = diff_results2==False
+    print(f"Primary: {len(np.where(good)[0])} matches,",
+           f"{len(np.where(diff_results)[0])} mismatches")
+    print(f"Secondary: {len(np.where(good2)[0])} matches,",
+           f"{len(np.where(diff_results2)[0])} mismatches")
+    print(f"Combined: {len(np.where(good & good2)[0])} matches,",
+           f"{len(np.where(diff_results | diff_results2)[0])} mismatches")
+    print(f"Good primary, mismatched secondary:",
+           f"{len(np.where(good & diff_results2)[0])}")
+    print(f"Mismatched primary, matched secondary:",
+           f"{len(np.where(good2 & diff_results)[0])}")
     init_cols = ["provenance_name_1","flux_cols_1","sequence_number_1",
                  "obs_id_1","final_period_1","final_Q_1","final_power_1",
                  "thresholds_1"]
     output_cols = ["provenance_name","flux_cols","sequence_number",
                    "obs_id","Prot1", "Q1", "Pw1", "Sig"]
+    init_cols2 = ["second_period_1","second_Q_1","second_power_1"]
+    output_cols2 = ["Prot2", "Q2", "Pw2"]
     ncols = len(init_cols)
-    if len(output_cols)!=ncols:
+    ncols2 = len(init_cols2)
+    if (len(output_cols)!=ncols) | (len(output_cols2)!=ncols2):
         print("Fix columns!")
         sys.exit(0)
 
     for i in range(ncols):
         allcat[output_cols[i]][good] = allcat[init_cols[i]][good]
+    for i in range(ncols2):
+        allcat[output_cols[i]][good2] = allcat[init_cols[i]][good2]
 
     ## Cycle through all the stars with differing results
     diff_idx = np.where(diff_results)[0]
     print(len(diff_idx))
 
+    primary_still_bad = []
     for i in diff_idx:
         diff_frac = (abs(allcat["final_period_1"][i]-allcat["final_period_2"][i])
                      / min(allcat["final_period_1","final_period_2"][i]))
@@ -166,7 +189,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
         # If one was flagged as Q=2, flag both as Q=2
         if (allcat["final_Q_1"][i]==2) or (allcat["final_Q_2"][i]==2):
-            allcat["Q1"][i]==2
+            allcat["Q1"][i] = 2
 
         # If the period is (almost) the same (and Q=1 or Q=0):
         # elif allcat["final_period_1"][i]==allcat["final_period_2"][i]:
@@ -213,16 +236,97 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         # could be salvageable. I'll probably have to have a list of stars
         # that I've resolved by hand at this point.
         else:
-            print("\n",allcat["TIC"][i])
-            # print(allcat["TIC","provenance_name_1","flux_cols_1",
-            #              "sequence_number_1","final_period_1","final_Q_1",
-            #              "Notes_1"][i])
-            # print(allcat["TIC","provenance_name_2","flux_cols_2",
-            #              "sequence_number_2","final_period_2","final_Q_2",
-            #              "Notes_2"][i])
+            print("\n",allcat["TIC"][i],"primary mismatch")
+            print(allcat["TIC","provenance_name_1","flux_cols_1",
+                         "sequence_number_1","final_period_1","final_Q_1",
+                         "Notes_1"][i])
+            print(allcat["TIC","provenance_name_2","flux_cols_2",
+                         "sequence_number_2","final_period_2","final_Q_2",
+                         "Notes_2"][i])
+            primary_still_bad.append(i)
+
+
+    ## Cycle through all the stars with differing secondary results
+    diff_idx2 = np.where(diff_results2)[0]
+    print(len(diff_idx2))
+
+    secondary_still_bad = []
+    for i in diff_idx2:
+        diff_frac = (abs(allcat["second_period_1"][i]-allcat["second_period_2"][i])
+                     / min(allcat["second_period_1","second_period_2"][i]))
+
+        half_dbl = allcat["second_period_1"][i]/allcat["second_period_2"][i]
+
+        # If one was flagged as Q=2, flag both as Q=2
+        if (allcat["second_Q_1"][i]==2) or (allcat["second_Q_2"][i]==2):
+            allcat["Q2"][i] = 2
+
+        # If the period is (almost) the same (and Q=1 or Q=0):
+        # elif allcat["final_period_1"][i]==allcat["final_period_2"][i]:
+        elif diff_frac<0.05:
+
+            # TODO: but it's just a different light curve, pick the one with the
+            # higher periodogram peak and assign the lower Q value
+            # higher_peak = np.argmax(allcat["final_"])
+
+            # If I assigned different Q values, assign the lower Q value
+            allcat["Q2"][i] = max(allcat["second_Q_1","second_Q_2"][i])
+            allcat["Prot2"][i] = allcat["second_period_1"][i]
+            allcat["Pw2"][i] = allcat["second_power_1"][i]
+
+        # If they're harmonics and the second period is longer, choose the 2nd
+        elif (abs(half_dbl-0.5)<0.02):
+            allcat["Q2"][i] = allcat["second_Q_2"][i]
+            allcat["Prot2"][i] = allcat["second_period_2"][i]
+            allcat["Pw2"][i] = allcat["second_power_2"][i]
+
+        # If they're harmonics and the first period is longer, choose the 1st
+        elif (abs(half_dbl-2)<0.08):
+            allcat["Q2"][i] = allcat["second_Q_1"][i]
+            allcat["Prot2"][i] = allcat["second_period_1"][i]
+            allcat["Pw2"][i] = allcat["second_power_1"][i]
+
+        # If the periods are not the same...
+        # TODO: so far most of these look impossibly confused, though a few
+        # could be salvageable. I'll probably have to have a list of stars
+        # that I've resolved by hand at this point.
+        else:
+            print("\n",allcat["TIC"][i],"secondary mismatch")
+            print(allcat["TIC","provenance_name_1","flux_cols_1",
+                         "sequence_number_1","final_period_1","final_Q_1",
+                         "second_period_1","second_Q_1"][i])
+            print(allcat["TIC","provenance_name_2","flux_cols_2",
+                         "sequence_number_2","final_period_2","final_Q_2",
+                         "second_period_2","second_Q_2"][i])
+            secondary_still_bad.append(i)
+
+    primary_still_bad = np.array(primary_still_bad)
+    secondary_still_bad = np.array(secondary_still_bad)
+    still_bad = np.asarray(np.union1d(primary_still_bad,secondary_still_bad),int)
+
+    if len(still_bad)>0:
+        resolved = at.read("resolved_discrepant_validations.dat")
+        for i in still_bad:
+            loc = np.where(allcat["TIC"][i]==resolved["TIC"])[0]
+            if len(loc)!=1:
+                print("uh oh!",i,allcat["TIC"][i])
+            which = resolved["Which"][loc][0]
+            allcat["Q1"][i] = resolved["final_Q"][loc]
+            allcat["Prot1"][i] = resolved["final_period"][loc]
+            allcat["Pw1"][i] = allcat[f"final_power{which}"][i]
+            allcat["provenance_name"][i] = resolved["provenance_name"][loc][0]
+            allcat["flux_cols"][i] = resolved["flux_cols"][loc][0]
+            allcat["sequence_number"][i] = resolved["sequence_number"][loc][0]
+            if resolved["second_Q"][loc]<=2:
+                allcat["Q2"][i] = resolved["second_Q"][loc]
+            if np.isfinite(resolved["second_period"][loc]):
+                allcat["Prot2"][i] = resolved["second_period"][loc]
+                allcat["Pw2"][i] = allcat[f"second_power{which}"][i]
+
+            allcat["obs_id"][i] = allcat[f"obs_id{which}"][i]
+            allcat["Sig"][i] = allcat[f"thresholds{which}"][i]
 
     ##### TODO: Output a pure period table
-
 
     ##### Crossmatch to the Gaia catalogs, save relevant columns
 
