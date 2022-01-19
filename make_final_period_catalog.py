@@ -10,6 +10,8 @@ import astropy.io.fits as fits
 import astropy.io.ascii as at
 from astropy.table import join,vstack,Table
 import astropy.table as table
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 from scipy import stats
 from scipy.interpolate import interp1d
 
@@ -120,10 +122,12 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     # Colnames from D19:
     # Prot1, Pw1, Q1, Sig, Prot2, Pw2, Q2, MP?, SE?
     # Bl? (this will be an automated flag, unlike my previous papers)
-    new_cols_float = [np.zeros(len(allcat))*np.nan for i in range(7)]
+    new_cols_float = [np.zeros(len(allcat))*np.nan for i in range(5)]
+    new_cols_int = [np.ones(len(allcat))*4 for i in range(2)]
     new_cols_char = [np.zeros(len(allcat),"U1") for i in range(3)]
-    allcat.add_columns(new_cols_float,names=["Prot1", "Pw1", "Q1", "Sig",
-                                             "Prot2", "Pw2", "Q2"])
+    allcat.add_columns(new_cols_float,names=["Prot1", "Pw1", "Sig",
+                                             "Prot2", "Pw2"])
+    allcat.add_columns(new_cols_int,names=["Q1", "Q2"])
     allcat.add_columns(new_cols_char,names=["MP?","SE?","Bl?"])
     # Apparently I did not include my notes in the output files for D19
     # So I'm leaving them out for simplicity now
@@ -237,12 +241,12 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         # that I've resolved by hand at this point.
         else:
             print("\n",allcat["TIC"][i],"primary mismatch")
-            print(allcat["TIC","provenance_name_1","flux_cols_1",
-                         "sequence_number_1","final_period_1","final_Q_1",
-                         "Notes_1"][i])
-            print(allcat["TIC","provenance_name_2","flux_cols_2",
-                         "sequence_number_2","final_period_2","final_Q_2",
-                         "Notes_2"][i])
+            # print(allcat["TIC","provenance_name_1","flux_cols_1",
+            #              "sequence_number_1","final_period_1","final_Q_1",
+            #              "Notes_1"][i])
+            # print(allcat["TIC","provenance_name_2","flux_cols_2",
+            #              "sequence_number_2","final_period_2","final_Q_2",
+                         # "Notes_2"][i])
             primary_still_bad.append(i)
 
 
@@ -292,12 +296,12 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         # that I've resolved by hand at this point.
         else:
             print("\n",allcat["TIC"][i],"secondary mismatch")
-            print(allcat["TIC","provenance_name_1","flux_cols_1",
-                         "sequence_number_1","final_period_1","final_Q_1",
-                         "second_period_1","second_Q_1"][i])
-            print(allcat["TIC","provenance_name_2","flux_cols_2",
-                         "sequence_number_2","final_period_2","final_Q_2",
-                         "second_period_2","second_Q_2"][i])
+            # print(allcat["TIC","provenance_name_1","flux_cols_1",
+            #              "sequence_number_1","final_period_1","final_Q_1",
+            #              "second_period_1","second_Q_1"][i])
+            # print(allcat["TIC","provenance_name_2","flux_cols_2",
+            #              "sequence_number_2","final_period_2","final_Q_2",
+            #              "second_period_2","second_Q_2"][i])
             secondary_still_bad.append(i)
 
     primary_still_bad = np.array(primary_still_bad)
@@ -525,33 +529,119 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                 print("There are still duplicate TIC IDs")
                 print(dbl_tic_idx)
 
+    # If there's a star without a TIC ID, introduce a placeholder
+    no_tic = xmatch["TIC"].mask==True
+    xmatch["TIC"][no_tic] = -9999
+    xmatch["TIC"][no_tic].mask = False
+
+    # Join the final period and membership catalogs
+    pmcat = join(xmatch,periods,keys=["TIC"])
+
     ##### TODO: Add Phill's MINESweeper results
 
 
+    ##########################################################################
+    ##########################################################################
+    ##########################################################################
+
     ##### Check for proximity
 
-    # Check for any nearby stars within ~30 arcsec (pixelish) -
-    # likely source confusion.
+    managed = np.zeros(len(pmcat),bool)
+    ppos = SkyCoord(pmcat["GAIAEDR3_RA"],pmcat["GAIAEDR3_DEC"],unit=u.degree)
 
-    # If there is a blended star
-        # If the other star has Q=2 or no measured period, do nothing
+    neighbor_ct = 0
+    removed_ct = 0
+    for i,row in enumerate(pmcat):
 
-        # If the other star is >=3 mags fainter, do nothing
+        if (managed[i]==True) | (row["Q1"]>=2):
+            continue
 
-        # If I measured two different periods for the stars, do nothing
+        # Check for any nearby stars within ~30 arcsec (pixelish) -
+        # likely source confusion.
+        sep = ppos[i].separation(ppos)
+        # pixelish = 30*u.arcsec
+        # close0 = np.where(sep<pixelish)[0]
 
-        # If I measured the same period for both stars
-            # If one star has significantly higher periodogram power
-            # (threshold?), choose that star
+        bright_contam = 2*u.arcmin
+        close0 = np.where(sep<bright_contam)[0]
 
-            # Otherwise, assign the period to the brighter star
+        if len(close0)==1:
+            managed[i] = True
+            continue
 
-    # Check for brighter stars within 1 arcmin - possible contamination
-        # If I measured the same period as the brighter star, flag the fainter
-        # star as having a bad period
+        # If there is a blended star
+        else:
+            neighbor_ct += 1
+            primary_idx = np.where(close0==i)[0]
+            close = np.delete(close0,primary_idx)
+            # If the other star has Q=2 or no measured period, do nothing
+            # If I measured two different periods for the stars, do nothing
+            # If the other star is >=3 mags fainter, do nothing
+            neighbors_no_prot = ((pmcat["Q1"][close]==0))
+            neighbors_faint = ((pmcat["TIC_Tmag"][i]-pmcat["TIC_Tmag"][close])<-3)
 
-        # Otherwise, just flag for possible contamination
+            good_prot = (np.isfinite(pmcat["Prot1"][close]) &
+                         (pmcat["Prot1"][close]>0) &
+                         (pmcat["Q1"][close]<=1))
+            diff_frac = (abs(pmcat["Prot1"][i]-pmcat["Prot1"][close])
+                         / pmcat["Prot1"][i])
+            # neighbors_diff_prot = ((pmcat["Prot1"][close] -
+            #                        pmcat["Prot1"][i])!=0)
+            neighbors_diff_prot = (diff_frac>=0.05) & good_prot
+            same_period = (diff_frac<0.05) & good_prot
 
+            if np.all(neighbors_no_prot | neighbors_diff_prot |
+                      neighbors_faint | (managed[close]==True)):
+                  continue
+
+            # If I measured the same period for both stars
+            elif np.any(same_period):
+                # If one star has significantly higher periodogram power
+                # (threshold?), choose that star
+                # Otherwise, assign the period to the brighter star
+
+                # same period, lower power = remove those periods
+                power_diff = pmcat["Pw1"][i]-pmcat["Pw1"][close]
+                # Only consider stars with a significantly different power
+                higher_power = (power_diff<-0.1) & np.isfinite(pmcat["Pw1"][close])
+                # Only consider brighter stars that are at least 1 magnitude brighter
+                brighter = (pmcat["TIC_Tmag"][i]-pmcat["TIC_Tmag"][close])>1
+
+                lower_power = (power_diff>0.1) & np.isfinite(pmcat["Pw1"][close])
+                same_prot_lower_power = same_period & lower_power
+                # print(same_period)
+                # print(power_diff>0)
+                # print(close)
+                if np.any(same_period & (higher_power | brighter)):
+                    print("\nSame period, neighbor is brighter/higher power")
+                    print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][i])
+                    print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][close[same_period & (higher_power | brighter)]])
+                    print(sep.arcminute[close[same_period & (higher_power | brighter)]])
+                    pmcat["Prot1"][i] = np.nan
+                    pmcat["Pw1"][i] = np.nan
+                    pmcat["Q1"][i] = 5
+                    pmcat["Prot2"][i] = np.nan
+                    pmcat["Pw2"][i] = np.nan
+                    pmcat["Q2"][i] = 5
+                    managed[i] = True
+                    removed_ct += 1
+                else:
+                    print("\nSame period, neighbor is fainter")
+                    print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][i])
+                    print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][close[same_prot_lower_power]])
+                    print(sep.arcminute[close[same_prot_lower_power]])
+                    pmcat["Prot1"][close[same_prot_lower_power]] = np.nan
+                    pmcat["Pw1"][close[same_prot_lower_power]] = np.nan
+                    pmcat["Q1"][close[same_prot_lower_power]] = 5
+                    pmcat["Prot2"][close[same_prot_lower_power]] = np.nan
+                    pmcat["Pw2"][close[same_prot_lower_power]] = np.nan
+                    pmcat["Q2"][close[same_prot_lower_power]] = 5
+                    managed[close[same_prot_lower_power]] = True
+                    removed_ct += len(np.where(same_prot_lower_power)[0])
+
+    print(neighbor_ct," stars with neighbors")
+    print(removed_ct," blended stars removed")
+    
     ##### Add literature periods
 
     # TODO
