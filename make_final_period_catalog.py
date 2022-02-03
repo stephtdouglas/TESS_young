@@ -37,9 +37,10 @@ def read_validation_results(cluster, date, which=None):
     vis["final_period"] = np.copy(vis["sig_periods"])
     vis["final_power"] = np.copy(vis["sig_powers"])
     vis["final_Q"] = np.copy(vis["Q"])
+    # These have to be -9999 because comparison with NaNs gets messed up
     vis["second_period"] = np.ones_like(vis["final_period"])*-9999
     vis["second_power"] = np.ones_like(vis["final_power"])*-9999
-    vis["second_Q"] = np.ones_like(vis["final_Q"])*-9999
+    vis["second_Q"] = np.ones_like(vis["final_Q"])*4
 
     # If I flaggged the highest peak as bad, but selected another peak,
     # Select that one instead
@@ -122,7 +123,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     # Colnames from D19:
     # Prot1, Pw1, Q1, Sig, Prot2, Pw2, Q2, MP?, SE?
     # Bl? (this will be an automated flag, unlike my previous papers)
-    new_cols_float = [np.zeros(len(allcat))*np.nan for i in range(5)]
+    new_cols_float = [np.ones(len(allcat))*-9999 for i in range(5)]
     new_cols_int = [np.ones(len(allcat))*4 for i in range(2)]
     new_cols_char = [np.zeros(len(allcat),"U1") for i in range(3)]
     allcat.add_columns(new_cols_float,names=["Prot1", "Pw1", "Sig",
@@ -133,8 +134,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     # So I'm leaving them out for simplicity now
     allcat.add_column(np.zeros(len(allcat),"U5"),name="provenance_name")
     allcat.add_column(np.zeros(len(allcat),"U10"),name="flux_cols")
-    allcat.add_column(np.zeros(len(allcat),int),name="sequence_number")
+    # allcat.add_column(np.zeros(len(allcat),int),name="sequence_number")
+    allcat.add_column(np.ones(len(allcat),"int")*-9999,name="sequence_number")
     allcat.add_column(np.zeros(len(allcat),"U200"),name="obs_id")
+    allcat["obs_id"][:] = ""
 
     ##### Identify cases where my results differed between steps
     # For both primary and possible secondary periods
@@ -194,6 +197,13 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         # If one was flagged as Q=2, flag both as Q=2
         if (allcat["final_Q_1"][i]==2) or (allcat["final_Q_2"][i]==2):
             allcat["Q1"][i] = 2
+            allcat["Prot1"][i] = -9999
+            allcat["Pw1"][i] = -9999
+            allcat["provenance_name"][i] = allcat["provenance_name_1"][i]
+            allcat["flux_cols"][i] = allcat["flux_cols_1"][i]
+            allcat["sequence_number"][i] = allcat["sequence_number_1"][i]
+            allcat["obs_id"][i] = allcat["obs_id_1"][i]
+            allcat["Sig"][i] = allcat["thresholds_1"][i]
 
         # If the period is (almost) the same (and Q=1 or Q=0):
         # elif allcat["final_period_1"][i]==allcat["final_period_2"][i]:
@@ -264,6 +274,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         # If one was flagged as Q=2, flag both as Q=2
         if (allcat["second_Q_1"][i]==2) or (allcat["second_Q_2"][i]==2):
             allcat["Q2"][i] = 2
+            allcat["Prot2"][i] = -9999
+            allcat["Pw2"][i] = -9999
 
         # If the period is (almost) the same (and Q=1 or Q=0):
         # elif allcat["final_period_1"][i]==allcat["final_period_2"][i]:
@@ -348,18 +360,25 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                    "obs_id","Prot1", "Q1", "Pw1","Prot2", "Q2", "Pw2", "Sig",
                    "MP?","SE?"]
 
-    formats = {"Prot1":'%.2f',
-               "Pw1":'%.3f',
-               "Prot2":'%.2f',
-               "Pw2":'%.3f',
-               "Sig":'%.3f'}
+    for colname in ["Sig","Pw1","Pw2"]:
+        periods[colname].info.format = ".3f"
+    for colname in ["Prot1",  "Prot2"]:
+        periods[colname].info.format = ".2f"
 
-    # Write out the table. I'm not going to write a tex table - I'll just put
-    # the colnames in the manuscript proper
-    if os.path.exists("tab_all_tess_periods.csv"):
-        print("WARNING: Period table already exists; not re-recreating it")
-    else:
-        at.write(periods,"tab_all_tess_periods.csv",delimiter=",",formats=formats)
+    bad_prot = periods["Q1"]>=2
+    periods["Prot1"][bad_prot] = -9999
+    periods["Pw1"][bad_prot] = -9999
+    bad_prot2 = periods["Q2"]>=2
+    periods["Prot2"][bad_prot2] = -9999
+    periods["Pw2"][bad_prot2] = -9999
+
+    # # Write out the table. I'm not going to write a tex table - I'll just put
+    # # the colnames in the manuscript proper
+    # if os.path.exists(f"tables/tab_{cluster}_tess_periods.csv"):
+    #     print("WARNING: Period table already exists; not re-recreating it")
+    # else:
+    #     at.write(periods,f"tables/tab_{cluster}_tess_periods.csv",delimiter=",",
+    #              formats=formats)
 
     ##### Crossmatch to the Gaia catalogs, save relevant columns
 
@@ -389,6 +408,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     cat_init_file = f"tables/{cluster}_crossmatch_allcolumns.fits"
     with fits.open(cat_init_file) as hdu:
         cat_init = Table(hdu[1].data)
+        # print(cat_init.dtype)
 
     if cat_init.masked == False:
         cat_init = Table(cat_init, masked=True, copy=False)
@@ -536,6 +556,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
     # Join the final period and membership catalogs
     pmcat = join(xmatch,periods,keys=["TIC"])
+    print(len(pmcat),"periods and membership")
 
     ##### TODO: Add Phill's MINESweeper results
 
@@ -617,11 +638,11 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                     print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][i])
                     print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][close[same_period & (higher_power | brighter)]])
                     print(sep.arcminute[close[same_period & (higher_power | brighter)]])
-                    pmcat["Prot1"][i] = np.nan
-                    pmcat["Pw1"][i] = np.nan
+                    pmcat["Prot1"][i] = -9999 # np.nan
+                    pmcat["Pw1"][i] = -9999 # np.nan
                     pmcat["Q1"][i] = 5
-                    pmcat["Prot2"][i] = np.nan
-                    pmcat["Pw2"][i] = np.nan
+                    pmcat["Prot2"][i] = -9999 # np.nan
+                    pmcat["Pw2"][i] = -9999 # np.nan
                     pmcat["Q2"][i] = 5
                     managed[i] = True
                     removed_ct += 1
@@ -630,45 +651,146 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                     print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][i])
                     print(pmcat["TIC","Prot1","Pw1","Q1","TIC_Tmag"][close[same_prot_lower_power]])
                     print(sep.arcminute[close[same_prot_lower_power]])
-                    pmcat["Prot1"][close[same_prot_lower_power]] = np.nan
-                    pmcat["Pw1"][close[same_prot_lower_power]] = np.nan
+                    pmcat["Prot1"][close[same_prot_lower_power]] = -9999 # np.nan
+                    pmcat["Pw1"][close[same_prot_lower_power]] = -9999 # np.nan
                     pmcat["Q1"][close[same_prot_lower_power]] = 5
-                    pmcat["Prot2"][close[same_prot_lower_power]] = np.nan
-                    pmcat["Pw2"][close[same_prot_lower_power]] = np.nan
+                    pmcat["Prot2"][close[same_prot_lower_power]] = -9999 # np.nan
+                    pmcat["Pw2"][close[same_prot_lower_power]] = -9999 # np.nan
                     pmcat["Q2"][close[same_prot_lower_power]] = 5
                     managed[close[same_prot_lower_power]] = True
                     removed_ct += len(np.where(same_prot_lower_power)[0])
 
     print(neighbor_ct," stars with neighbors")
     print(removed_ct," blended stars removed")
-    
+
+    ##########################################################################
     ##### Add literature periods
 
-    # TODO
+    lit = at.read("tab_all_lit_periods.csv",delimiter=",")
+    lit["Source"] = lit["Source"].astype("U25")
+    utic, tinv, tct = np.unique(lit["TIC"], return_inverse=True,
+                                return_counts=True)
+    repeat_loc = np.array([utic[v] for v in tinv])
+    rep_barnes = np.intersect1d(repeat_loc,
+                                np.where(lit["Source"]=="barnes1996")[0])
+    rep_tschape = np.intersect1d(repeat_loc,
+                                np.where(lit["Source"]=="tschape2001")[0])
 
+    lit["Source"][rep_barnes] = "barnes1996, tschape2001"
+    lit.remove_rows(rep_tschape)
+    lit.rename_column("Source","LitSource")
+
+    lit2 = lit[(lit["TIC"]>0) & (lit["LitPeriod"].mask==False)]
+
+    pmcat2 = join(pmcat,lit2["TIC","LitPeriod","LitSource"],keys=["TIC"],
+                  join_type="left")
+    print(len(np.where(pmcat2["LitPeriod"].mask==False)[0]),"Lit periods added")
+    print(len(pmcat2),"after xmatch with lit")
 
     ##### Clean up and output the catalog
 
     # Make sure every star has a value in the "final" columns
 
     # Select/create columns for output
+    if pmcat2.masked == False:
+        pmcat2 = Table(pmcat2, masked=True, copy=False)
+
+    if cluster!="Collinder_135":
+        out_cat = pmcat2["TIC","GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC",
+                         "GAIAEDR3_RUWE","GAIAEDR3_G","GAIAEDR3_G_ERR",
+                         "GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_BP_ERR",
+                         "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
+                         "TMASS_ID","TMASS_J","TMASS_J_ERR",
+                         "TMASS_H","TMASS_H_ERR","TMASS_K","TMASS_K_ERR",
+                         "HDBscan_MemProb","HDBscan_Cluster","HDBscan_Stability",
+                         "MemBool",
+                         "angDist_GES","target","cluster","prob_p",
+                         "angDist_Cantat-Gaudin","proba","Cluster",
+                         "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
+                         "Q2", "MP?", "SE?",
+                         # blend??
+                         "LitPeriod","LitSource"
+                         ]
+        out_cat.rename_column("target","GES_Target")
+        out_cat.rename_column("cluster","GES_Cluster")
+        out_cat.rename_column("prob_p","GES_MemProb")
+    else:
+        pmcat2.add_column(np.ones(len(pmcat2))*-9999,name="angDist_GES")
+        pmcat2.add_column(np.ones(len(pmcat2))*-9999,name="GES_MemProb")
+        pmcat2.add_column(np.ones(len(pmcat2),"U16"),name="GES_Target")
+        pmcat2.add_column(np.ones(len(pmcat2),"U10"),name="GES_Cluster")
+        pmcat2["GES_Target"][:] = ""
+        pmcat2["GES_Cluster"][:] = ""
+        pmcat2["GES_Target"][:].mask = True
+        pmcat2["GES_Cluster"][:].mask = True
+        out_cat = pmcat2["TIC","GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC",
+                         "GAIAEDR3_RUWE","GAIAEDR3_G","GAIAEDR3_G_ERR",
+                         "GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_BP_ERR",
+                         "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
+                         "TMASS_ID","TMASS_J","TMASS_J_ERR",
+                         "TMASS_H","TMASS_H_ERR","TMASS_K","TMASS_K_ERR",
+                         "HDBscan_MemProb","HDBscan_Cluster","HDBscan_Stability",
+                         "MemBool",
+                         "angDist_GES","GES_MemProb","GES_Target","GES_Cluster",
+                         "angDist_Cantat-Gaudin","proba","Cluster",
+                         "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
+                         "Q2", "MP?", "SE?",
+                         # blend??
+                         "LitPeriod","LitSource"
+                         ]
+
+    out_cat.rename_column("proba","CG_MemProb")
+    out_cat.rename_column("Cluster","CG_Cluster")
+
+    out_cat.add_column(np.empty(len(out_cat),"U18"),name="Cluster")
+    out_cat["Cluster"][:] = cluster
+    periods.add_column(np.empty(len(periods),"U18"),name="Cluster")
+    periods["Cluster"][:] = cluster
+
     # TIC ID
     # Gaia data: EDR3 ID, DR2 ID?, RA, Dec, photometry, RUWE
+    out_cat["GAIAEDR3_RA"].info.format = ".6f"
+    out_cat["GAIAEDR3_DEC"].info.format = ".6f"
     # 2MASS ID, J, H, Ks
     # HDBScan membership info
     # Jackson/GES membership info
     # Cantat-Gaudin membership info
     # My membership flag for plotting in this paper
     # Prot1, Pw1, Q1, Sig, Prot2, Pw2, Q2, MP?, SE?
-    # Bl? (this will be an automated flag, unlike my previous papers)
     # Literature periods
-    # Derived properties (masses, etc, from MINESweeper)
+    for colname in ["GAIAEDR3_RUWE","GAIAEDR3_RA","GAIAEDR3_DEC",
+                     "GAIAEDR3_RUWE","GAIAEDR3_G","GAIAEDR3_G_ERR",
+                     "GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_BP_ERR",
+                     "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
+                     "TMASS_ID","TMASS_J","TMASS_J_ERR",
+                     "TMASS_H","TMASS_H_ERR","TMASS_K","TMASS_K_ERR",
+                     "Sig","Pw1","Pw2"]:
+        out_cat[colname].info.format = ".3f"
+
+    for colname in ["Prot1",  "Prot2", "LitPeriod"]:
+        out_cat[colname].info.format = ".2f"
+
+    # TODO: Bl? (this will be an automated flag, unlike my previous papers)
+    # TODO: Derived properties (masses, etc, from MINESweeper)
+
+    return periods, out_cat
+
 
 if __name__=="__main__":
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
-    for i in range(5):
+    period_cats = []
+    out_cats = []
+    for i in range(4):
         print("\n\n",clusters[i])
-        make_final_period_catalog(clusters[i],dates[i])
+        periods, out_cat = make_final_period_catalog(clusters[i],dates[i])
+        period_cats.append(periods)
+        out_cats.append(out_cat)
         # break
+
+    all_periods = vstack(period_cats)
+    all_outputs = vstack(out_cats)
+
+    at.write(all_outputs,"tab_all_stars.csv", delimiter=",",overwrite=True)
+    at.write(all_periods,"tab_all_tess_periods.csv", delimiter=",",overwrite=True)
