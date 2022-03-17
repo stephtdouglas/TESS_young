@@ -110,10 +110,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     # Retrieve the two validation catalogs
     cat1 = read_validation_results(cluster,date)
     # Temporary fix because I haven't finished re-validating IC 2602
-    if cluster!="IC_2602":
-        cat2 = read_validation_results(cluster,date,which=2)
-    else:
-        cat2 = cat1.copy()
+    cat2 = read_validation_results(cluster,date,which=2)
 
     # Crossmatch the validation catalogs on TIC IDs
     allcat = join(cat1,cat2,keys=["TIC"])
@@ -320,7 +317,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     secondary_still_bad = np.array(secondary_still_bad)
     still_bad = np.asarray(np.union1d(primary_still_bad,secondary_still_bad),int)
 
-    if len(still_bad)>0:
+    if (len(still_bad)>0) and (cluster!="IC_2602"):
         resolved = at.read("resolved_discrepant_validations.dat")
         for i in still_bad:
             loc = np.where(allcat["TIC"][i]==resolved["TIC"])[0]
@@ -405,10 +402,18 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
     # Then match back to my original catalogs (and when I get Phill's
     # MINESweeper results, those should have the same columns, plus extras)
-    cat_init_file = f"tables/{cluster}_crossmatch_allcolumns.fits"
-    with fits.open(cat_init_file) as hdu:
-        cat_init = Table(hdu[1].data)
+    cat_init_file1 = f"tables/{cluster}_crossmatch_allcolumns.fits"
+    with fits.open(cat_init_file1) as hdu:
+        cat_init1 = Table(hdu[1].data)
+        # print(cat_init1.dtype)
+
+    cat_init_file2 = os.path.expanduser(f"~/Dropbox/data/MINESweeper/catalog_{cluster}_v0.fits")
+    with fits.open(cat_init_file2) as hdu:
+        cat_init2 = Table(hdu[1].data)
         # print(cat_init.dtype)
+        cat_init2.rename_column("GaiaEDR3_ID","GAIAEDR3_ID")
+
+    cat_init = join(cat_init1,cat_init2,keys="GAIAEDR3_ID")
 
     if cat_init.masked == False:
         cat_init = Table(cat_init, masked=True, copy=False)
@@ -706,6 +711,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "MemBool",
                          "angDist_GES","target","cluster","prob_p",
                          "angDist_Cantat-Gaudin","proba","Cluster",
+                         "av","av_err","dist","dist_err","log(Age)",
+                         "log(Age)_err","Mass","Mass_err","log(Teff)",
+                         "log(Teff)_err",
                          "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
                          "Q2", "MP?", "SE?",
                          # blend??
@@ -733,6 +741,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "MemBool",
                          "angDist_GES","GES_MemProb","GES_Target","GES_Cluster",
                          "angDist_Cantat-Gaudin","proba","Cluster",
+                         "av","av_err","dist","dist_err","log(Age)",
+                         "log(Age)_err","Mass","Mass_err","log(Teff)",
+                         "log(Teff)_err",
                          "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
                          "Q2", "MP?", "SE?",
                          # blend??
@@ -746,6 +757,29 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     out_cat["Cluster"][:] = cluster
     periods.add_column(np.empty(len(periods),"U18"),name="Cluster")
     periods["Cluster"][:] = cluster
+
+
+    # Membership filter for plotting
+    out_cat.add_column(np.zeros(len(out_cat),int),name="to_plot")
+    hdb_memb = (out_cat["MemBool"]==1)  & (out_cat["MemBool"].mask==False)
+
+    # Jackson+2020 Table 4/Section 4 indictes that 0.9 is the membership cutoff
+    ges_memb = (out_cat["GES_MemProb"]>=0.9) & (out_cat["GES_MemProb"].mask==False)
+
+    can_memb = (out_cat["CG_MemProb"]>=0.7) & (out_cat["CG_MemProb"].mask==False)
+
+    hdb_memb1 = np.asarray(hdb_memb,"int")
+    ges_memb1 = np.asarray(ges_memb,"int")
+    can_memb1 = np.asarray(can_memb,"int")
+    sum_memb = hdb_memb1 + ges_memb1 + can_memb1
+
+    if cluster=="Collinder_135":
+        out_cat["to_plot"][hdb_memb | can_memb] = 1
+    else:
+        out_cat["to_plot"][sum_memb>=2] = 1
+    # TODO: I think this is missing some stars! Need to check later
+    print("\n",len(np.where(out_cat["to_plot"]==1)[0]),"stars to plot")
+    print(len(np.where((out_cat["to_plot"]==1) & (out_cat["Prot1"]>0))[0]),"with periods")
 
     # TIC ID
     # Gaia data: EDR3 ID, DR2 ID?, RA, Dec, photometry, RUWE
@@ -782,7 +816,7 @@ if __name__=="__main__":
 
     period_cats = []
     out_cats = []
-    for i in range(4):
+    for i in range(5):
         print("\n\n",clusters[i])
         periods, out_cat = make_final_period_catalog(clusters[i],dates[i])
         period_cats.append(periods)

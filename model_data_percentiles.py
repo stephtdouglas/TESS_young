@@ -262,35 +262,31 @@ def young_stars_init():
 
     return [1,8,11,13], [perc1,perc8,perc11,perc13], [raw_solar_periods1,raw_solar_periods8,raw_solar_periods11,raw_solar_periods13]
 
-def zams_percentiles(clean_limit=0):
+def zams_percentiles():
 
+
+    # clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    # dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
-    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
-
     all_cat0 = []
     indiv_perc = []
     indiv_solar = []
+
+    dat = at.read("tab_all_stars.csv")
+    dat = Table(dat, masked=True, copy=False)
+    dat = dat[dat["Q1"]==0]
+    perc, solar = calc_percentiles(dat, "Mass","Prot1",color_name="Mass")
     for i in range(5):
         print("\n",clusters[i])
-        cat = read_cluster_visual(clusters[i],dates[i],clean_limit,to_plot=False,return_periodcolor=False)
-        cat = Table(cat, masked=True, copy=False)
-        cat["BP-RP"] = cat["GAIAEDR3_BP"]-cat["GAIAEDR3_RP"]
-        perc,raw_solar = calc_percentiles(cat, "BP-RP","final_period",color_name="BP-RP")
+        perc,raw_solar = calc_percentiles(dat[dat["Cluster"]==clusters[i]],
+                                          "Mass","Prot1",color_name="Mass")
         indiv_perc.append(perc)
         indiv_solar.append(raw_solar)
-        all_cat0.append(cat)
 
-
-
-    print("\nall ZAMS")
-    all_cat = vstack(all_cat0)
-
-    # all_cat["BP-RP"] = all_cat["GAIAEDR3_BP"]-all_cat["GAIAEDR3_RP"]
-    perc,raw_solar = calc_percentiles(all_cat, "BP-RP","final_period",color_name="BP-RP")
-    return perc, raw_solar, indiv_perc, indiv_solar
+    return perc, solar, indiv_perc, indiv_solar
 
 if __name__=="__main__":
 
-    young_stars_init()
+    # young_stars_init()
     zams_percentiles()

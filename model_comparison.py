@@ -178,33 +178,34 @@ def plot_periodcolor_models(clean_limit=10):
 def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
                       which_plot="individual clusters"):
 
-    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=False)
-    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=False)
-    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=False)
-    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=False)
-    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=False)
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
-    solar_IC_2391 = id_solar(bp_rp_IC_2391)
-    solar_Collinder_135 = id_solar(bp_rp_Collinder_135)
-    solar_NGC_2451A = id_solar(bp_rp_NGC_2451A)
-    solar_NGC_2547 = id_solar(bp_rp_NGC_2547)
-    solar_IC_2602 = id_solar(bp_rp_IC_2602)
+    dat = at.read("tab_all_stars.csv")
+    bp_rp = dat["GAIAEDR3_BP"]-dat["GAIAEDR3_RP"]
+    dat = Table(dat, masked=True, copy=False)
+    dat = dat[dat["Q1"]==0]
+    # bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=False)
+    # bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=False)
+    # bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=False)
+    # bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=False)
+    # bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=False)
 
-    y_age,y_perc,y_prot = young_stars_init()
+    # y_age,y_perc,y_prot = young_stars_init()
     # eightmyr = np.ones_like(usco_perc)*8
     z_perc, z_solar, z_perc_indiv, z_solar_indiv, = zams_percentiles()
 
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
-    prot = [prot_IC_2391, prot_Collinder_135, prot_NGC_2451A, prot_NGC_2547, prot_IC_2602]
-    solar = [solar_IC_2391, solar_Collinder_135, solar_NGC_2451A, solar_NGC_2547, solar_IC_2602]
+    # prot = [prot_IC_2391, prot_Collinder_135, prot_NGC_2451A, prot_NGC_2547, prot_IC_2602]
+    # solar = [solar_IC_2391, solar_Collinder_135, solar_NGC_2451A, solar_NGC_2547, solar_IC_2602]
 
     for i in range(3):
         for j in range(2):
             # if (i==2) and (j==1):
             #     break
             ax = axes[i,j]
-            ax.plot([45,45,45],z_perc,'o',mec="grey",mfc="none",
-                    mew=2,zorder=100)
+            # ax.plot([45,45,45],z_perc,'o',mec="grey",mfc="none",
+            #         mew=2,zorder=100)
 
             if which_plot=="individual clusters":
                 # Plot the ZAMS clusters
@@ -224,25 +225,21 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
                        positions=list_ages,widths=np.asarray(list_ages)*0.25,
                        manage_ticks=False,zorder=20)
 
-                # Plot the younger clusters
-                boxes = []
-                for k in range(4):
-                    boxes.append({"whislo": np.min(y_prot[k]),
-                                  "q1": y_perc[k][0],
-                                  "med": y_perc[k][1],
-                                  "q3": y_perc[k][2],
-                                  "whishi": np.max(y_prot[k]),
-                                  "fliers": []
-                                 })
-                ax.bxp(bxpstats=boxes,medianprops={"color":"k"},
-                       positions=y_age,widths=np.asarray(y_age)*0.25,
-                       manage_ticks=False,zorder=20)
+                # # Plot the younger clusters
+                # boxes = []
+                # for k in range(4):
+                #     boxes.append({"whislo": np.min(y_prot[k]),
+                #                   "q1": y_perc[k][0],
+                #                   "med": y_perc[k][1],
+                #                   "q3": y_perc[k][2],
+                #                   "whishi": np.max(y_prot[k]),
+                #                   "fliers": []
+                #                  })
+                # ax.bxp(bxpstats=boxes,medianprops={"color":"k"},
+                #        positions=y_age,widths=np.asarray(y_age)*0.25,
+                #        manage_ticks=False,zorder=20)
             elif which_plot=="single age":
-                z_prot = np.concatenate((prot_IC_2391[solar_IC_2391],
-                                      prot_Collinder_135[solar_Collinder_135],
-                                      prot_NGC_2451A[solar_NGC_2451A],
-                                      prot_NGC_2547[solar_NGC_2547],
-                                      prot_IC_2602[solar_IC_2602]))
+                z_prot = dat["Prot1"][(dat["Mass"]<=1.1) & (dat["Mass"]>=0.9)]
                 # ax.boxplot(prot,sym="*",medianprops={"color":"k"},
                 #            positions=[45],widths=[30],
                 #            flierprops={"markersize":4},manage_ticks=False,zorder=20,
@@ -257,22 +254,27 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
                               "fliers": []
                              }
                 print(single_box)
+
+                max_age = 55
+                min_age = 30
+                avg_age = 45#10**((np.log10(55)+np.log10(30))/2)
+                width = (max_age-min_age)
                 ax.bxp(bxpstats=[single_box],medianprops={"color":"k"},
-                       positions=[45],widths=[45*0.25],
+                       positions=[avg_age],widths=[width],
                        manage_ticks=False,zorder=20)
-                # Plot the younger clusters
-                boxes = []
-                for k in range(4):
-                    boxes.append({"whislo": np.min(y_prot[k]),
-                                  "q1": y_perc[k][0],
-                                  "med": y_perc[k][1],
-                                  "q3": y_perc[k][2],
-                                  "whishi": np.max(y_prot[k]),
-                                  "fliers": []
-                                 })
-                ax.bxp(bxpstats=boxes,medianprops={"color":"k"},
-                       positions=y_age,widths=np.asarray(y_age)*0.25,
-                       manage_ticks=False,zorder=20)
+                # # Plot the younger clusters
+                # boxes = []
+                # for k in range(4):
+                #     boxes.append({"whislo": np.min(y_prot[k]),
+                #                   "q1": y_perc[k][0],
+                #                   "med": y_perc[k][1],
+                #                   "q3": y_perc[k][2],
+                #                   "whishi": np.max(y_prot[k]),
+                #                   "fliers": []
+                #                  })
+                # ax.bxp(bxpstats=boxes,medianprops={"color":"k"},
+                #        positions=y_age,widths=np.asarray(y_age)*0.25,
+                #        manage_ticks=False,zorder=20)
 
 
 

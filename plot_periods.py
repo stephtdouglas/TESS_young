@@ -12,6 +12,7 @@ from scipy import stats
 from scipy.interpolate import interp1d
 
 from analyze_cluster_output import read_cluster_visual
+from model_data_percentiles import zams_percentiles
 
 norm = mpl.colors.LogNorm(vmin=0.1, vmax=30)
 mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
@@ -38,62 +39,136 @@ shapes= {"IC_2391": "o",
          "NGC_2451A": "^",
          "Collinder_135": "s"}
 
+def plot_periodmass(dat, clusters):
 
-def plot_all(clean_limit=10,to_plot_indiv=True):
-    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=to_plot_indiv)
+    mass = dat["Mass"]
+    mass_err = dat["Mass_err"]
+
+    for i, cluster in enumerate(clusters):
+        plt.figure()
+        cloc = (dat["Cluster"]==cluster) & (dat["Q1"]==0)
+
+        plt.errorbar(mass[cloc],dat["Prot1"][cloc],xerr=mass_err[cloc],
+                    marker=None,linewidth=0,elinewidth=1,color=colors[cluster])
+        plt.plot(mass[cloc],dat["Prot1"][cloc],shapes[cluster],label=cluster,
+                 ms=5,color=colors[cluster])
+        plt.legend(loc=1)
+
+        plt.ylim(0.1,50)
+        plt.xlim(1.3,0.1)
+        plt.yscale("log")
+
+        plt.xlabel(r"Mass (M$_{\odot}$)",fontsize=16)
+        plt.ylabel("Period (d)",fontsize=16)
+
+        ax = plt.gca()
+        ax.tick_params(labelsize=14)
+
+        plt.savefig(f"plots/periodmass_{cluster}.png",bbox_inches="tight")
+        plt.close()
+    # ax.axhline(12,linestyle="--",color="tab:grey")
+
+    good = dat["Q1"]==0
+    plt.errorbar(mass[good],dat["Prot1"][good],xerr=mass_err[good],
+                marker=None,linewidth=0,elinewidth=1,color="DarkGrey")
+    plt.plot(mass[good],dat["Prot1"][good],'k.',alpha=0.5)
+    plt.ylim(0.1,50)
+    plt.xlim(1.3,0.1)
+    plt.yscale("log")
+
+    plt.xlabel(r"Mass (M$_{\odot}$)",fontsize=16)
+    plt.ylabel("Period (d)",fontsize=16)
+
+    ax = plt.gca()
+    ax.tick_params(labelsize=14)
+
+    plt.savefig("plots/periodmass_all.png",bbox_inches="tight")
+    plt.close()
+
+    plt.errorbar(mass[good],dat["Prot1"][good],xerr=mass_err[good],
+                marker=None,linewidth=0,elinewidth=1,color="Grey")
+    plt.plot(mass[good],dat["Prot1"][good],'.',alpha=0.5,color="DarkGrey")
+    plt.ylim(0.1,50)
+    plt.xlim(1.3,0.1)
+    plt.yscale("log")
+
+    plt.xlabel(r"Mass (M$_{\odot}$)",fontsize=16)
+    plt.ylabel("Period (d)",fontsize=16)
+
+    ax = plt.gca()
+    ax.tick_params(labelsize=14)
 
 
-    plt.figure()
-    plt.plot(bp_rp_IC_2391, prot_IC_2391,"o",label="IC_2391",ms=5,color=colors["IC_2391"])
-    plt.plot(bp_rp_Collinder_135, prot_Collinder_135,"s",label="Collinder_135",ms=5,color=colors["Collinder_135"])
-    plt.plot(bp_rp_NGC_2451A, prot_NGC_2451A,"^",label="NGC_2451A",ms=5,color=colors["NGC_2451A"])
-    plt.plot(bp_rp_NGC_2547, prot_NGC_2547,"v",label="NGC_2547",ms=5,color=colors["NGC_2547"])
-    plt.plot(bp_rp_IC_2602, prot_IC_2602,"d",label="IC_2602",ms=5,color=colors["IC_2602"])
-    plt.legend(loc=1)
+    z_perc, z_solar, z_perc_indiv, z_solar_indiv, = zams_percentiles()
+    z_prot = dat["Prot1"][(dat["Mass"]<=1.1) & (dat["Mass"]>=0.9) & (dat["Q1"]==0)]
+    print(np.nanmedian(z_prot),"median")
+    single_box = {"whislo": np.min(z_prot),
+                  "q1": z_perc[0],
+                  "med": z_perc[1],
+                  "q3": z_perc[2],
+                  "whishi": np.max(z_prot),
+                  "fliers": [],
+                  "color":mapper.to_rgba(20)
+                 }
 
+    colorprop = {"color":mapper.to_rgba(1),"linewidth":3}
+    ax.bxp(bxpstats=[single_box],medianprops=colorprop,
+           positions=[1.0],widths=[0.2],boxprops=colorprop,
+           manage_ticks=False,zorder=20,whiskerprops=colorprop,capprops=colorprop)
+    plt.savefig("plots/periodmass_all_bxp.png",bbox_inches="tight")
+
+
+    plt.close()
+
+
+def plot_periodcolor(dat, clusters):
+
+    bp_rp = dat["GAIAEDR3_BP"]-dat["GAIAEDR3_RP"]
+
+    for i, cluster in enumerate(clusters):
+        plt.figure()
+        cloc = (dat["Cluster"]==cluster) & (dat["Q1"]==0)
+
+        plt.plot(bp_rp[cloc],dat["Prot1"][cloc],shapes[cluster],label=cluster,
+                 ms=5,color=colors[cluster])
+        plt.legend(loc=1)
+
+        plt.ylim(0.1,50)
+        plt.xlim(0.5,3.5)
+        plt.yscale("log")
+
+        plt.xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)",fontsize=16)
+        plt.ylabel("Period (d)",fontsize=16)
+
+        ax = plt.gca()
+        ax.tick_params(labelsize=14)
+
+        plt.savefig(f"plots/periodcolor_{cluster}.png",bbox_inches="tight")
+
+        cl_lit = ((dat["Cluster"]==cluster) & (dat["LitPeriod"].mask==False)
+                & (dat["LitPeriod"]>0))
+        if np.any(cl_lit):
+            plt.plot(bp_rp[cl_lit],dat["LitPeriod"][cl_lit],shapes[cluster],
+                    mec="DarkGrey",mfc="none",ms=9)
+            plt.savefig(f"plots/periodcolor_{cluster}_lit.png",bbox_inches="tight")
+        plt.close()
+    # ax.axhline(12,linestyle="--",color="tab:grey")
+
+    good = dat["Q1"]==0
+    plt.plot(bp_rp[good],dat["Prot1"][good],'k.',alpha=0.5)
     plt.ylim(0.1,50)
     plt.xlim(0.5,3.5)
     plt.yscale("log")
 
-    plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
-    plt.ylabel("Period (d)")
+    plt.xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)",fontsize=16)
+    plt.ylabel("Period (d)",fontsize=16)
 
     ax = plt.gca()
-    ax.axhline(12,linestyle="--",color="tab:grey")
+    ax.tick_params(labelsize=14)
 
-    plt.savefig(f"plots/periodmass_all_clean{clean_limit}.png")
+    plt.savefig("plots/periodcolor_all.png",bbox_inches="tight")
 
-def plot_periodcolor(clean_limit=10,to_plot_indiv=False):
-    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=to_plot_indiv)
-
-
-    plt.figure()
-    plt.plot(bp_rp_IC_2391, prot_IC_2391,"o",label="IC_2391",ms=5,color="k")#colors["IC_2391"])
-    plt.plot(bp_rp_Collinder_135, prot_Collinder_135,"s",label="Collinder_135",ms=5,color="k")#colors["Collinder_135"])
-    plt.plot(bp_rp_NGC_2451A, prot_NGC_2451A,"^",label="NGC_2451A",ms=5,color="k")#colors["NGC_2451A"])
-    plt.plot(bp_rp_NGC_2547, prot_NGC_2547,"v",label="NGC_2547",ms=5,color="k")#colors["NGC_2547"])
-    plt.plot(bp_rp_IC_2602, prot_IC_2602,"d",label="IC_2602",ms=5,color="k")#colors["IC_2602"])
-    plt.legend(loc=1)
-
-    plt.ylim(0.1,50)
-    plt.xlim(0.5,3.5)
-    plt.yscale("log")
-
-    plt.xlabel(r"G$_{BP}$ - G$_{RP}$")
-    plt.ylabel("Period (d)")
-
-    ax = plt.gca()
-    ax.axhline(12,linestyle="--",color="tab:grey")
-
-    return ax
+    # return ax
 
 
 def plot_periodcolor_ruwe(clean_limit=0,to_plot_indiv=False):
@@ -190,7 +265,95 @@ def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False,ax=None):
 
     return ax
 
+def compare_lit_periods(dat,clusters=["IC_2391","IC_2602","NGC_2547"]):
+
+    # plt.figure(figsize=(11,3.5))
+    fig, axes = plt.subplots(1, len(clusters), figsize=(11,3.5),
+                             sharex=True,sharey=True)
+
+    for i, cluster in enumerate(clusters):
+        cloc = (dat["Cluster"]==cluster) & (dat["LitPeriod"]>0)
+        good = cloc & (dat["Q1"]==0)
+        okay = cloc & (dat["Q1"]==1)
+        secondary = cloc & (dat["Q2"]<=1)
+
+        axes[i].plot(dat["LitPeriod"][okay],dat["Prot1"][okay],
+                    shapes[cluster],ms=5,mec=colors[cluster],mfc="none")
+        axes[i].plot(dat["LitPeriod"][good],dat["Prot1"][good],
+                    shapes[cluster],ms=5,color=colors[cluster])
+        if len(np.where(secondary)[0]):
+            for j in np.where(secondary)[0]:
+                # print(j,dat["Prot1"][j],dat["Prot2"][j],
+                #         dat["Q1"][j],dat["Q2"][j])
+                axes[i].plot(dat["LitPeriod"][j],dat["Prot2"][j],
+                            shapes[cluster],ms=5,color=colors[cluster],alpha=0.5)
+                axes[i].plot([dat["LitPeriod"][j],dat["LitPeriod"][j]],
+                             [dat["Prot1"][j],dat["Prot2"][j]],'-',
+                             color=colors[cluster],linewidth=0.5)
+        # multi = (good | okay) & ((dat["MP?"]=="y"))
+        # axes[i].plot(dat["LitPeriod"][multi],dat["Prot1"][multi],shapes[cluster],
+        #              ms=8,color='k',mfc="none")
+        x = np.linspace(0.1,50,20)
+        axes[i].plot(x,x,"-",zorder=-5,color="grey")
+        axes[i].plot(x,x/2,"--",zorder=-5,color="grey")
+        axes[i].plot(x,x*2,"--",zorder=-5,color="grey")
+        axes[i].set_xlabel("Literature Period (d)",fontsize=14)
+        axes[i].set_title(cluster.replace("_"," "))
+        axes[i].tick_params(labelsize=12)
+
+        print("\n",cluster)
+        print(len(np.where(cloc)[0]),"literature periods")
+        print(len(np.where(good)[0]),"with lit and TESS")
+
+        no_lit = (dat["LitPeriod"]<=0) | (dat["LitPeriod"].mask==True)
+        new_tess = (dat["Cluster"]==cluster) & no_lit
+        print(len(np.where(new_tess)[0]),"new TESS")
+        solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
+        print(len(np.where(new_tess & solar)[0]),"new TESS solar")
+
+    axes[0].set_xlim(0.1,20)
+    axes[0].set_ylim(0.1,20)
+    axes[0].set_yscale("log")
+    axes[0].set_xscale("log")
+    axes[0].set_ylabel("TESS Period (d)",fontsize=14)
+    plt.savefig(f"plots/literature_comparison.png",
+                bbox_inches="tight")
+
+
+
 if __name__=="__main__":
-    plot_periodcolor_ruwe()
-    plt.savefig("plots/periodcolor_all_ruwe.png",bbox_inches="tight",dpi=300)
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
+
+    dat = at.read("tab_all_stars.csv")
+
+    plot_periodcolor(dat, clusters)
+    plot_periodmass(dat, clusters)
+
+    compare_lit_periods(dat)
+
+    cluster = clusters[1]
+    print("\n",cluster)
+    new_tess = (dat["Cluster"]==cluster)
+    print(len(np.where(new_tess)[0]),"new TESS")
+    solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
+    print(len(np.where(new_tess & solar)[0]),"new TESS solar")
+    cluster = clusters[2]
+    print("\n",cluster)
+    new_tess = (dat["Cluster"]==cluster)
+    print(len(np.where(new_tess)[0]),"new TESS")
+    solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
+    print(len(np.where(new_tess & solar)[0]),"new TESS solar")
+
+
+    print("\nTotals")
+    solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
+    lit = (dat["LitPeriod"].mask==False) & (dat["LitPeriod"]>0)
+    lit_solar = lit & solar
+    tess_solar = ((dat["Q1"]<=1)) & solar
+    print(len(np.where(lit_solar)[0]),"Literature, solar")
+    print(len(np.where(tess_solar)[0]),"TESS, solar")
+
+    # plot_periodcolor_ruwe()
+    # plt.savefig("plots/periodcolor_all_ruwe.png",bbox_inches="tight",dpi=300)
     # plt.show()
