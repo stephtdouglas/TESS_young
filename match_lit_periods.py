@@ -180,6 +180,61 @@ def xmatch_ic2391_ic2602():
             overwrite=True)
 
 
+    # Crossmatch Prosser-Stauffer archival periods for IC2602
+    print("\n\nIC2602 Prosser-Stauffer archive (1998)")
+    trfile = os.path.expanduser("~/Dropbox/data/prosser_stauffer_archive/2602.spots.csv")
+    tr = at.read(trfile)
+
+    tr["TIC"] = np.zeros(len(tr),"U20")
+    tr["GaiaDR2"] = np.zeros(len(tr),"U50")
+    tr["SimbadName"] = np.zeros(len(tr),"U20")
+
+    for i,name in enumerate(tr["STAR"]):
+
+        if tr["STAR2"].mask[i]==False:
+            alt_name = tr["STAR2"][i].replace("(","").replace(")","")
+        else:
+            alt_name = ""
+
+        if "R" in name:
+            simbad_name = name.replace("R","[RSP95] ")
+        elif "R" in alt_name:
+            simbad_name = alt_name.replace("R","[RSP95] ")
+        elif "W" in name:
+            simbad_name = "Cl* IC 2602 "+name
+        else:
+            # This accounts for "B" stars
+            simbad_name = "IC 2602 "+name[1:]
+
+        if simbad_name.endswith("A"):
+            simbad_name = simbad_name[:-1]
+
+        print(name,simbad_name)
+        # result_table = Simbad.query_object(simbad_name)
+        result_table = Simbad.query_objectids(simbad_name)
+        # print(result_table)
+        tr["SimbadName"][i] = simbad_name
+
+        if result_table is None:
+            print(name,simbad_name,"Not Found")
+            continue
+
+        for id in result_table["ID"]:
+            if "TIC" in id:
+                tr["TIC"][i] = id[4:]
+            elif "DR2" in id:
+                tr["GaiaDR2"][i] = id[9:]
+
+        if (tr["TIC"][i] == "0") or (tr["TIC"][i] == ""):
+            tic = vizier_tic(simbad_name,tr["GaiaDR2"][i])
+            print(simbad_name,tic)
+            tr["TIC"][i] = tic
+
+    at.write(tr,"IC2602_rotation_prosserstauffer_simbad.csv",delimiter=",",
+            overwrite=True)
+
+
+
     # Crossmatch Patten & Simon 1996 periods for IC2391
     print("\n\nIC2391 Patten & Simon (1996)")
     psfile = os.path.expanduser("~/Dropbox/data/catalogs/IC2391_rotation_patten1996.csv")
@@ -273,9 +328,19 @@ def xmatch_ngc2547():
 
 def catalog_numbers():
 
-    # IC 2391
+    if os.path.exists("tab_all_stars.csv"):
+        alldat = at.read("tab_all_stars.csv")
+        check_tess = True
+    else:
+        alldata = None
+        check_tess = False
+
+    #### IC 2391 ############
+    #########################
     cluster = "IC_2391"
     print(cluster,"\n-------")
+
+    #### Patten+1996
     simbadfile = "IC2391_rotation_patten1996_simbad.csv"
     simbad = at.read(simbadfile, delimiter=",")
 
@@ -286,15 +351,27 @@ def catalog_numbers():
                  table_names=["lit","new"])
     # print(match.dtype)
     unames = np.unique(match["SimbadName"][match["GAIAEDR3_RA"].mask==False])
+    uid = np.unique(match["GAIAEDR3_ID"][match["GAIAEDR3_RA"].mask==False])
 
-    print(len(unames),"out of",
+    print(len(unames), len(uid),"out of",
           len(simbad),"from Patten & Simon in updated catalog")
     # print(match["Name"],"\n")
 
+    # Check on the TESS data now
+    if check_tess:
+        match = join(simbad,alldat,join_type="left",keys=["TIC"],
+                     table_names=["lit","new"])
+        unames = np.unique(match["SimbadName"][(match["Q1"]<9) & (match["Q1"].mask==False)])
+        print(len(unames),"out of",
+              len(simbad),"from Patten & Simon have TESS data")
 
-    # IC 2602
+
+    #### IC 2602 ############
+    #########################
     cluster = "IC_2602"
-    print(cluster,"\n-------")
+    print("\n",cluster,"\n-------")
+
+    #### Barnes+1999
     simbadfile = "IC2602_rotation_barnes1999_simbad.csv"
     simbad = at.read(simbadfile, delimiter=",")
 
@@ -306,17 +383,27 @@ def catalog_numbers():
     # print(match.dtype)
 
     unames = np.unique(match["SimbadName"][match["GAIAEDR3_RA"].mask==False])
+    uid = np.unique(match["GAIAEDR3_ID"][match["GAIAEDR3_RA"].mask==False])
 
-    print(len(unames),"out of",
+    print(len(unames), len(uid),"out of",
           len(simbad),"from Barnes in updated catalog")
     # print(match["Name"],"\n")
-    uniq, ct = np.unique(match["Name"],return_counts=True)
-    unames = uniq[ct>1]
-    for name in unames:
-        i = match["Name"]==name
-        print(match["Name","GaiaDR2_lit","GaiaDR2_new","TIC","angDist",
-                    "GAIAEDR3_ID","target","filter","angDist_Cantat-Gaudin","proba"][i])
+    # uniq, ct = np.unique(match["Name"],return_counts=True)
+    # unames = uniq[ct>1]
+    # for name in unames:
+    #     i = match["Name"]==name
+    #     print(match["Name","GaiaDR2_lit","GaiaDR2_new","TIC","angDist",
+    #                 "GAIAEDR3_ID","target","filter","angDist_Cantat-Gaudin","proba"][i])
 
+    # Check on the TESS data now
+    if check_tess:
+        match = join(simbad,alldat,join_type="left",keys=["TIC"],
+                     table_names=["lit","new"])
+        unames = np.unique(match["SimbadName"][(match["Q1"]<9) & (match["Q1"].mask==False)])
+        print(len(unames),"out of",
+              len(simbad),"from Barnes have TESS data")
+
+    #### Tschape & Rudiger 2001
     print("\n")
     simbadfile = "IC2602_rotation_tschape2001_simbad.csv"
     simbad = at.read(simbadfile, delimiter=",")
@@ -326,15 +413,74 @@ def catalog_numbers():
     # print(match.dtype)
 
     unames = np.unique(match["SimbadName"][match["GAIAEDR3_RA"].mask==False])
+    uid = np.unique(match["GAIAEDR3_ID"][match["GAIAEDR3_RA"].mask==False])
 
-    print(len(unames),"out of",
-          len(simbad),"from Tschape & Rudiger in updated catalog")
-    print(match["Name","TIC","GAIAEDR3_ID","GAIAEDR3_G"])
+    print(len(unames), len(uid), "out of",len(simbad),
+          "from Tschape & Rudiger in updated catalog")
+    # print(match["Name","TIC","GAIAEDR3_ID","GAIAEDR3_G"])
 
+    # Check on the TESS data now
+    if check_tess:
+        match = join(simbad,alldat,join_type="left",keys=["TIC"],
+                     table_names=["lit","new"])
+        unames = np.unique(match["SimbadName"][(match["Q1"]<9) & (match["Q1"].mask==False)])
+        print(len(unames),"out of",
+              len(simbad),"from Tschape & Rudiger have TESS data")
+
+    #### Prosser & Stauffer Archive
+    print("\n")
+    simbadfile = "IC2602_rotation_prosserstauffer_simbad.csv"
+    simbad = at.read(simbadfile, delimiter=",")
+
+    match = join(simbad,cat,join_type="left",keys=["TIC"],
+                 table_names=["lit","new"])
+    # print(match.dtype)
+
+    unames = np.unique(match["SimbadName"][match["GAIAEDR3_RA"].mask==False])
+    uid = np.unique(match["GAIAEDR3_ID"][match["GAIAEDR3_RA"].mask==False])
+
+    print(len(unames), len(uid),"out of",len(simbad),
+          "from the Prosser-Stauffer archive in updated catalog")
+    # print(match["Name","TIC","GAIAEDR3_ID","GAIAEDR3_G"])
+
+    patten96 = np.zeros(len(match),bool)
+    patten96[(match["REF"]==1)] = True
+    for i, row in enumerate(match):
+        if "ref 1" in row["NOTES"]:
+            patten96[i] = True
+
+    # Now check for just the new periods that aren't in Barnes
+    unames = np.unique(match["SimbadName"][((match["GAIAEDR3_RA"].mask==False) &
+                                           (patten96))])
+    print(len(unames), "out of", 9,
+          "from Patten+96 in updated catalog\n")
+
+    print(match["SimbadName","TIC","STAR"][patten96])
+
+    # Check on the TESS data now
+    if check_tess:
+        match = join(simbad,alldat,join_type="left",keys=["TIC"],
+                     table_names=["lit","new"])
+        unames = np.unique(match["SimbadName"][match["Q1"]<9])
+        print(len(unames),"out of",
+              len(simbad),"from the Prosser-Stauffer archive have TESS data")
+
+        patten96 = np.zeros(len(match),bool)
+        patten96[(match["REF"]==1)] = True
+        for i, row in enumerate(match):
+            if "ref 1" in row["NOTES"]:
+                patten96[i] = True
+
+        unames = np.unique(match["SimbadName"][((match["Q1"]<9) &
+                                                (match["Q1"].mask==False) &
+                                                patten96)])
+        print(len(unames), "out of",9,
+              "from Patten+96 have TESS data")
+        print(match["SimbadName","TIC","STAR"][patten96])
 
     # NGC 2547
     cluster = "NGC_2547"
-    print(cluster,"\n-------")
+    print("\n",cluster,"\n-------")
     simbadfile = "NGC2547_rotation_irwin2008_simbad.csv"
     simbad = at.read(simbadfile, delimiter=",")
 
@@ -345,16 +491,16 @@ def catalog_numbers():
     cpos = SkyCoord(cat["GAIAEDR3_RA"],cat["GAIAEDR3_DEC"],unit=u.degree)
     print(len(spos),len(cpos),len(cat))
 
-    idx,sep,_ = spos.match_to_catalog_sky(cpos)
-    good_match = np.where(sep<(5*u.arcsec))[0]
-    good_idx = idx[good_match]
-
-    print(len(idx),len(good_match),len(good_idx))
-    # print(good_match,good_idx)
-
-    for i in good_match:
-        if cat["TIC"][idx[i]]!=simbad["TIC"][i]:
-            print(cat["TIC"][idx[i]],simbad["TIC"][i])
+    # idx,sep,_ = spos.match_to_catalog_sky(cpos)
+    # good_match = np.where(sep<(5*u.arcsec))[0]
+    # good_idx = idx[good_match]
+    #
+    # print(len(idx),len(good_match),len(good_idx))
+    # # print(good_match,good_idx)
+    #
+    # for i in good_match:
+    #     if cat["TIC"][idx[i]]!=simbad["TIC"][i]:
+    #         print(cat["TIC"][idx[i]],simbad["TIC"][i])
 
     match = join(simbad[simbad["TIC"]!=0],cat,join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
@@ -362,13 +508,22 @@ def catalog_numbers():
     # print(np.unique(match["SimbadName"]))
 
     unames = np.unique(match["SimbadName"][match["GAIAEDR3_RA"].mask==False])
+    uid = np.unique(match["GAIAEDR3_ID"][match["GAIAEDR3_RA"].mask==False])
 
-    print(len(unames),"out of",
+    print(len(unames), len(uid),"out of",
           len(simbad),"from Irwin in updated catalog")
     # print(match["Name"],"\n")
     #
     # for row in match:
     #     print(row["GAIAEDR3_RA","_RAJ2000","TIC"])
+
+    # Check on the TESS data now
+    if check_tess:
+        match = join(simbad,alldat,join_type="left",keys=["TIC"],
+                     table_names=["lit","new"])
+        unames = np.unique(match["SimbadName"][(match["Q1"]<9) & (match["Q1"].mask==False) & (match["GAIAEDR3_RA"].mask==False)])
+        print(len(unames),"out of",
+              len(simbad),"from Irwin have TESS data")
 
 
 def compare_literature(clean_limit=10):
@@ -439,16 +594,18 @@ def compare_literature(clean_limit=10):
                  table_names=["lit","new"])
 
     # Tschape & Rudiger periods.
-    simbadfile2 = "IC2602_rotation_tschape2001_simbad.csv"
+    simbadfile2 = "IC2602_rotation_prosserstauffer_simbad.csv"
     simbad2 = at.read(simbadfile2, delimiter=",")
     match2 = join(simbad2,summary,join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
 
+    # TODO: replace T&R with P&S
+
     ax2 = plt.subplot(132)
+    ax2.plot(match2["Prot_lit"],match2["Prot_new"],'D',mec="#174f34",mfc="none",
+             label="Prosser & Stauffer",mew=1.5)
     ax2.plot(match["Prot_lit"],match["Prot_new"],'d',color=colors[cluster],
              label="Barnes+ (1999)")
-    ax2.plot(match2["Prot_lit"],match2["Prot_new"],'D',mec="#174f34",mfc="none",
-             label="Tschape & Rudiger (2001)",mew=1.5)
     ax2.legend(loc=2)
 
     x = np.linspace(0.1,50,20)
@@ -647,10 +804,10 @@ def plot_periodcolor_with_literature():
 
 if __name__=="__main__":
     #
-    # xmatch_ic2391_ic2602()
+    xmatch_ic2391_ic2602()
     # xmatch_ngc2547()
 
-    # catalog_numbers()
+    catalog_numbers()
     # compare_literature(clean_limit="")
     # compare_literature(clean_limit=10)
     # compare_literature(clean_limit=30)
