@@ -14,7 +14,7 @@ import astropy.io.fits as fits
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 from astroquery.vizier import Vizier
-from astroquery.gaia import Gaia
+# from astroquery.gaia import Gaia
 from astropy.table import join, Table, vstack
 # from astroquery.xmatch import XMatch
 from astropy import units as u
@@ -22,27 +22,8 @@ from astropy import units as u
 from analyze_cluster_output import process_cluster, read_cluster_visual
 
 
-# colors = {"IC_2391": "C0",
-#          "IC_2602": "C4",
-#          "NGC_2547": "C3",
-#          "NGC_2451A": "C2",
-#          "Collinder_135": "C1"}
-
-cmap2 = cm.get_cmap("viridis",7)
-colors = {"IC_2391": cmap2(0),
-         "IC_2602": cmap2(4),
-         "NGC_2547": cmap2(3),
-         "NGC_2451A": cmap2(2),
-         "Collinder_135": cmap2(1)}
-
-
-shapes= {"IC_2391": "o",
-         "IC_2602": "d",
-         "NGC_2547": "v",
-         "NGC_2451A": "^",
-         "Collinder_135": "s"}
-
-
+import get_colors
+norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
 
 def vizier_tic(simbad_name,gaia_dr2):
     print("Find TIC for ",simbad_name,gaia_dr2)
@@ -526,10 +507,16 @@ def catalog_numbers():
               len(simbad),"from Irwin have TESS data")
 
 
-def compare_literature(clean_limit=10):
+def compare_literature():
+
+    if os.path.exists("tab_all_stars.csv"):
+        alldat = at.read("tab_all_stars.csv")
+        check_tess = True
+    else:
+        print("WARNING: Result file not found; cannot compare to literature")
+        return
 
     plt.figure(figsize=(11,3.5))
-
 
     ############################################################################
     ############################################################################
@@ -539,27 +526,42 @@ def compare_literature(clean_limit=10):
     simbadfile = "IC2391_rotation_patten1996_simbad.csv"
     simbad = at.read(simbadfile, delimiter=",")
 
-    # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
-    # cat = at.read(catfile,delimiter=",")
+    clean = ((alldat["Q1"]==0) | (alldat["Q1"]==1)) & (alldat["Cluster"]==cluster)
+    period_col = "Period"
 
-    summary = read_cluster_visual(cluster,"2021-06-22",return_periodcolor=False)
-    clean = (summary["final_Q"]==0) | (summary["final_Q"]==1)
-    period_col = "final_period"
-    # summary, clean, results = process_cluster(cluster,"2021-06-22",clean_limit=clean_limit,
-    #                                  return_periodcolor=False)
-    # period_col = "Prot"
-    # print(summary.dtype)
-
-    match = join(simbad,summary[clean],join_type="left",keys=["TIC"],
+    match = join(simbad,alldat[clean],join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
 
     ax1 = plt.subplot(131)
-    q0 = (match["final_Q"]==0) & (match["final_Q"].mask==False)
-    q1 = (match["final_Q"]==1) & (match["final_Q"].mask==False)
-    ax1.plot(match["Period"][q0],match[period_col][q0],'o',color=colors[cluster],label="Patten & Simon (1996)")
+    q0 = (match["Q1"]==0) & (match["Q1"].mask==False)
+    q1 = (match["Q1"]==1) & (match["Q1"].mask==False)
+    ax1.plot(match[period_col][q0],match["Prot1"][q0],shapes[cluster],color=colors[cluster],
+             label="Patten & Simon (1996)")
+    ax1.plot(match[period_col][q1],match["Prot1"][q1],shapes[cluster],color=colors[cluster],
+             mfc="none",label="TESS low-quality")
     ax1.legend(loc=2)
-    ax1.plot(match["Period"][q1],match[period_col][q1],'o',color=colors[cluster],
-             mfc="none")
+
+    # Now check for multiperiodic stars
+    seconds = (match["Q2"]<=1) & (match["Q2"].mask==False)
+    if np.any(seconds):
+        q0 = (match["Q2"]==0) & (match["Q2"].mask==False)
+        q1 = (match["Q2"]==1) & (match["Q2"].mask==False)
+        ax1.plot(match[period_col][q0],match["Prot2"][q0],shapes[cluster],color=colors[cluster])
+        ax1.legend(loc=2)
+        ax1.plot(match[period_col][q1],match["Prot2"][q1],shapes[cluster],color=colors[cluster],
+                 mfc="none")
+        for i in np.where(seconds)[0]:
+            ax1.plot([match[period_col][i],match[period_col][i]],
+                     [match["Prot1"][i],match["Prot2"][i]],'k-')
+
+    # Identify significant discrepancies
+    dbl = match["Prot1"]*2.1
+    half = match["Prot1"]/2.1
+    sig_diff_i = (((match["Q1"]<=1) & (match["Q1"].mask==False))&
+                  ((match[period_col]<half) | (match[period_col]>dbl)))
+    print(match[sig_diff_i])
+    at.write(match[sig_diff_i],f"{cluster}_significant_differences.csv",delimiter=",")
+
 
     x = np.linspace(0.1,50,20)
     ax1.plot(x,x,"-",zorder=-5,color="grey")
@@ -579,33 +581,39 @@ def compare_literature(clean_limit=10):
     ############################################################################
     # IC 2602
     cluster = "IC_2602"
-    print(cluster,"\n-------")
-
-    # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
-    # cat = at.read(catfile,delimiter=",")
-
-    summary, clean, results = process_cluster(cluster,"2021-06-29",clean_limit=clean_limit,
-                                     return_periodcolor=False,date2="2021-06-30")
+    print("\n",cluster,"\n-------")
 
     # Barnes periods
     simbadfile = "IC2602_rotation_barnes1999_simbad.csv"
     simbad = at.read(simbadfile, delimiter=",")
-    match = join(simbad,summary,join_type="left",keys=["TIC"],
+    match = join(simbad,alldat,join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
 
-    # Tschape & Rudiger periods.
+    # Patten 1996 unpublished periods.
     simbadfile2 = "IC2602_rotation_prosserstauffer_simbad.csv"
     simbad2 = at.read(simbadfile2, delimiter=",")
-    match2 = join(simbad2,summary,join_type="left",keys=["TIC"],
+    match2 = join(simbad2,alldat,join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
+    patten96 = np.zeros(len(match2),bool)
+    patten96[(match2["REF"]==1)] = True
+    for i, row in enumerate(match2):
+        if "ref 1" in row["NOTES"]:
+            patten96[i] = True
 
-    # TODO: replace T&R with P&S
-
+    # TODO: separate Q=0 and Q=1 stars, at least for Barnes
     ax2 = plt.subplot(132)
-    ax2.plot(match2["Prot_lit"],match2["Prot_new"],'D',mec="#174f34",mfc="none",
-             label="Prosser & Stauffer",mew=1.5)
-    ax2.plot(match["Prot_lit"],match["Prot_new"],'d',color=colors[cluster],
+    ax2.plot(match2["P(days)"][patten96],match2["Prot1"][patten96],'D',
+             mec="#174f34",mfc="none",
+             label="Patten+ (1996)",mew=1.5,zorder=5)
+    # ax2.plot(match["Prot"],match["Prot1"],shapes[cluster],color=colors[cluster],
+    #          label="Barnes+ (1999)",zorder=4)
+    period_col = "Prot"
+    q0 = (match["Q1"]==0) & (match["Q1"].mask==False)
+    q1 = (match["Q1"]==1) & (match["Q1"].mask==False)
+    ax2.plot(match[period_col][q0],match["Prot1"][q0],shapes[cluster],color=colors[cluster],
              label="Barnes+ (1999)")
+    ax2.plot(match[period_col][q1],match["Prot1"][q1],shapes[cluster],color=colors[cluster],
+             mfc="none",label="TESS low-quality")
     ax2.legend(loc=2)
 
     x = np.linspace(0.1,50,20)
@@ -618,13 +626,11 @@ def compare_literature(clean_limit=10):
     ax2.set_xscale("log")
     ax2.set_yscale("log")
 
-
-    x = np.logspace(-1,2,200)
-    for p in [1,2,3,4,5,6,7]:
-        beat_period = 1/(1/x+1/p)
-        ax2.plot(x,beat_period,":",zorder=-5,color="lightgrey")
-        ax2.plot(beat_period,x,":",zorder=-5,color="lightgrey")
-
+    # x = np.logspace(-1,2,200)
+    # for p in [1,2,3,4,5,6,7]:
+    #     beat_period = 1/(1/x+1/p)
+    #     ax2.plot(x,beat_period,":",zorder=-5,color="lightgrey")
+    #     ax2.plot(beat_period,x,":",zorder=-5,color="lightgrey")
 
     # ax2.set_ylabel("TESS Period (d)")
     ax2.set_xlabel("Literature Period (d)")
@@ -635,33 +641,49 @@ def compare_literature(clean_limit=10):
     ############################################################################
     # NGC 2547
     cluster = "NGC_2547"
-    print(cluster,"\n-------")
+    print("\n",cluster,"\n-------")
     simbadfile = "NGC2547_rotation_irwin2008_simbad.csv"
     simbad = at.read(simbadfile, delimiter=",")
 
-    # catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
-    # cat = at.read(catfile,delimiter=",")
+    clean = ((alldat["Q1"]==0) | (alldat["Q1"]==1)) & (alldat["Cluster"]==cluster)
+    period_col = "Per"
 
-    summary = read_cluster_visual(cluster,"2021-06-21",return_periodcolor=False)
-    clean = (summary["final_Q"]==0) | (summary["final_Q"]==1)
-    period_col = "final_period"
-
-    # summary, clean, results = process_cluster(cluster,"2021-06-21",clean_limit=clean_limit,
-    #                                  return_periodcolor=False)
-    # period_col = "Prot"
-    # print(summary.dtype)
-
-    match = join(simbad[simbad["TIC"]!=0],summary[clean],join_type="left",keys=["TIC"],
+    match = join(simbad[simbad["TIC"]!=0],alldat[clean],join_type="left",keys=["TIC"],
                  table_names=["lit","new"])
 
     ax3 = plt.subplot(133)
-    q0 = (match["final_Q"]==0) & (match["final_Q"].mask==False)
-    q1 = (match["final_Q"]==1) & (match["final_Q"].mask==False)
-    ax3.plot(match["Per"][q0],match[period_col][q0],'v',color=colors[cluster],label="Irwin+ (2008)")
+    q0 = (match["Q1"]==0) & (match["Q1"].mask==False)
+    q1 = (match["Q1"]==1) & (match["Q1"].mask==False)
+    ax3.plot(match[period_col][q0],match["Prot1"][q0],'v',color=colors[cluster],label="Irwin+ (2008)")
+    ax3.plot(match[period_col][q1],match["Prot1"][q1],'v',color=colors[cluster],
+             mfc="none",label="TESS low-quality")
     ax3.legend(loc=2)
-    ax3.plot(match["Per"][q1],match[period_col][q1],'v',color=colors[cluster],mfc="none")
-    # multi = ((match["MultiProt"]=="m") | (match["MultiProt"]=="y")) & (match["MultiProt"].mask==False)
-    # ax3.plot(match["Per"][multi],match[period_col][multi],'v',color="k",mfc="none",ms=12)
+
+    # Now check for multiperiodic stars
+    seconds = (match["Q2"]<=1) & (match["Q2"].mask==False)
+    if np.any(seconds):
+        q0 = (match["Q2"]==0) & (match["Q2"].mask==False)
+        q1 = (match["Q2"]==1) & (match["Q2"].mask==False)
+        ax3.plot(match[period_col][q0],match["Prot2"][q0],shapes[cluster],color=colors[cluster])
+        ax3.legend(loc=2)
+        ax3.plot(match[period_col][q1],match["Prot2"][q1],shapes[cluster],color=colors[cluster],
+                 mfc="none")
+        for i in np.where(seconds)[0]:
+            ax3.plot([match[period_col][i],match[period_col][i]],
+                     [match["Prot1"][i],match["Prot2"][i]],'k-')
+    # multi = (match["MP?"]=="y") | (match["MP?"]=="m")
+    # ax3.plot(match[period_col][multi],match["Prot1"][multi],'kv',ms=10,mfc="none")
+    # blend = (match["Bl?"]=="y") #| (match["Bl?"]=="m")
+    # ax3.plot(match[period_col][blend],match["Prot1"][blend],shapes[cluster],
+    #          color='k',ms=10,mfc="none",)
+
+    # Identify significant discrepancies
+    dbl = match["Prot1"]*2.1
+    half = match["Prot1"]/2.1
+    sig_diff_i = (((match["Q1"]<=1) & (match["Q1"].mask==False))&
+                  ((match[period_col]<half) | (match[period_col]>dbl)))
+    print(match[sig_diff_i])
+    at.write(match[sig_diff_i],f"{cluster}_significant_differences.csv",delimiter=",")
 
     x = np.linspace(0.1,50,20)
     ax3.plot(x,x,"-",zorder=-5,color="grey")
@@ -683,7 +705,7 @@ def compare_literature(clean_limit=10):
     ax3.set_xlabel("Literature Period (d)")
     ax3.set_title(cluster.replace("_"," "))
 
-    plt.savefig(f"plots/literature_comparison_clean{clean_limit}.png",
+    plt.savefig(f"plots/literature_comparison.png",
                 bbox_inches="tight")
     # plt.show()
 
@@ -698,7 +720,7 @@ def plot_periodcolor_with_literature():
     period_col="Period"
 
     summary = read_cluster_visual(cluster,"2021-06-22",return_periodcolor=False)
-    clean = (summary["final_Q"]==0) | (summary["final_Q"]==1)
+    clean = (alldat["Q1"]==0) | (alldat["Q1"]==1)
     period_col = "final_period"
 
     match = join(simbad,summary[clean],join_type="left",keys=["TIC"],
@@ -712,7 +734,7 @@ def plot_periodcolor_with_literature():
     # plt.plot(bp_rp,match["final_period"],'.',color="grey",alpha=0.5,
     #          label="all detections")
     bp_rp = match["GAIAEDR3_BP"] - match["GAIAEDR3_RP"]
-    plt.plot(bp_rp,match["Period"],shapes[cluster],color="grey",ms=12,mfc="none",
+    plt.plot(bp_rp,match["Prot1"],shapes[cluster],color="grey",ms=12,mfc="none",
              label="Patten & Simon (1996)")
 
     bp_rp = summary["GAIAEDR3_BP"] - summary["GAIAEDR3_RP"]
@@ -803,14 +825,11 @@ def plot_periodcolor_with_literature():
     plt.close()
 
 if __name__=="__main__":
-    #
+
     xmatch_ic2391_ic2602()
-    # xmatch_ngc2547()
+    xmatch_ngc2547()
 
     catalog_numbers()
-    # compare_literature(clean_limit="")
-    # compare_literature(clean_limit=10)
-    # compare_literature(clean_limit=30)
-    # compare_literature(clean_limit=60)
+    compare_literature()
     # plot_periodcolor_with_literature()
     plt.close("all")
