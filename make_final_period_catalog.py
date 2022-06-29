@@ -14,6 +14,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from scipy import stats
 from scipy.interpolate import interp1d
+from astroquery.mast import Catalogs
 
 
 def read_validation_results(cluster, date, which=None):
@@ -114,6 +115,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
     # Crossmatch the validation catalogs on TIC IDs
     allcat = join(cat1,cat2,keys=["TIC"])
+    print(len(allcat),"TESS results")
 
     # Create new columns to hold the final-final values for
     # period, Q, light curve info, peak power, threshold, multi/spot flags
@@ -395,13 +397,14 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     tic_match.rename_column("Gmag","TIC_Gmag")
     tic_match.rename_column("Tmag","TIC_Tmag")
     tic_match.rename_column("Flag","TIC_Flag")
+    print(len(tic_match),"xmatch_TIC")
 
     ##########################################################################
     ##########################################################################
     ##########################################################################
 
-    # Then match back to my original catalogs (and when I get Phill's
-    # MINESweeper results, those should have the same columns, plus extras)
+    # Then match back to my original catalogs
+    # Phill's MINESweeper catalogs only included the GAIA IDs
     cat_init_file1 = f"tables/{cluster}_crossmatch_allcolumns.fits"
     with fits.open(cat_init_file1) as hdu:
         cat_init1 = Table(hdu[1].data)
@@ -418,6 +421,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     if cat_init.masked == False:
         cat_init = Table(cat_init, masked=True, copy=False)
 
+    print(len(cat_init),"input crossmatch/MINESweeper")
+
     # Check for doubles in the initial catalog, just in case
     unique_gaia, gct = np.unique(cat_init["GAIAEDR3_ID"], return_counts=True)
     dbl_gaia = unique_gaia[gct>1]
@@ -430,6 +435,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
 
     xmatch = join(cat_init,tic_match,keys="GAIAEDR3_ID",join_type="left")
+    print(len(xmatch),"input crossmatch with TIC")
 
     # What to do when two Gaia targets match the same TIC ID?
     unique_gaia, gct = np.unique(xmatch["GAIAEDR3_ID"], return_counts=True)
@@ -560,17 +566,19 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     xmatch["TIC"][no_tic].mask = False
 
     # Join the final period and membership catalogs
-    pmcat = join(xmatch,periods,keys=["TIC"])
+    pmcat = join(xmatch,periods,keys=["TIC"],join_type='left')
+    print(len(xmatch),len(periods))
     print(len(pmcat),"periods and membership")
-
-    ##### TODO: Add Phill's MINESweeper results
-
+    print(np.unique(pmcat["Q1"]))
+    unmask = pmcat["Q1"].mask==True
+    pmcat["Q1"][unmask] = 9
+    pmcat["Q1"].mask[unmask] = False
 
     ##########################################################################
     ##########################################################################
     ##########################################################################
 
-    ##### Check for proximity
+    ##### Check for proximity with other *cluster* stars
 
     managed = np.zeros(len(pmcat),bool)
     ppos = SkyCoord(pmcat["GAIAEDR3_RA"],pmcat["GAIAEDR3_DEC"],unit=u.degree)
@@ -582,14 +590,14 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         if (managed[i]==True) | (row["Q1"]>=2):
             continue
 
-        # Check for any nearby stars within ~30 arcsec (pixelish) -
+        # Check for any nearby *cluster* stars within ~30 arcsec (pixelish) -
         # likely source confusion.
         sep = ppos[i].separation(ppos)
-        # pixelish = 30*u.arcsec
-        # close0 = np.where(sep<pixelish)[0]
+        pixelish = 30*u.arcsec
+        close0 = np.where(sep<pixelish)[0]
 
-        bright_contam = 2*u.arcmin
-        close0 = np.where(sep<bright_contam)[0]
+        # bright_contam = 1*u.arcmin
+        # close0 = np.where(sep<bright_contam)[0]
 
         if len(close0)==1:
             managed[i] = True
@@ -601,16 +609,16 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             primary_idx = np.where(close0==i)[0]
             close = np.delete(close0,primary_idx)
             # If the other star has Q=2 or no measured period, do nothing
-            # If I measured two different periods for the stars, do nothing
+            neighbors_no_prot = ((pmcat["Q1"][close]>=2))
             # If the other star is >=3 mags fainter, do nothing
-            neighbors_no_prot = ((pmcat["Q1"][close]==0))
-            neighbors_faint = ((pmcat["TIC_Tmag"][i]-pmcat["TIC_Tmag"][close])<-3)
+            neighbors_faint = ((pmcat["TIC_Tmag"][i]-pmcat["TIC_Tmag"][close])>=-3)
 
             good_prot = (np.isfinite(pmcat["Prot1"][close]) &
                          (pmcat["Prot1"][close]>0) &
                          (pmcat["Q1"][close]<=1))
             diff_frac = (abs(pmcat["Prot1"][i]-pmcat["Prot1"][close])
                          / pmcat["Prot1"][i])
+            # If I measured two different periods for the stars, do nothing
             # neighbors_diff_prot = ((pmcat["Prot1"][close] -
             #                        pmcat["Prot1"][i])!=0)
             neighbors_diff_prot = (diff_frac>=0.05) & good_prot
@@ -669,6 +677,74 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     print(removed_ct," blended stars removed")
 
     ##########################################################################
+    ##########################################################################
+    ##########################################################################
+
+    ##### Check for proximity with any other stars in the Gaia catalog
+
+    # Read in the full regional catalogs from Phill
+    cat_file0 = os.path.expanduser(f"~/Dropbox/EDR3/scats/{cluster}.fits")
+    with fits.open(cat_file0) as hdu:
+        cat0 = Table(hdu[1].data)
+        cat0.rename_column("GAIADER3_ID","GAIAEDR3_ID")
+        # print(cat0.dtype)
+
+    if cat0.masked == False:
+        cat0 = Table(cat0, masked=True, copy=False)
+
+    gpos = SkyCoord(cat0["GAIAEDR3_RA"],cat0["GAIAEDR3_DEC"],unit=u.degree)
+
+    pmcat["Bl?"] = np.empty(len(pmcat),"U1")
+    pmcat["Bl?"][:] = "n"
+
+    pmcat["ClosestNeighbor"] = np.zeros(len(pmcat))
+    for i,row in enumerate(pmcat):
+
+        sep = ppos[i].separation(gpos)
+        pixelish = 30*u.arcsec
+        closep = np.where(sep<pixelish)[0]
+
+        bright_contam = 1*u.arcmin
+        closeb = np.where(sep<bright_contam)[0]
+
+        if (len(closep)==1) and (len(closeb)==1):
+            self_i = np.where(cat0["GAIAEDR3_ID"]==pmcat["GAIAEDR3_ID"][i])[0]
+            sep = np.delete(sep,self_i)
+            pmcat["ClosestNeighbor"][i] = np.min(sep).to(u.arcsec).value
+            continue
+
+        else:
+
+            tic_data = Catalogs.query_region(ppos[i],catalog="TIC",
+                                             radius=bright_contam)
+            # Check for neighbors that are w/in 3 mag of the target, or brighter
+            # If the target has T=10,
+            # and the neighbor has T=12, then the difference is -2
+            #
+            neighbors_faint = ((tic_data["Tmag"][0]-tic_data["Tmag"])>-3)
+            # Then check for much brighter neighbors
+            neighbors_bright = tic_data["Tmag"]<=12
+            # The target itself is not a neighbor
+            # Is the target itself always the first line? It seems to be.
+            self_i = np.argmin(tic_data["dstArcSec"])
+            tic2 = np.delete(tic_data,self_i)
+            pmcat["ClosestNeighbor"][i] = np.min(tic2["dstArcSec"])
+            neighbors_faint[self_i] = False
+            neighbors_bright[self_i] = False
+
+            closept = tic_data["dstArcSec"]<=pixelish.to(u.arcsec).value
+            closebt = tic_data["dstArcSec"]<=bright_contam.to(u.arcsec).value
+
+            ncpt = len(np.where(neighbors_faint & closept)[0])
+            ncbt = len(np.where(neighbors_bright & closebt)[0])
+
+            if ncpt>0:
+                pmcat["Bl?"][i] = "y"
+            elif ncbt>0:
+                pmcat["Bl?"][i] = "m"
+
+
+    ##########################################################################
     ##### Add literature periods
 
     lit = at.read("tab_all_lit_periods.csv",delimiter=",")
@@ -715,7 +791,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "log(Age)_err","Mass","Mass_err","log(Teff)",
                          "log(Teff)_err",
                          "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
-                         "Q2", "MP?", "SE?",
+                         "Q2", "MP?", "SE?","Bl?","ClosestNeighbor",
                          # blend??
                          "LitPeriod","LitSource"
                          ]
@@ -745,7 +821,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "log(Age)_err","Mass","Mass_err","log(Teff)",
                          "log(Teff)_err",
                          "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
-                         "Q2", "MP?", "SE?",
+                         "Q2", "MP?", "SE?","Bl?","ClosestNeighbor",
                          # blend??
                          "LitPeriod","LitSource"
                          ]
@@ -801,11 +877,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                      "Sig","Pw1","Pw2"]:
         out_cat[colname].info.format = ".3f"
 
-    for colname in ["Prot1",  "Prot2", "LitPeriod"]:
+    for colname in ["Prot1",  "Prot2", "LitPeriod","ClosestNeighbor"]:
         out_cat[colname].info.format = ".2f"
-
-    # TODO: Bl? (this will be an automated flag, unlike my previous papers)
-    # TODO: Derived properties (masses, etc, from MINESweeper)
 
     return periods, out_cat
 
@@ -828,3 +901,7 @@ if __name__=="__main__":
 
     at.write(all_outputs,"tab_all_stars.csv", delimiter=",",overwrite=True)
     at.write(all_periods,"tab_all_tess_periods.csv", delimiter=",",overwrite=True)
+
+    with open("tab_cols_all_stars.dat","w") as f:
+        for i,colname in enumerate(all_outputs.dtype.names):
+            f.write("{i+1} & {colname} & \\\\\n")
