@@ -20,7 +20,7 @@ from analyze_cluster_output import colors, shapes
 from analyze_cluster_output import mass_to_bp_rp, id_solar
 from analyze_cluster_output import read_cluster_visual
 from plot_periods import plot_periodcolor_histogram
-from model_data_percentiles import young_stars_init, zams_percentiles
+from model_data_percentiles import young_stars_init, zams_percentiles, zams_percentiles_subset
 
 def plot_periodcolor_models(clean_limit=10):
 
@@ -176,7 +176,7 @@ def plot_periodcolor_models(clean_limit=10):
     plt.close("all")
 
 def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
-                      which_plot="individual clusters"):
+                      which_plot="individual clusters",subset=False):
 
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
@@ -184,16 +184,60 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
     dat = at.read("tab_all_stars.csv")
     bp_rp = dat["GAIAEDR3_BP"]-dat["GAIAEDR3_RP"]
     dat = Table(dat, masked=True, copy=False)
-    dat = dat[dat["Q1"]==0]
     # bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=False)
     # bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=False)
     # bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=False)
     # bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=False)
     # bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=False)
 
+    if subset:
+        prot_raw = dat["Prot1"]
+        prot_mask = dat["Prot1"].mask
+
+        max_q=clean_limit
+        include_blends=False
+        include_lit=True
+
+        qmask = (dat["Q1"]<=max_q)
+        pmask = ((prot_mask==False) & (prot_raw>0))
+        pmask = pmask.filled(fill_value=False)
+        mmask = (dat["Mass"].mask==False)
+        if include_blends==False:
+            blmask = (dat["Bl?"]=="n") | (dat["Bl?"]=="m")
+        else:
+            blmask = np.ones(len(dat),bool)
+        # If including literature values, have to replace them in the period mask
+        if include_lit:
+            litmask = (dat["LitPeriod"].mask==False) & (dat["LitPeriod"]>0)
+
+            # I only want to use literature periods when I don't have a valid TESS period
+            qmask_init = blmask & qmask & pmask
+            use_lit = litmask & (qmask_init==False)
+            prot_mask[use_lit] = False
+            prot_raw.mask[use_lit] = False
+            prot_raw[use_lit] = dat["LitPeriod"][use_lit]
+
+            # Then the final selection should include literature or TESS periods, as appropriate
+            lit_or_tess = qmask_init | litmask
+            full_qmask = mmask & lit_or_tess
+    #             print(np.where(full_qmask)[0])
+        else:
+            full_qmask = pmask & mmask & qmask & blmask
+
+        dat["Prot_subset"] = prot_raw
+
+        dat = dat[full_qmask]
+    else:
+        dat = dat[dat["Q1"]<=clean_limit]
+
+
+
     # y_age,y_perc,y_prot = young_stars_init()
     # eightmyr = np.ones_like(usco_perc)*8
-    z_perc, z_solar, z_perc_indiv, z_solar_indiv, = zams_percentiles()
+    if subset:
+        z_perc, z_solar, z_perc_indiv, z_solar_indiv = zams_percentiles_subset()
+    else:
+        z_perc, z_solar, z_perc_indiv, z_solar_indiv = zams_percentiles()
 
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     # prot = [prot_IC_2391, prot_Collinder_135, prot_NGC_2451A, prot_NGC_2547, prot_IC_2602]
@@ -279,14 +323,14 @@ def plot_data_boxes(fig, axes, ages,plot_name="",plot_title="",clean_limit=10,
 
 
 def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
-                      which_plot="individual clusters"):
+                      which_plot="individual clusters",subset=False):
 
     fig, axes = plt.subplots(nrows=3,ncols=2,sharey=True,figsize=(8,10))
     # plt.suptitle(f"Solar mass, C{clean_limit}{plot_title}",y=0.93)
     plt.suptitle(f"Solar mass{plot_title}",y=0.93)
 
     plot_data_boxes(fig, axes, ages, plot_name,plot_title,clean_limit,
-                          which_plot)
+                    which_plot,subset)
 
     ########################################################################
     # Sean's models
@@ -449,11 +493,11 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     ax.set_xlabel("Age (Myr)")
     # ax.set_ylabel("Period (d)")
 
-    ax.set_title(f"Matt et al. (New)")#", Solar mass, C{clean_limit}{plot_title}")
+    ax.set_title(f"Matt et al. (in prep)")#", Solar mass, C{clean_limit}{plot_title}")
     # plt.savefig(f"plots/periodtracks{plot_name}_Matt2015_clean{clean_limit}.png")
 
     plt.savefig(f"plots/periodtracks{plot_name}_page_clean{clean_limit}.png",
-                bbox_inches="tight")
+                bbox_inches="tight",dpi=600)
     plt.close()
 
 
@@ -479,24 +523,19 @@ def plot_results():
     for clean_limit in [0,1]:
         plot_model_tracks(cg20_ages,plot_name="_medages",plot_title=", Combined Clusters",
                           clean_limit=clean_limit,which_plot="single age")
-        # plot_all(clean_limit)
-        plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", Cantat-Gaudin et al. (2020) Ages",
-        clean_limit=clean_limit)
-        plot_model_tracks(khar_ages,plot_name="_Kharages",plot_title=", Kharchenko et al. Ages",
-        clean_limit=clean_limit)
-        plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza et al. (2012) Ages",
-        clean_limit=clean_limit)
-        break
+        plot_model_tracks(cg20_ages,plot_name="_medages_subset",plot_title=", Combined Clusters, Subset",
+                          clean_limit=clean_limit,which_plot="single age",subset=True)
+        # plot_model_tracks(cg20_ages,plot_name="_CG20ages",plot_title=", Cantat-Gaudin et al. (2020) Ages",
+        # clean_limit=clean_limit)
+        # plot_model_tracks(khar_ages,plot_name="_Kharages",plot_title=", Kharchenko et al. Ages",
+        # clean_limit=clean_limit)
+        # plot_model_tracks(g12_ages,plot_name="_G12ages",plot_title=", Ghoza et al. (2012) Ages",
+        # clean_limit=clean_limit)
 
 if __name__=="__main__":
 
-    # # write_results()
     plot_results()
-    # # compare_visual_results(cluster="NGC_2451A",date = "2021-06-21")
-    # # compare_visual_results(cluster="NGC_2547",date = "2021-06-21")
-    # # compare_visual_results(cluster="IC_2391",date = "2021-06-22")
-    #
-    # plot_all(clean_limit=0)
+
     # plot_periodcolor_models(clean_limit=0)
     # ax = plot_periodcolor_histogram(clean_limit=0,to_plot_indiv=False)
-    # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight")
+    # plt.savefig("plots/periodmass_histogram.png",bbox_inches="tight",dpi=600)

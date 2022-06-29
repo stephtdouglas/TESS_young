@@ -286,7 +286,68 @@ def zams_percentiles():
 
     return perc, solar, indiv_perc, indiv_solar
 
+
+def zams_percentiles_subset():
+
+
+    # clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    # dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
+
+    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    all_cat0 = []
+    indiv_perc = []
+    indiv_solar = []
+
+    dat = at.read("tab_all_stars.csv")
+    dat = Table(dat, masked=True, copy=False)
+
+    prot_raw = dat["Prot1"]
+    prot_mask = dat["Prot1"].mask
+
+    max_q=1
+    include_blends=False
+    include_lit=True
+    
+    qmask = (dat["Q1"]<=max_q)
+    pmask = ((prot_mask==False) & (prot_raw>0))
+    pmask = pmask.filled(fill_value=False)
+    mmask = (dat["Mass"].mask==False)
+    if include_blends==False:
+        blmask = (dat["Bl?"]=="n") | (dat["Bl?"]=="m")
+    else:
+        blmask = np.ones(len(dat),bool)
+    # If including literature values, have to replace them in the period mask
+    if include_lit:
+        litmask = (dat["LitPeriod"].mask==False) & (dat["LitPeriod"]>0)
+
+        # I only want to use literature periods when I don't have a valid TESS period
+        qmask_init = blmask & qmask & pmask
+        use_lit = litmask & (qmask_init==False)
+        prot_mask[use_lit] = False
+        prot_raw.mask[use_lit] = False
+        prot_raw[use_lit] = dat["LitPeriod"][use_lit]
+
+        # Then the final selection should include literature or TESS periods, as appropriate
+        lit_or_tess = qmask_init | litmask
+        full_qmask = mmask & lit_or_tess
+#             print(np.where(full_qmask)[0])
+    else:
+        full_qmask = pmask & mmask & qmask & blmask
+
+    dat["Prot_subset"] = prot_raw
+
+    dat = dat[full_qmask]
+    perc, solar = calc_percentiles(dat, "Mass","Prot_subset",color_name="Mass")
+    for i in range(5):
+        print("\n",clusters[i])
+        perc,raw_solar = calc_percentiles(dat[dat["Cluster"]==clusters[i]],
+                                          "Mass","Prot1",color_name="Mass")
+        indiv_perc.append(perc)
+        indiv_solar.append(raw_solar)
+
+    return perc, solar, indiv_perc, indiv_solar
+
 if __name__=="__main__":
 
     # young_stars_init()
-    zams_percentiles()
+    print(zams_percentiles_subset())
