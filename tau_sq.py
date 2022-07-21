@@ -1,5 +1,6 @@
 import os, sys, glob, time
 import itertools
+import multiprocessing as mp
 
 import numpy as np
 from numpy.random import default_rng
@@ -471,6 +472,19 @@ def plot_all_widehat():
         ax.set_xticks(np.arange(0,300,25),minor=True)
     plt.savefig(f"plots/tausq_ZAMS_WideHat8Myr.png",bbox_inches="tight",dpi=600)
 
+
+def run_one_model(age,pmd,model,period_scale,init_type):
+    sm = SpinModel(model,age,period_scale,init_type=init_type)
+
+    # Normalize the model and calculate tau-squared
+    if init_type!="kde":
+        sm.normalize()
+    sm.add_mask()
+    sm.calc_tau_sq(pmd)
+
+    return sm.tau_sq
+
+
 def run_all_models(max_q=0,include_blends=True,include_lit=False,
                    period_scale = "linear",output_filebase="tausq_ZAMS_Compare",
                    models_to_plot=model_names,zoom_ymax=None):
@@ -494,6 +508,15 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
     fig.patch.set_alpha(1.0)
     ax = plt.subplot(111)
 
+    # Determine cpu count for parallelization
+    try:
+        # The number of actually available CPUs, important for HPC
+        cpu_count = len(os.sched_getaffinity(0))
+    except AttributeError:
+        # On a regular computer, just use the total CPU count
+        cpu_count = mp.cpu_count()-2
+
+
     # Run comparison to data for every model
     if run_fits:
         for j,model in enumerate(models_to_plot):
@@ -516,18 +539,23 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             ttab[age_colname] = model_ages
 
             all_tau_sq = np.zeros(len(model_ages))
-            for i, age in enumerate(model_ages):
-        #         print(i,age)
 
-                sm = SpinModel(model,age,period_scale,init_type=init_type)
+            pool = mp.Pool(cpu_count)
+            nchunks = (len(model_ages) // cpu_count) + 1
+            chunksize = len(model_ages) // nchunks
 
-                # Normalize the model and calculate tau-squared
-                if init_type!="kde":
-                    sm.normalize()
-                sm.add_mask()
-                sm.calc_tau_sq(pmd)
+            print(f"{cpu_count} CPUs, chunk size {chunksize}")
+            print("starting multiprocessing run",model)
 
-                all_tau_sq[i] = sm.tau_sq
+            tau_sq_args = [[age,pmd,model,period_scale,init_type] for
+                            age in model_ages]
+                                          # itertools.repeat(pmd),
+                                          # itertools.repeat(model),
+                                          # itertools.repeat(period_scale),
+                                          # itertools.repeat(init_type)]
+
+            all_tau_sq = pool.starmap(run_one_model,tau_sq_args,
+                                          chunksize=chunksize)
 
             if "UpSco" in model:
                 ls = "--"
@@ -633,15 +661,15 @@ if __name__=="__main__":
     run_all_models(max_q=0,models_to_plot=model_names[3:],
                    output_filebase="tausq_ZAMS_Compare_Widehat",zoom_ymax=4000)
 
-    # Replace blends with literature
-    # Only q=0
-    run_all_models(max_q=0,include_blends=False,include_lit=True,
-                   period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
-                   models_to_plot=model_names[3:],zoom_ymax=2000)
-    # allow q=1
-    run_all_models(max_q=1,include_blends=False,include_lit=True,
-                   period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
-                   models_to_plot=model_names[3:],zoom_ymax=2000)
+    # # Replace blends with literature
+    # # Only q=0
+    # run_all_models(max_q=0,include_blends=False,include_lit=True,
+    #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
+    #                models_to_plot=model_names[3:],zoom_ymax=2000)
+    # # allow q=1
+    # run_all_models(max_q=1,include_blends=False,include_lit=True,
+    #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
+    #                models_to_plot=model_names[3:],zoom_ymax=2000)
 
 
     ##### Plot model comparisons with data
