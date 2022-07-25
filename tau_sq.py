@@ -18,6 +18,9 @@ import matplotlib.cm as cm
 norm = mpl.colors.Normalize(vmin=0, vmax=5)
 mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
 
+norm2 = mpl.colors.Normalize(vmin=0, vmax=14)
+mapper2 = cm.ScalarMappable(norm=norm2, cmap=cm.viridis)
+
 from analyze_cluster_output import colors, shapes
 from plot_periods import plot_periodcolor_histogram
 
@@ -219,6 +222,49 @@ class SpinModel:
 
         self.tau_sq = -2 * sum_tau_sq
 
+    def calc_tau_sq_binned(self, pmd):
+        """ calculate tau-squared for each individual mass bin in an observed
+            PeriodMass distribution
+        """
+        # area of the region containing the model
+        A_pm = ((np.max(self.mass_bins)-np.min(self.mass_bins)) *
+                (np.max(self.period_bins)-np.min(self.period_bins)))
+
+        # model weight? value from section 5.2.3
+        fscript = 0.7
+
+        # background term in the tau squared sum
+        bkgd_i = (1-fscript)/A_pm
+
+        pmd.select_obs(self)
+
+        nprot = len(pmd.prot)
+    #     print(nprot)
+        sum_tau_sq = np.zeros(len(self.mass_bins)-1)
+        for i in range(len(self.mass_bins)-1):
+            in_m_bin = (pmd.mass>self.mass_bins[i]) & (pmd.mass<=self.mass_bins[i+1])
+            n_in_m_bin = len(np.where(in_m_bin)[0])
+            found_count = 0
+            for j in range(len(self.period_bins)-1):
+                if self.mask[j,i]==True:
+                    # No model at this index; move on
+                    continue
+                else:
+                    in_p_bin = (pmd.prot>self.period_bins[j]) & (pmd.prot<=self.period_bins[j+1])
+                    observed = in_p_bin & in_m_bin
+                    n_in_bin = len(np.where(observed)[0])
+                    if n_in_bin>0:
+                        found_count += n_in_bin
+                        this_rho_f = fscript * self.img[j,i]
+                        this_rho_prime = this_rho_f + bkgd_i
+                        sum_tau_sq[i] += np.log(this_rho_prime) * n_in_bin
+
+            n_missed = n_in_m_bin - found_count
+            sum_tau_sq[i] += np.log(bkgd_i) * n_missed
+
+        self.tau_sq = -2 * sum_tau_sq
+
+
 class PeriodMassDistribution:
 
     def __init__(self,max_q=0,include_blends=True,include_lit=False):
@@ -387,349 +433,3 @@ class PeriodMassDistribution:
                medianprops=colorprop,boxprops=colorprop,whiskerprops=colorprop,
                capprops=colorprop,manage_ticks=False,zorder=20)
         return ax
-
-def plot_all_upsco():
-
-    model_names = ["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque"]
-    period_scale = "linear"
-
-    pmd = PeriodMassDistribution()
-
-    fig = plt.figure()
-    fig.patch.set_facecolor('w')
-    fig.patch.set_alpha(1.0)
-    for j,model in enumerate(model_names):
-        # print(model)
-        models = glob.glob(os.path.expanduser(f"~/Dropbox/Models/{model}/{model}*Myr.txt"))
-        # print(models)
-
-        model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
-        # print(model_ages)
-
-        model_ages = model_ages[model_ages<=300]
-
-        all_tau_sq = np.zeros(len(model_ages))
-        for i, age in enumerate(model_ages):
-            sm = SpinModel(model,age,period_scale)
-
-            # Normalize the model and calculate tau-squared
-            sm.normalize()
-            sm.add_mask()
-            sm.calc_tau_sq(pmd)
-
-            all_tau_sq[i] = sm.tau_sq
-
-        plt.plot(model_ages,all_tau_sq,'--',label=model,color=mapper.to_rgba(j+1),alpha=0.75)
-        plt.legend(loc=2)
-        plt.xlabel("Model age (Myr)",fontsize=16)
-        plt.ylabel("tau squared",fontsize=16)
-    #     plt.title(model,fontsize=14)
-
-        ax = plt.gca()
-        ax.tick_params(labelsize=12)
-        ax.set_xticks(np.arange(0,300,25),minor=True)
-    plt.savefig(f"plots/tausq_ZAMS_UpSco.png",bbox_inches="tight",dpi=600)
-
-def plot_all_widehat():
-
-    model_names = ["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
-    period_scale = "linear"
-
-    pmd = PeriodMassDistribution()
-
-    fig = plt.figure()
-    fig.patch.set_facecolor('w')
-    fig.patch.set_alpha(1.0)
-    for j,model in enumerate(model_names):
-        print(model)
-        models = glob.glob(os.path.expanduser(f"~/Dropbox/Models/{model}/{model}*Myr.txt"))
-        # print(models)
-
-        model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
-        # print(model_ages)
-
-        model_ages = model_ages[model_ages<=300]
-
-        all_tau_sq = np.zeros(len(model_ages))
-        for i, age in enumerate(model_ages):
-            sm = SpinModel(model,age,period_scale)
-
-            # Normalize the model and calculate tau-squared
-            sm.normalize()
-            sm.add_mask()
-            sm.calc_tau_sq(pmd)
-
-            all_tau_sq[i] = sm.tau_sq
-
-        plt.plot(model_ages,all_tau_sq,'-',label=model,color=mapper.to_rgba(j+1),alpha=0.75)
-        plt.legend(loc=2)
-        plt.xlabel("Model age (Myr)",fontsize=16)
-        plt.ylabel("tau squared",fontsize=16)
-    #     plt.title(model,fontsize=14)
-
-        ax = plt.gca()
-        ax.tick_params(labelsize=12)
-        ax.set_xticks(np.arange(0,300,25),minor=True)
-    plt.savefig(f"plots/tausq_ZAMS_WideHat8Myr.png",bbox_inches="tight",dpi=600)
-
-
-def run_one_model(age,pmd,model,period_scale,init_type):
-    sm = SpinModel(model,age,period_scale,init_type=init_type)
-
-    # Normalize the model and calculate tau-squared
-    if init_type!="kde":
-        sm.normalize()
-    sm.add_mask()
-    sm.calc_tau_sq(pmd)
-
-    return sm.tau_sq
-
-
-def run_all_models(max_q=0,include_blends=True,include_lit=False,
-                   period_scale = "linear",output_filebase="tausq_ZAMS_Compare",
-                   models_to_plot=model_names,zoom_ymax=None):
-    nmod_l = len(models_to_plot)
-
-    pmd = PeriodMassDistribution(max_q,include_blends,include_lit)
-
-    # Check for the matching output csv and skip straight to plotting if found
-    outfilename = f"{output_filebase}_{pmd.param_string}"
-    if os.path.exists(f"tables/{outfilename}.csv"):
-        print("computation already completed")
-        run_fits = False
-        ttab = at.read(f"tables/{outfilename}.csv")
-    else:
-        run_fits = True
-        ttab = Table(np.zeros(nmod_l*nage).reshape(nage,nmod_l),names=models_to_plot)
-
-    # Set up figure
-    fig = plt.figure()
-    fig.patch.set_facecolor('w')
-    fig.patch.set_alpha(1.0)
-    ax = plt.subplot(111)
-
-    # Determine cpu count for parallelization
-    try:
-        # The number of actually available CPUs, important for HPC
-        cpu_count = len(os.sched_getaffinity(0))
-    except AttributeError:
-        # On a regular computer, just use the total CPU count
-        cpu_count = mp.cpu_count()-2
-
-
-    # Run comparison to data for every model
-    if run_fits:
-        for j,model in enumerate(models_to_plot):
-
-            print(model)
-
-            if "WideHat" in model:
-                init_type="kde"
-            else:
-                init_type="cluster"
-
-            models = glob.glob(os.path.expanduser(f"~/Dropbox/Models/{model}/{model}*Myr.txt"))
-            # print(models)
-
-            model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
-            # print(model_ages)
-
-            model_ages = model_ages#[model_ages<=300]
-            age_colname = f"Age_{model}"
-            ttab[age_colname] = model_ages
-
-            all_tau_sq = np.zeros(len(model_ages))
-
-            pool = mp.Pool(cpu_count)
-            nchunks = (len(model_ages) // cpu_count) + 1
-            chunksize = len(model_ages) // nchunks
-
-            print(f"{cpu_count} CPUs, chunk size {chunksize}")
-            print("starting multiprocessing run",model)
-
-            tau_sq_args = [[age,pmd,model,period_scale,init_type] for
-                            age in model_ages]
-                                          # itertools.repeat(pmd),
-                                          # itertools.repeat(model),
-                                          # itertools.repeat(period_scale),
-                                          # itertools.repeat(init_type)]
-
-            all_tau_sq = pool.starmap(run_one_model,tau_sq_args,
-                                          chunksize=chunksize)
-
-            if "UpSco" in model:
-                ls = "--"
-            else:
-                ls = "-"
-            ax.plot(model_ages,all_tau_sq,ls,label=display_names[model],
-                    color=mapper.to_rgba((j % 3)+1),alpha=0.75)
-            ttab[model] = all_tau_sq
-
-            if j==0:
-                ttab["Age(Myr)"] = model_ages
-
-    # If the comparison was already run, just re-plot
-    else:
-        for j,model in enumerate(models_to_plot):
-            age_colname = f"Age_{model}"
-            if "UpSco" in model:
-                ls = "--"
-            else:
-                ls = "-"
-
-            ax.plot(ttab[age_colname],ttab[model],ls,
-                    label=display_names[model],
-                    color=mapper.to_rgba((j % 3)+1),alpha=0.75)
-        # Plot the models from the saved file
-
-    ax.legend(loc=2)
-    ax.set_xlabel("Model age (Myr)",fontsize=16)
-    ax.set_ylabel("tau squared",fontsize=16)
-
-    ax.tick_params(labelsize=12)
-    ax.set_xticks(np.arange(0,300,25),minor=True)
-
-    fig.savefig(f"plots/{outfilename}.png",bbox_inches="tight",dpi=600)
-
-    ax.set_xlim(0,300)
-    ylims = ax.get_ylim()
-    if zoom_ymax is None:
-        ymax = max(ttab[models_to_plot[-1]][ttab["Age(Myr)"]<350])
-    else:
-        ymax = zoom_ymax
-    ax.set_ylim(ylims[0],ymax)
-    fig.savefig(f"plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
-
-
-    ttab.write(f"tables/{outfilename}.csv",delimiter=",",overwrite=True)
-
-
-def plot_all_models(max_q=0,include_blends=True,include_lit=False,
-                    period_scale = "linear",models_to_plot=model_names):
-    pmd = PeriodMassDistribution(max_q,include_blends,include_lit)
-
-    plt.figure()
-#     for j,model in enumerate(model_names):
-    for j,model in enumerate(models_to_plot):
-        print(model)
-
-        if "WideHat" in model:
-            init_type="kde"
-        else:
-            init_type="cluster"
-
-        models = glob.glob(os.path.expanduser(f"~/Dropbox/Models/{model}/{model}*Myr.txt"))
-
-        model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
-        # print(model_ages)
-
-        model_ages = model_ages[(model_ages<=150) & (model_ages>=0)]
-
-        for i, age in enumerate(model_ages):
-        #     print("\n",age)
-            sm = SpinModel(model,age,period_scale,init_type=init_type)
-            if j==0 and i==0:
-                pmd.select_obs(sm)
-
-            # Normalize the model and calculate tau-squared
-            if ("WideHat" in model)==False:
-                sm.normalize()
-            sm.add_mask()
-            sm.calc_tau_sq(pmd)
-
-    #         print(model,age,np.max(sm.img))
-    #         print(sm.img)
-
-
-            # Plot
-            ax = sm.plot_hist()
-            pmd.plot_obs(ax)
-            ax.set_ylim(0,14)
-            plt.savefig(f"plots/model_frames/tausq_{model}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png",bbox_inches="tight",dpi=600)
-            plt.close()
-
-
-
-
-
-
-if __name__=="__main__":
-
-
-    ##### Run models
-    # Original run
-    run_all_models(max_q=0,models_to_plot=model_names[3:],
-                   output_filebase="tausq_ZAMS_Compare_Widehat",zoom_ymax=4000)
-
-    # # Replace blends with literature
-    # # Only q=0
-    # run_all_models(max_q=0,include_blends=False,include_lit=True,
-    #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
-    #                models_to_plot=model_names[3:],zoom_ymax=2000)
-    # # allow q=1
-    # run_all_models(max_q=1,include_blends=False,include_lit=True,
-    #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
-    #                models_to_plot=model_names[3:],zoom_ymax=2000)
-
-
-    ##### Plot model comparisons with data
-    # # Original run
-    # plot_all_models(max_q=0,models_to_plot=["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022"])
-    #
-    # # Replace blends with literature
-    # # Only q=0
-    # plot_all_models(max_q=0,include_blends=False,include_lit=True,
-    #                 period_scale = "linear",models_to_plot=["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022"])
-    # # allow q=1
-    # plot_all_models(max_q=1,include_blends=False,include_lit=True,
-    #                 period_scale = "linear",models_to_plot=["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022"])
-
-
-    # # # Demo PMD/model plots for the CS poster
-    #
-    # pmd = PeriodMassDistribution(max_q=0,include_blends=False,include_lit=True)
-    # pmd.calc_mass_percentiles(mass_bins=np.linspace(0.05,1.35,14))
-    # ax = pmd.plot_obs(plot_errors=True)
-    # _ = pmd.plot_period_perc(ax)
-    # _ = ax.set_title(pmd.param_string)
-    # ax.set_yscale("log")
-    #
-    # sm = SpinModel("WideHat8Myr_Mattea2015",130,"linear",
-    #                init_type="kde")
-    # pmd.select_obs(sm)
-    #
-    # # Normalize the model and calculate tau-squared
-    # # sm.normalize()
-    # sm.add_mask()
-    # sm.calc_tau_sq(pmd)
-    #
-    # # Plot
-    # ax = sm.plot_hist()
-    # pmd.plot_obs(ax)
-    # ax.set_ylim(0,12)
-    #
-    # ax.set_title(f"Matt+2015; 130 Myr; tau2={sm.tau_sq:.0f}")
-    # plt.savefig(f"plots/tausq_WideHat8Myr_Mattea2015_{pmd.param_string}_linear_00130Myr_ZAMS.png",bbox_inches="tight",dpi=600)
-    #
-    # like = np.exp(-0.5*sm.tau_sq)
-    # print(f"likelihood {like}")
-    #
-    # sm = SpinModel("WideHat8Myr_Mattea2022",80,"linear",
-    #                init_type="kde")
-    # pmd.select_obs(sm)
-    #
-    # # Normalize the model and calculate tau-squared
-    # # sm.normalize()
-    # sm.add_mask()
-    # sm.calc_tau_sq(pmd)
-    #
-    # # Plot
-    # ax = sm.plot_hist()
-    # pmd.plot_obs(ax)
-    # ax.set_ylim(0,12)
-    # ax.set_title(f"Matt+ in prep; 80 Myr; tau2={sm.tau_sq:.0f}")
-    # plt.savefig(f"plots/tausq_WideHat8Myr_Mattea2022_{pmd.param_string}_linear_00080Myr_ZAMS.png",bbox_inches="tight",dpi=600)
-    #
-    # like = np.exp(-0.5*sm.tau_sq)
-    # print(f"likelihood {like}")
-    #
