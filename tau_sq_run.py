@@ -71,7 +71,7 @@ def run_one_model_binned(age,pmd,model,period_scale,init_type):
 def run_all_models(max_q=0,include_blends=True,include_lit=False,
                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
                    models_to_plot=model_names,zoom_ymax=None,
-                   mass_limits=None,pmd=None):
+                   mass_limits=None,pmd=None,to_plot=True):
     nmod_l = len(models_to_plot)
 
     if pmd is None:
@@ -92,10 +92,11 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         ttab = Table(np.zeros(nmod_l*nage).reshape(nage,nmod_l),names=models_to_plot)
 
     # Set up figure
-    fig = plt.figure()
-    fig.patch.set_facecolor('w')
-    fig.patch.set_alpha(1.0)
-    ax = plt.subplot(111)
+    if to_plot:
+        fig = plt.figure()
+        fig.patch.set_facecolor('w')
+        fig.patch.set_alpha(1.0)
+        ax = plt.subplot(111)
 
     # Determine cpu count for parallelization
     try:
@@ -146,8 +147,10 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
                 ls = "--"
             else:
                 ls = "-"
-            ax.plot(model_ages,all_tau_sq,ls,label=display_names[model],
-                    color=mapper.to_rgba((j % 3)+1),alpha=0.75)
+
+            if to_plot:
+                ax.plot(model_ages,all_tau_sq,ls,label=display_names[model],
+                        color=mapper.to_rgba((j % 3)+1),alpha=0.75)
             ttab[model] = all_tau_sq
 
             if j==0:
@@ -162,28 +165,30 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             else:
                 ls = "-"
 
-            ax.plot(ttab[age_colname],ttab[model],ls,
-                    label=display_names[model],
-                    color=mapper.to_rgba((j % 3)+1),alpha=0.75)
+            if to_plot:
+                ax.plot(ttab[age_colname],ttab[model],ls,
+                        label=display_names[model],
+                        color=mapper.to_rgba((j % 3)+1),alpha=0.75)
         # Plot the models from the saved file
 
-    ax.legend(loc=2)
-    ax.set_xlabel("Model age (Myr)",fontsize=16)
-    ax.set_ylabel("tau squared",fontsize=16)
+    if to_plot:
+        ax.legend(loc=2)
+        ax.set_xlabel("Model age (Myr)",fontsize=16)
+        ax.set_ylabel("tau squared",fontsize=16)
 
-    ax.tick_params(labelsize=12)
-    ax.set_xticks(np.arange(0,300,25),minor=True)
+        ax.tick_params(labelsize=12)
+        ax.set_xticks(np.arange(0,300,25),minor=True)
 
-    fig.savefig(f"plots/{outfilename}.png",bbox_inches="tight",dpi=600)
+        fig.savefig(f"plots/{outfilename}.png",bbox_inches="tight",dpi=600)
 
-    ax.set_xlim(0,300)
-    ylims = ax.get_ylim()
-    if zoom_ymax is None:
-        ymax = max(ttab[models_to_plot[-1]][ttab["Age(Myr)"]<350])
-    else:
-        ymax = zoom_ymax
-    ax.set_ylim(ylims[0],ymax)
-    fig.savefig(f"plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
+        ax.set_xlim(0,300)
+        ylims = ax.get_ylim()
+        if zoom_ymax is None:
+            ymax = max(ttab[models_to_plot[-1]][ttab["Age(Myr)"]<350])
+        else:
+            ymax = zoom_ymax
+        ax.set_ylim(ylims[0],ymax)
+        fig.savefig(f"plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
 
 
     ttab.write(f"tables/{outfilename}.csv",delimiter=",",overwrite=True)
@@ -266,17 +271,15 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
 
     # If the comparison was already run, just re-plot
     else:
-        pass
-        # for j,model in enumerate(models_to_plot):
-        #     age_colname = f"Age_{model}"
-        #     if "UpSco" in model:
-        #         ls = "--"
-        #     else:
-        #         ls = "-"
-        #
-        #     ax.plot(ttab[age_colname],ttab[model],ls,
-        #             label=display_names[model],
-        #             color=mapper.to_rgba((j % 3)+1),alpha=0.75)
+        for j,model in enumerate(models_to_plot):
+            age_colname = f"Age_{model}"
+            if "UpSco" in model:
+                ls = "--"
+            else:
+                ls = "-"
+            ax.plot(ttab[age_colname],ttab[model],ls,
+                    label=display_names[model],
+                    color=mapper.to_rgba((j % 3)+1),alpha=0.75)
         # Plot the models from the saved file
 
     if "UpSco" in model:

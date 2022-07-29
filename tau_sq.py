@@ -448,7 +448,7 @@ class PeriodMassModel(PeriodMassDistribution):
     # Replacing: __init__, calc_mass_percentiles (don't need monte carlo)
     # Inheriting: select_obs, plot_obs, plot_period_perc
 
-    def __init__(self,sm,mass_limits=None,n_select=500):
+    def __init__(self,sm,mass_limits=None,n_select=500,rng_seed=37):
         """
         Inputs
         ------
@@ -464,7 +464,7 @@ class PeriodMassModel(PeriodMassDistribution):
 
         self.sm.normalize()
 
-        self._generate_sample(n_select)
+        self._generate_sample(n_select,rng_seed)
 
         # Apply mass limits if needed
 #         if mass_limits is not None:
@@ -487,7 +487,7 @@ class PeriodMassModel(PeriodMassDistribution):
         # TODO: include model parameters here
         self.param_string = f"SYN_{self.sm.model_name}_{self.sm.age}Myr_"
 
-    def _generate_sample(self,n_select):
+    def _generate_sample(self,n_select,rng_seed):
         # TODO: this should incorporate a mass function
 
         # For now, just select an even number of stars in every mass bin
@@ -495,7 +495,7 @@ class PeriodMassModel(PeriodMassDistribution):
         # When the model is normalized, each mass bin has a period distribution
         # that should work as a probability distribution for np.random.choice
 
-        rng = np.random.default_rng(37)
+        rng = np.random.default_rng(rng_seed)
 
         nbins = len(self.sm.mass_bins)-1
         n_per_bin = n_select // nbins
