@@ -85,6 +85,7 @@ class SpinModel:
         #     print(mod_file)
             mod = at.read(mod_file,names=["mass","prot"])
             mod["Prob"] = kde_prob["Prob"]
+            self.prot_prob = mod["Prob"]
 
             img_raw, self.xedges, self.yedges = np.histogram2d(mod["mass"],mod["prot"],
                                                                weights=mod["Prob"],density=True,
@@ -95,6 +96,7 @@ class SpinModel:
             mod = at.read(mod_file,names=["mass","prot"])
             img_raw, self.xedges, self.yedges = np.histogram2d(mod["mass"],mod["prot"],
                                                                bins=[self.mass_bins,self.period_bins])
+            self.prot_prob = np.ones_like(mod["prot"])
         # Transpose the image so we can actually plot it
         # by default this is not normalized
         self.img = img_raw.T
@@ -267,16 +269,21 @@ class SpinModel:
 
 class PeriodMassDistribution:
 
-    def __init__(self,max_q=0,include_blends=True,include_lit=False):
+    def __init__(self,max_q=0,include_blends=True,include_lit=False,
+                 mass_limits=None):
         """
         max_q: integer, maximum quality flag to include (should be 0 or 1)
         include_blends: boolean, whether or not to include potentially blended targets
         include_lit: boolean, whether or not to include literature values
+        mass_limits: tuple or list, minimum and maximum masses to include
         """
         # My crossmatched catalog
         per = at.read("tab_all_stars.csv")
         # per.dtype
         self.cat = Table(per, masked=True, copy=False)
+        if mass_limits is not None:
+            mass_select = (self.cat["Mass"]>=mass_limits[0]) & (self.cat["Mass"]<=mass_limits[1])
+            self.cat = self.cat[mass_select]
 
         # Assign the catalog values to attributes
         self.prot_raw = self.cat["Prot1"]
@@ -433,3 +440,100 @@ class PeriodMassDistribution:
                medianprops=colorprop,boxprops=colorprop,whiskerprops=colorprop,
                capprops=colorprop,manage_ticks=False,zorder=20)
         return ax
+
+class PeriodMassModel(PeriodMassDistribution):
+    # Replacing: __init__, calc_mass_percentiles (don't need monte carlo)
+    # Inheriting: select_obs, plot_obs, plot_period_perc
+
+    def __init__(self,sm,mass_limits=None,n_select=500):
+        """
+        Inputs
+        ------
+        sm: SpinModel object
+        mass_limits: tuple or list, minimum and maximum masses to include
+        n_select: int, number of synthetic observations to generate (default 100)
+                 n_select should be evenly divisible by the number of mass_bins for sm
+                 otherwise fewer stars may be returned
+        """
+
+        # Generate the synthetic observation set
+        self.sm = sm
+
+        self.sm.normalize()
+
+        self._generate_sample(n_select)
+
+        # Apply mass limits if needed
+#         if mass_limits is not None:
+#             mass_select = (self.cat["Mass"]>=mass_limits[0]) & (self.cat["Mass"]<=mass_limits[1])
+#             self.cat = self.cat[mass_select]
+
+        # Assign the catalog values to attributes - these are fake here since we don't
+        # need to exclude any of the modelled values
+        n_actual = len(self.prot_raw)
+        self.mass_err_raw = np.zeros(n_actual)
+        self.prot_mask = np.zeros(n_actual,bool)
+        self.mass_mask = np.zeros(n_actual,bool)
+
+        # Assign masks for quality and presence of necessary values
+        self.qmask = np.ones(n_actual,bool)
+        self.n_select = n_actual
+
+        self.figsize=(9,9)
+
+        # TODO: include model parameters here
+        self.param_string = f"model_"
+
+    def _generate_sample(self,n_select):
+        # TODO: this should incorporate a mass function
+
+        # For now, just select an even number of stars in every mass bin
+
+        # When the model is normalized, each mass bin has a period distribution
+        # that should work as a probability distribution for np.random.choice
+
+        rng = np.random.default_rng(37)
+
+        nbins = len(self.sm.mass_bins)-1
+        n_per_bin = n_select // nbins
+        fake_periods = np.zeros(nbins*n_per_bin).reshape(nbins,n_per_bin)
+        fake_masses = np.zeros(nbins*n_per_bin).reshape(nbins,n_per_bin)
+
+        for i in range(nbins):
+            bin_center = (self.sm.mass_bins[i]+self.sm.mass_bins[i+1])/2
+            fake_masses[i,:] = bin_center
+
+
+            # I think I can actually just draw from the prot array? I think the values
+            # are already weighted...
+#             prob_dist = self.sm.img[:,i]
+#             print(prob_dist)
+#             print(self.sm.prot_array)
+
+            model_loc = ((self.sm.mass_array>=self.sm.mass_bins[i]) &
+                         (self.sm.mass_array<self.sm.mass_bins[i+1]))
+
+            fake_periods[i] = rng.choice(a=self.sm.prot_array[model_loc],size=n_per_bin,
+                                         replace=True,p=self.sm.prot_prob[model_loc])
+
+        self.prot_raw = fake_periods.flatten()
+        self.mass_raw = fake_masses.flatten()
+
+
+
+    def calc_mass_percentiles(self,mass_bins,percentiles=[0,10,50,75,100],ntests=1000):
+
+        self.percentiles = percentiles
+
+        nmass = len(mass_bins)-1
+
+        # Need to generate a set of percentiles for each mass bin
+        nperc = len(self.percentiles)
+        period_perc = np.zeros((nmass,nperc))
+
+        for i in range(nmass):
+            subset = (self.mass>=mass_bins[i]) & (self.mass<mass_bins[i+1])
+            period_perc[i] = np.percentile(self.prot[subset],self.percentiles)
+
+        self.period_perc = period_perc
+        self.perc_mass_bins = mass_bins
