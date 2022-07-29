@@ -485,7 +485,7 @@ class PeriodMassModel(PeriodMassDistribution):
         self.figsize=(9,9)
 
         # TODO: include model parameters here
-        self.param_string = f"SYN_{self.sm.model_name}_{self.sm.age}Myr_"
+        self.param_string = f"SYN_{self.sm.model_name}_{self.sm.age}Myr"
 
     def _generate_sample(self,n_select,rng_seed):
         # TODO: this should incorporate a mass function

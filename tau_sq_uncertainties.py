@@ -42,3 +42,5 @@ if __name__=="__main__":
 
     run_all_models(pmd=pmd,output_filebase="tausq_compare",
                    models_to_plot=model_names)
+
+    generate_synthetic_obs(model,age,period_scale,init_type)

@@ -131,8 +131,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             all_tau_sq = np.zeros(len(model_ages))
 
             pool = mp.Pool(cpu_count)
-            nchunks = (len(model_ages) // cpu_count) + 1
-            chunksize = len(model_ages) // nchunks
+            chunksize = len(model_ages) // cpu_count
 
             print(f"{cpu_count} CPUs, {nchunks} chunks, chunk size {chunksize}")
             print("starting multiprocessing run",model)
