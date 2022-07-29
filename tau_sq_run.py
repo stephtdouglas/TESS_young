@@ -71,11 +71,15 @@ def run_one_model_binned(age,pmd,model,period_scale,init_type):
 def run_all_models(max_q=0,include_blends=True,include_lit=False,
                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
                    models_to_plot=model_names,zoom_ymax=None,
-                   mass_limits=None):
+                   mass_limits=None,pmd=None):
     nmod_l = len(models_to_plot)
 
-    pmd = PeriodMassDistribution(max_q,include_blends,include_lit,
-                                 mass_limits=mass_limits)
+    if pmd is None:
+        pmd = PeriodMassDistribution(max_q,include_blends,include_lit,
+                                     mass_limits=mass_limits)
+    else:
+        print("WARNING: Using input period-mass distribution.")
+        print("Ignoring input q, include_*, and scale match.")
 
     # Check for the matching output csv and skip straight to plotting if found
     outfilename = f"{output_filebase}_{pmd.param_string}"

@@ -64,6 +64,9 @@ class SpinModel:
         self.mass_bins = np.arange(0.05,1.4,0.1)
 
         self.period_scale = period_scale
+        self.age = model_age
+        self.model_name = model
+
         if period_scale=="log":
 #             self.period_bins = np.logspace(np.log10(0.08),np.log10(40),200)
             self.period_bins = np.logspace(np.log10(0.08),np.log10(40),30)
@@ -482,7 +485,7 @@ class PeriodMassModel(PeriodMassDistribution):
         self.figsize=(9,9)
 
         # TODO: include model parameters here
-        self.param_string = f"model_"
+        self.param_string = f"SYN_{self.sm.model_name}_{self.sm.age}Myr_"
 
     def _generate_sample(self,n_select):
         # TODO: this should incorporate a mass function
