@@ -86,7 +86,10 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
     if os.path.exists(f"tables/{outfilename}.csv"):
         print("computation already completed")
         run_fits = False
-        ttab = at.read(f"tables/{outfilename}.csv")
+        if to_plot:
+            ttab = at.read(f"tables/{outfilename}.csv")
+        else:
+            return
     else:
         run_fits = True
         ttab = Table(np.zeros(nmod_l*nage).reshape(nage,nmod_l),names=models_to_plot)
@@ -189,8 +192,8 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         ax.set_ylim(ylims[0],ymax)
         fig.savefig(f"plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
 
-
-    ttab.write(f"tables/{outfilename}.csv",delimiter=",",overwrite=True)
+    if run_fits:
+        ttab.write(f"tables/{outfilename}.csv",delimiter=",",overwrite=True)
 
 
 
