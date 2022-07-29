@@ -70,14 +70,12 @@ def run_one_model_binned(age,pmd,model,period_scale,init_type):
 
 def run_all_models(max_q=0,include_blends=True,include_lit=False,
                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
-                   models_to_plot=model_names,zoom_ymax=None):#,
-                   # mass_limits=None):
+                   models_to_plot=model_names,zoom_ymax=None,
+                   mass_limits=None):
     nmod_l = len(models_to_plot)
 
-    pmd = PeriodMassDistribution(max_q,include_blends,include_lit)
-
-    # if mass_limits is not None:
-    #     pmd.select_obs()
+    pmd = PeriodMassDistribution(max_q,include_blends,include_lit,
+                                 mass_limits=mass_limits)
 
     # Check for the matching output csv and skip straight to plotting if found
     outfilename = f"{output_filebase}_{pmd.param_string}"
@@ -340,13 +338,21 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
 if __name__=="__main__":
 
 
-    run_model_binned(model_names[3],max_q=0,
-                   output_filebase="tausq_ZAMS_Compare",zoom_ymax=1.15)
+    # run_model_binned(model_names[3],max_q=0,
+    #                output_filebase="tausq_ZAMS_Compare",zoom_ymax=1.15)
 
-    # ##### Run models
-    # # Original run
-    # run_all_models(max_q=0,models_to_plot=model_names[3:],
-    #                output_filebase="tausq_ZAMS_Compare_Widehat",zoom_ymax=4000)
+    ##### Run models
+    # Original run
+    run_all_models(max_q=0,models_to_plot=model_names[3:],
+                   output_filebase="tausq_ZAMS_Compare_Widehat",zoom_ymax=4000)
+
+    mass_split = 0.75
+    run_all_models(max_q=0,models_to_plot=model_names[3:],
+                   output_filebase="tausq_ZAMS_Compare_Widehat_lowmass",
+                   zoom_ymax=2000,mass_limits=[0.05,mass_split])
+    run_all_models(max_q=0,models_to_plot=model_names[3:],
+                   output_filebase="tausq_ZAMS_Compare_Widehat_solarmass",
+                   zoom_ymax=2000,mass_limits=[mass_split,1.4])
 
     # # Replace blends with literature
     # # Only q=0
