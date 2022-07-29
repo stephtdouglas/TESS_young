@@ -134,7 +134,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             nchunks = (len(model_ages) // cpu_count) + 1
             chunksize = len(model_ages) // nchunks
 
-            print(f"{cpu_count} CPUs, chunk size {chunksize}")
+            print(f"{cpu_count} CPUs, {nchunks} chunks, chunk size {chunksize}")
             print("starting multiprocessing run",model)
 
             tau_sq_args = [[age,pmd,model,period_scale,init_type] for
