@@ -25,7 +25,7 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
         run_all_models(pmd=pmd,output_filebase=f"tausq_syn_{i:04d}",
                        models_to_plot=model_names,to_plot=False)
 
-        break
+        
 
 if __name__=="__main__":
 
