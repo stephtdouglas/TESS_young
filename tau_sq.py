@@ -448,15 +448,17 @@ class PeriodMassModel(PeriodMassDistribution):
     # Replacing: __init__, calc_mass_percentiles (don't need monte carlo)
     # Inheriting: select_obs, plot_obs, plot_period_perc
 
-    def __init__(self,sm,mass_limits=None,n_select=500,rng_seed=37):
+    def __init__(self,sm,mass_limits=None,n_select=500,rng_seed=37,
+                 id_str=None):
         """
         Inputs
         ------
         sm: SpinModel object
         mass_limits: tuple or list, minimum and maximum masses to include
-        n_select: int, number of synthetic observations to generate (default 100)
-                 n_select should be evenly divisible by the number of mass_bins for sm
-                 otherwise fewer stars may be returned
+        n_select: int or array-like, number of synthetic observations to generate
+                  (default 500) n_select should be evenly divisible by the
+                  number of mass_bins for sm otherwise fewer stars may be returned
+                  If array-like, len must match the number of mass-bins for sm
         """
 
         # Generate the synthetic observation set
@@ -486,6 +488,8 @@ class PeriodMassModel(PeriodMassDistribution):
 
         # TODO: include model parameters here
         self.param_string = f"SYN_{self.sm.model_name}_{self.sm.age}Myr"
+        if id_str is not None:
+            self.param_string = self.param_string+id_str
 
     def _generate_sample(self,n_select,rng_seed):
         # TODO: this should incorporate a mass function
@@ -495,23 +499,34 @@ class PeriodMassModel(PeriodMassDistribution):
         # When the model is normalized, each mass bin has a period distribution
         # that should work as a probability distribution for np.random.choice
 
+        try:
+            len_select = len(n_select)
+        except:
+            len_select = 1
+        print(len_select)
+
         rng = np.random.default_rng(rng_seed)
 
         nbins = len(self.sm.mass_bins)-1
-        n_per_bin = n_select // nbins
-        fake_periods = np.zeros(nbins*n_per_bin).reshape(nbins,n_per_bin)
-        fake_masses = np.zeros(nbins*n_per_bin).reshape(nbins,n_per_bin)
+        print(nbins)
+        if len_select==1:
+            n_per_bin = n_select // nbins
+            fake_periods = np.zeros(nbins*n_per_bin).reshape(nbins,n_per_bin)
+            fake_masses = np.zeros(nbins*n_per_bin).reshape(nbins,n_per_bin)
+        else:
+            if len_select!=nbins:
+                print("ERROR! The lengths of n_select and sm.mass_bins must match!")
+                return
+            fake_periods = [np.zeros(n_in_bin) for n_in_bin in n_select]
+            fake_masses = [np.zeros(n_in_bin) for n_in_bin in n_select]
 
         for i in range(nbins):
             bin_center = (self.sm.mass_bins[i]+self.sm.mass_bins[i+1])/2
-            fake_masses[i,:] = bin_center
+            if len_select>1:
+                n_per_bin = n_select[i]
 
+            fake_masses[i] = np.full(n_per_bin,bin_center)
 
-            # I think I can actually just draw from the prot array? I think the values
-            # are already weighted...
-#             prob_dist = self.sm.img[:,i]
-#             print(prob_dist)
-#             print(self.sm.prot_array)
 
             model_loc = ((self.sm.mass_array>=self.sm.mass_bins[i]) &
                          (self.sm.mass_array<self.sm.mass_bins[i+1]))
@@ -519,8 +534,12 @@ class PeriodMassModel(PeriodMassDistribution):
             fake_periods[i] = rng.choice(a=self.sm.prot_array[model_loc],size=n_per_bin,
                                          replace=True,p=self.sm.prot_prob[model_loc])
 
-        self.prot_raw = fake_periods.flatten()
-        self.mass_raw = fake_masses.flatten()
+        if len_select==1:
+            self.prot_raw = fake_periods.flatten()
+            self.mass_raw = fake_masses.flatten()
+        else:
+            self.prot_raw = np.concatenate(fake_periods)
+            self.mass_raw = np.concatenate(fake_masses)
 
 
 

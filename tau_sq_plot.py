@@ -39,8 +39,9 @@ display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",
                  "WideHat8Myr_Mattea2015":"Matt+15; uniform initialization",
                  "WideHat8Myr_Mattea2022":"Matt+in prep; uniform initialization",
                  "WideHat8Myr_ZeroTorque":"Zero Torque; uniform initialization"}
-model_names = ["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque",
-               "WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
+model_names = np.asarray(["UpSco_Mattea2015","UpSco_Mattea2022",
+                          "UpSco_ZeroTorque","WideHat8Myr_Mattea2015",
+                          "WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"])
 nmod = 6
 nage = 118
 # In[3]:
@@ -175,9 +176,45 @@ def plot_all_models(max_q=0,include_blends=True,include_lit=False,
             plt.savefig(f"plots/model_frames/tausq_{model}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png",bbox_inches="tight",dpi=600)
             plt.close()
 
+def plot_tausq_tracks(ttab,models_to_plot=None,ax=None,
+                      output_filebase="tausq_tracks"):
 
+    outfilename = output_filebase
+    if ax is None:
+        new_fig = True
+        fig = plt.figure()
+        fig.patch.set_facecolor('w')
+        fig.patch.set_alpha(1.0)
+        ax = plt.subplot(111)
+    else:
+        new_fig = False
 
+    if models_to_plot is None:
+        models_to_plot = []
+        for colname in ttab.columns:
+            if ("Age" in colname)==False:
+                models_to_plot.append(colname)
 
+    for j, model in enumerate(models_to_plot):
+        # print(j,model)
+        age_colname = f"Age_{model}"
+        if "UpSco" in model:
+            ls = "--"
+        else:
+            ls = "-"
+
+        cj = np.where(model==model_names)[0][0]
+        ax.plot(ttab[age_colname],ttab[model],ls,
+                label=display_names[model],
+                color=mapper.to_rgba((cj % 3)+1),alpha=0.5)
+
+    if new_fig:
+        ax.legend(loc=2)
+        ax.set_xlabel("Model age (Myr)",fontsize=16)
+        ax.set_ylabel("tau squared",fontsize=16)
+
+        ax.tick_params(labelsize=12)
+        ax.set_xticks(np.arange(0,300,25),minor=True)
 
 
 if __name__=="__main__":
