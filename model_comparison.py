@@ -336,12 +336,19 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # Sean's models
     ax = axes[0,0]
 
-    mfile = at.read("models/spintracks_Matt_ea_15/spintrack10_Mea15.txt",
-                    names=["age(yr)","P0_0.7","P0_5","P0_18"])
+    linestyle=["--","-",":"]
+    for j,model in enumerate(["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque"]):
+        mfiles = glob.glob(f"models/{model}*csv")
+        for mfilename in mfiles:
+            mfile = at.read(mfilename)
+            pinit = float(mfilename.split("/")[-1].split("_")[3][1:5])
 
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_0.7"],color=mapper.to_rgba(0.7))
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_5"],color=mapper.to_rgba(5))
-    ax.plot(mfile["age(yr)"]/1e6,mfile["P0_18"],color=mapper.to_rgba(18))
+            ax.plot(mfile["age(Myr)"],mfile["per"],
+                    color=mapper.to_rgba(pinit),linestyle=linestyle[j])
+            if j==1:
+                ax.plot([0,mfile["age(Myr)"][0]],[mfile["per"][0],mfile["per"][0]],
+                        color=mapper.to_rgba(pinit),linestyle=linestyle[j])
+
 
     ax.set_xlim(1,1e4)
     ax.tick_params(labelbottom=False)
@@ -469,21 +476,17 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     # plt.savefig(f"plots/periodtracks{plot_name}_Amard2019_clean{clean_limit}.png")
 
     ########################################################################
-    # Sean's new models
+    # Spada & Lanzafame 2020
     ax = axes[2,1]
 
-    linestyle=["--","-",":"]
-    for j,model in enumerate(["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque"]):
-        mfiles = glob.glob(f"models/{model}*csv")
-        for mfilename in mfiles:
-            mfile = at.read(mfilename)
-            pinit = float(mfilename.split("/")[-1].split("_")[3][1:5])
-
-            ax.plot(mfile["age(Myr)"],mfile["per"],
-                    color=mapper.to_rgba(pinit),linestyle=linestyle[j])
-            if j==1:
-                ax.plot([0,mfile["age(Myr)"][0]],[mfile["per"][0],mfile["per"][0]],
-                        color=mapper.to_rgba(pinit),linestyle=linestyle[j])
+    sfile = at.read("models/spadalanzafame2020_tableA1.dat",delimiter="\t")
+    i = np.where(sfile["Mass"]==1.00)
+    ages_gyr = np.array([0.10,0.12,0.15,0.20,0.22,0.25,0.30,0.40,0.50,
+                         0.60,0.70,1.00,1.50,2.00,2.50,4.00,4.57])
+    solar_slow = np.array([4.33,4.45,4.64,4.98,5.12,5.33,5.70,6.45,7.21,7.95,
+                           8.69,10.79,13.91,16.63,19.06,25.23,27.32])
+    color = mapper.to_rgba(float(sfile["0.10Gyr"][i]))
+    ax.plot(ages_gyr*1e3,solar_slow,'-',color=color)
 
     ax.set_xlim(1,1e4)
     ax.tick_params(labelleft=False)
@@ -493,7 +496,7 @@ def plot_model_tracks(ages,plot_name="",plot_title="",clean_limit=10,
     ax.set_xlabel("Age (Myr)")
     # ax.set_ylabel("Period (d)")
 
-    ax.set_title(f"Matt et al. (in prep)")#", Solar mass, C{clean_limit}{plot_title}")
+    ax.set_title(f"Spada & Lanzafame (2020)")#", Solar mass, C{clean_limit}{plot_title}")
     # plt.savefig(f"plots/periodtracks{plot_name}_Matt2015_clean{clean_limit}.png")
 
     plt.savefig(f"plots/periodtracks{plot_name}_page_clean{clean_limit}.png",
