@@ -7,9 +7,9 @@
 #
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=0:15:00
+#SBATCH --time=0:30:00
 #SBATCH --mem-per-cpu=8gb
-#SBATCH --array=20-59
+#SBATCH --array=30-59
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=douglste@lafayette.edu
 
@@ -44,8 +44,7 @@ cd ..
 
 pwd
 
-ls
-
 ls ./*
 
+ls ./*/*
 
