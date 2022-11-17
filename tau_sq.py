@@ -503,12 +503,12 @@ class PeriodMassModel(PeriodMassDistribution):
             len_select = len(n_select)
         except:
             len_select = 1
-        print(len_select)
+        # print(len_select)
 
         rng = np.random.default_rng(rng_seed)
 
         nbins = len(self.sm.mass_bins)-1
-        print(nbins)
+        # print(nbins)
         if len_select==1:
             n_per_bin = n_select // nbins
             fake_periods = np.zeros(nbins*n_per_bin).reshape(nbins,n_per_bin)
