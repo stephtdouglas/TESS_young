@@ -778,6 +778,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
     if cluster!="Collinder_135":
         out_cat = pmcat2["TIC","GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC",
+                         "GAIAEDR3_PMRA","GAIAEDR3_PMDEC",
+                         "GAIAEDR3_PARALLAX","GAIAEDR3_PARALLAX_CORRECTED",
                          "GAIAEDR3_RUWE","GAIAEDR3_G","GAIAEDR3_G_ERR",
                          "GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_BP_ERR",
                          "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
@@ -808,6 +810,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         pmcat2["GES_Target"][:].mask = True
         pmcat2["GES_Cluster"][:].mask = True
         out_cat = pmcat2["TIC","GAIAEDR3_ID","GAIAEDR3_RA","GAIAEDR3_DEC",
+                         "GAIAEDR3_PMRA","GAIAEDR3_PMDEC",
+                         "GAIAEDR3_PARALLAX","GAIAEDR3_PARALLAX_CORRECTED",
                          "GAIAEDR3_RUWE","GAIAEDR3_G","GAIAEDR3_G_ERR",
                          "GAIAEDR3_G_CORRECTED","GAIAEDR3_BP","GAIAEDR3_BP_ERR",
                          "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
