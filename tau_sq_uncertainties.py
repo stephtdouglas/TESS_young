@@ -24,10 +24,10 @@ display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",
                  "WideHat8Myr_ZeroTorque":"Zero Torque; uniform initialization"}
 
 def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
-                          output_filebase="tausq_tracks"):
+                          output_filebase="tausq_tracks",best_age_init=80):
 
     _dir = "./tables/"
-    outfilename = output_filebase
+    outfilename = f"{output_filebase}_{ref_model}"
 
     # Make a figure and plot all of the individual runs
     fig = plt.figure()
@@ -38,7 +38,8 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
     best_age = np.zeros(n_sets)*np.nan
 
     for i in range(n_sets):
-        syn2_file = os.path.join(_dir,f"tausq_syn_{i:04d}_SYN_{ref_model}_80Myr.csv")
+        # syn2_file = os.path.join(_dir,f"tausq_syn_{i:04d}_SYN_{ref_model}_80Myr.csv")
+        syn2_file = os.path.join(_dir,f"SYN_binselect_{compare_model}{i:04d}_SYN_{ref_model}_{best_age_init}Myr.csv")
         syn2 = at.read(syn2_file)
 
         best_loc = np.argmin(syn2[compare_model])
@@ -46,6 +47,8 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
         plot_tausq_tracks(syn2,models_to_plot=[compare_model],ax=ax)
 
     plt.title("Synthetic Obs Set 2")
+    plt.xlabel("Age [Myr]")
+    plt.ylabel("Tau squared")
     plt.savefig(f"plots/{outfilename}_set2.png",dpi=600,bbox_inches="tight")
 
     # # Histogram the best fit ages (not statistically useful, but interesting)
@@ -58,7 +61,14 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    syn1_file = os.path.join(_dir,f"tausq_compare_SYN_{ref_model}_80Myr.csv")
+    syn1_finder = glob.glob(os.path.join(_dir,f"*SYN2*{ref_model}.csv"))
+    if len(syn1_finder)==1:
+        syn1_file=syn1_finder[0]
+    else:
+        print("uh oh",syn1_finder)
+        return
+    # syn2_file = os.path.join(_dir,f"tausq_SYN_bin_{compare_model}{i:04d}_SYN_{ref_model}_{best_age}Myr.csv")
+    # syn1_file = os.path.join(_dir,f"tausq_compare_SYN_{ref_model}_80Myr.csv")
     syn1 = at.read(syn1_file)
 
     plot_tausq_tracks(syn1,models_to_plot=[ref_model],ax=ax)
@@ -107,4 +117,6 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
 
 if __name__=="__main__":
 
-    analyze_synthetic_obs("WideHat8Myr_Mattea2022","WideHat8Myr_Mattea2022")
+    # analyze_synthetic_obs("WideHat8Myr_Mattea2022","WideHat8Myr_Mattea2022")
+    analyze_synthetic_obs("WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2015",
+                          best_age_init=126,output_filebase="tausq_tessonly")
