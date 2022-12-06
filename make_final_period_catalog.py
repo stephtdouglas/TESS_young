@@ -8,13 +8,20 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import astropy.io.fits as fits
 import astropy.io.ascii as at
-from astropy.table import join,vstack,Table
-import astropy.table as table
 from astropy.coordinates import SkyCoord
 import astropy.units as u
+import astropy.table as table
+from astropy.table import join,vstack,Table
 from scipy import stats
 from scipy.interpolate import interp1d
 from astroquery.mast import Catalogs
+
+# import warnings
+# with warnings.catch_warnings():
+#     warnings.filterwarnings("ignore", category=VerifyWarning)
+#     import astropy.table as table
+#     from astropy.table import join,vstack,Table
+
 
 
 def read_validation_results(cluster, date, which=None):
@@ -41,7 +48,7 @@ def read_validation_results(cluster, date, which=None):
     # These have to be -9999 because comparison with NaNs gets messed up
     vis["second_period"] = np.ones_like(vis["final_period"])*-9999
     vis["second_power"] = np.ones_like(vis["final_power"])*-9999
-    vis["second_Q"] = np.ones_like(vis["final_Q"])*4
+    vis["second_Q"] = np.ones_like(vis["final_Q"])*8
 
     # If I flaggged the highest peak as bad, but selected another peak,
     # Select that one instead
@@ -110,12 +117,14 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
     # Retrieve the two validation catalogs
     cat1 = read_validation_results(cluster,date)
-    # Temporary fix because I haven't finished re-validating IC 2602
     cat2 = read_validation_results(cluster,date,which=2)
+    print(len(np.unique(cat1["TIC"])),"Unique TIC IDs, validation 1")
+    print(len(np.unique(cat2["TIC"])),"Unique TIC IDs, validation 2")
 
     # Crossmatch the validation catalogs on TIC IDs
     allcat = join(cat1,cat2,keys=["TIC"])
     print(len(allcat),"TESS results")
+    print(len(np.unique(allcat["TIC"])),"Unique TIC IDs")
 
     # Create new columns to hold the final-final values for
     # period, Q, light curve info, peak power, threshold, multi/spot flags
@@ -123,7 +132,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     # Prot1, Pw1, Q1, Sig, Prot2, Pw2, Q2, MP?, SE?
     # Bl? (this will be an automated flag, unlike my previous papers)
     new_cols_float = [np.ones(len(allcat))*-9999 for i in range(5)]
-    new_cols_int = [np.ones(len(allcat))*4 for i in range(2)]
+    new_cols_int = [np.ones(len(allcat))*8 for i in range(2)]
     new_cols_char = [np.zeros(len(allcat),"U1") for i in range(3)]
     allcat.add_columns(new_cols_float,names=["Prot1", "Pw1", "Sig",
                                              "Prot2", "Pw2"])
@@ -180,7 +189,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     for i in range(ncols):
         allcat[output_cols[i]][good] = allcat[init_cols[i]][good]
     for i in range(ncols2):
-        allcat[output_cols[i]][good2] = allcat[init_cols[i]][good2]
+        allcat[output_cols2[i]][good2] = allcat[init_cols2[i]][good2]
 
     ## Cycle through all the stars with differing results
     diff_idx = np.where(diff_results)[0]
@@ -417,6 +426,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         cat_init2.rename_column("GaiaEDR3_ID","GAIAEDR3_ID")
 
     cat_init = join(cat_init1,cat_init2,keys="GAIAEDR3_ID")
+    print(len(cat_init1),len(cat_init2),"minesweeper inputs")
 
     if cat_init.masked == False:
         cat_init = Table(cat_init, masked=True, copy=False)
@@ -569,6 +579,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     pmcat = join(xmatch,periods,keys=["TIC"],join_type='left')
     print(len(xmatch),len(periods))
     print(len(pmcat),"periods and membership")
+    has_periods = np.where((pmcat["Prot1"]>0) & (pmcat["Prot1"].mask==False))[0]
+    print(len(has_periods),"periods and membership: actual periods")
     print(np.unique(pmcat["Q1"]))
     unmask = pmcat["Q1"].mask==True
     pmcat["Q1"][unmask] = 9
@@ -747,18 +759,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     ##########################################################################
     ##### Add literature periods
 
-    lit = at.read("tab_all_lit_periods.csv",delimiter=",")
-    lit["Source"] = lit["Source"].astype("U25")
-    utic, tinv, tct = np.unique(lit["TIC"], return_inverse=True,
-                                return_counts=True)
-    repeat_loc = np.array([utic[v] for v in tinv])
-    rep_barnes = np.intersect1d(repeat_loc,
-                                np.where(lit["Source"]=="barnes1996")[0])
-    rep_tschape = np.intersect1d(repeat_loc,
-                                np.where(lit["Source"]=="tschape2001")[0])
-
-    lit["Source"][rep_barnes] = "barnes1996, tschape2001"
-    lit.remove_rows(rep_tschape)
+    lit = at.read("tab_lit_periods_consolidated.csv",delimiter=",")
     lit.rename_column("Source","LitSource")
 
     lit2 = lit[(lit["TIC"]>0) & (lit["LitPeriod"].mask==False)]
@@ -844,14 +845,19 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     hdb_memb = (out_cat["MemBool"]==1)  & (out_cat["MemBool"].mask==False)
 
     # Jackson+2020 Table 4/Section 4 indictes that 0.9 is the membership cutoff
-    ges_memb = (out_cat["GES_MemProb"]>=0.9) & (out_cat["GES_MemProb"].mask==False)
+    ges_memb = (((out_cat["GES_MemProb"]>=0.9) & (out_cat["GES_MemProb"]<=1))
+                & (out_cat["GES_MemProb"].mask==False))
 
-    can_memb = (out_cat["CG_MemProb"]>=0.7) & (out_cat["CG_MemProb"].mask==False)
+    can_memb = (((out_cat["CG_MemProb"]>=0.7) & (out_cat["CG_MemProb"]<=1))
+                & (out_cat["CG_MemProb"].mask==False))
 
     hdb_memb1 = np.asarray(hdb_memb,"int")
     ges_memb1 = np.asarray(ges_memb,"int")
     can_memb1 = np.asarray(can_memb,"int")
     sum_memb = hdb_memb1 + ges_memb1 + can_memb1
+
+    for i in range(4):
+        print(len(np.where(sum_memb==i)[0]))
 
     if cluster=="Collinder_135":
         out_cat["to_plot"][hdb_memb | can_memb] = 1
@@ -859,7 +865,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         out_cat["to_plot"][sum_memb>=2] = 1
     # TODO: I think this is missing some stars! Need to check later
     print("\n",len(np.where(out_cat["to_plot"]==1)[0]),"stars to plot")
-    print(len(np.where((out_cat["to_plot"]==1) & (out_cat["Prot1"]>0))[0]),"with periods")
+    print(len(np.where((out_cat["to_plot"]==1) & (out_cat["Prot1"]>0) &
+                       (out_cat["Prot1"].mask==False)
+                       )[0]),"with periods")
 
     # TIC ID
     # Gaia data: EDR3 ID, DR2 ID?, RA, Dec, photometry, RUWE
@@ -906,6 +914,6 @@ if __name__=="__main__":
     at.write(all_outputs,"tab_all_stars.csv", delimiter=",",overwrite=True)
     at.write(all_periods,"tab_all_tess_periods.csv", delimiter=",",overwrite=True)
 
-    with open("tab_cols_all_stars.dat","w") as f:
+    with open("tab_cols_all_stars_blank.dat","w") as f:
         for i,colname in enumerate(all_outputs.dtype.names):
-            f.write("{i+1} & {colname} & \\\\\n")
+            f.write(f"{i+1} & {colname} & \\\\\n")

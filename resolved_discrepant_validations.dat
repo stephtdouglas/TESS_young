@@ -9,3 +9,4 @@ TIC       provenance_name flux_cols sequence_number final_period final_Q second_
 175024957 QLP              sap_flux  8               3.4815       0      0.3821        0      NGC_2451A      _2
 175525086 CDIPS            PCA1      8               0.7148       1      nan           4      NGC_2451A      _1
 238645199 QLP              sap_flux  7               5.5747       1      nan           4      NGC_2547       _2
+157568028 QLP              sap_flux  7               9.3036       1      nan           4      Collinder_135  _2
