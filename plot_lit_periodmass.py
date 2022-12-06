@@ -12,26 +12,12 @@ import astropy.io.ascii as at
 from astropy.table import join, Table, vstack
 from astropy import units as u
 
-import plot_spt_axis
 
+import plot_spt_axis
+import get_colors
+norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
 plt.style.use('./paper.mplstyle')
 
-
-cmap2 = cm.get_cmap("viridis",7)
-colors = {"IC_2391": cmap2(0),
-         "IC_2602": cmap2(4),
-         "NGC_2547": cmap2(3),
-         "NGC_2451A": cmap2(2),
-         "Collinder_135": cmap2(1)}
-
-
-shapes = {"IC_2391": "o",
-         "IC_2602": "d",
-         "NGC_2547": "v",
-         "NGC_2451A": "^",
-         "Collinder_135": "s"}
-
-# clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
 lit_clusters = ["IC_2391","NGC_2547","IC_2602"]
 
 PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
@@ -42,7 +28,7 @@ def plot_literature_periodcolor(ax=None):
     if ax is None:
         plt.figure()
         ax = plt.subplot(111)
-    lit_color = "#595959"
+    # lit_color = "#595959"
 
     tab = at.read("tab_all_stars.csv")
     ltab = tab[tab["LitPeriod"].mask==False]
@@ -73,10 +59,25 @@ def plot_literature_periodcolor(ax=None):
 
     return ax
 
-def plot_literature_periodcolor_comparisons(ax=None):
+def add_literature_periodcolor(ax=None):
+    """
+    Add the literature Prot to a periodcolor plot in grey
+    """
     if ax is None:
         plt.figure()
         ax = plt.subplot(111)
+    lit_color = "#595959"
+
+    tab = at.read("tab_all_stars.csv")
+    ltab = tab[tab["LitPeriod"].mask==False]
+    bp_rp = ltab["GAIAEDR3_BP"] - ltab["GAIAEDR3_RP"]
+
+    for i,cluster in enumerate(lit_clusters):
+        loc = (ltab["Cluster"]==cluster) & (ltab["to_plot"]==1)
+
+        ax.plot(bp_rp[loc],ltab["LitPeriod"][loc],shapes[cluster],
+                color=lit_colors,label=cluster.replace("_"," ")+" Lit",
+                zorder=-10)
 
 
 if __name__=="__main__":

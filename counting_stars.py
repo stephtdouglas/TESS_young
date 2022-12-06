@@ -39,10 +39,16 @@ def check_inputs_outputs(cluster,date,allcat):
     ncat = len(np.where(allcat["Cluster"]==cluster)[0])
     has_periods = (allcat["Prot1"]>0) & (allcat["Prot1"].mask==False)
     nper = len(np.where((allcat["Cluster"]==cluster) & has_periods)[0])
+    has_lit = (allcat["LitPeriod"].mask==False)
+    nlit = len(np.where((allcat["Cluster"]==cluster) & has_lit)[0])
+    new_periods = has_periods & (has_lit==False)
+    nnew = len(np.where((allcat["Cluster"]==cluster) & new_periods)[0])
 
     print(ncat,"in final catalog")
     print(nper,"in final catalog with periods")
     print(len(np.unique(allcat[allcat["Cluster"]==cluster]["GAIAEDR3_ID"])))
+    print(nlit,"literature periods")
+    print(nnew,"new periods from TESS")
 
     return(ncat,nper)
 
@@ -68,7 +74,8 @@ if __name__=="__main__":
     print(len(np.where(allcat["to_plot"]==1)[0]),"good membership",
           len(np.where((allcat["Q1"]<=1) & (allcat["to_plot"]==1))[0]), "with periods")
 
-    print(len(np.where((allcat["to_plot"]==1) & (allcat["LitPeriod"]>0))[0]), "with lit periods")
+    print(len(np.where((allcat["to_plot"]==0) & (allcat["LitPeriod"].mask==False))[0]), "with lit periods, only one catalog")
+    print(len(np.where((allcat["to_plot"]==1) & (allcat["LitPeriod"].mask==False))[0]), "with lit periods, good for plotting")
 
     solar = (allcat["Mass"]>=0.9) & (allcat["Mass"]<=1.1)
     print(len(np.where((allcat["to_plot"]==1) & solar)[0]),"good membership solar",
