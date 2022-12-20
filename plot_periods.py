@@ -185,8 +185,8 @@ def plot_periodcolor(dat, clusters, single_figure=False):
         # ax.axhline(12,linestyle="--",color="tab:grey")
         ax.set_title(cluster.replace("_"," "))
 
-        cloc = (dat["Cluster"]==cluster) & (dat["Q1"]==0)
-        cloc1 = (dat["Cluster"]==cluster) & (dat["Q1"]==1)
+        cloc = (dat["Cluster"]==cluster) & (dat["Q1"]==0) & (dat["to_plot"]==1)
+        cloc1 = (dat["Cluster"]==cluster) & (dat["Q1"]==1) & (dat["to_plot"]==1)
 
         ax.plot(bp_rp[cloc],dat["Prot1"][cloc],shapes[cluster],
                  label="High Q TESS",
@@ -201,7 +201,7 @@ def plot_periodcolor(dat, clusters, single_figure=False):
                         bbox_inches="tight",dpi=600)
 
         cl_lit = ((dat["Cluster"]==cluster) & (dat["LitPeriod"].mask==False)
-                & (dat["LitPeriod"]>0))
+                & (dat["LitPeriod"]>0) & (dat["to_plot"]==1))
         if np.any(cl_lit):
             ax.plot(bp_rp[cl_lit],dat["LitPeriod"][cl_lit],shapes[cluster],
                     mec="DarkGrey",mfc="none",ms=9,label="Literature")
@@ -236,7 +236,7 @@ def plot_periodcolor(dat, clusters, single_figure=False):
 
     lit = dat["LitPeriod"].mask==False
     bad_tess = (dat["Q1"]>=1) | (dat["Bl?"]=="y")
-    lit_replace = lit &  bad_tess
+    lit_replace = lit &  bad_tess & (dat["to_plot"]==1)
     ax.plot(bp_rp[lit_replace],dat["LitPeriod"][lit_replace],'*',ms=7,
             label="Lit replaces TESS",color=cmap2(5),mec=cmap2(2))
     ax.legend(fontsize=12,ncol=2)
@@ -248,6 +248,61 @@ def plot_periodcolor(dat, clusters, single_figure=False):
         plt.savefig("plots/periocdolor_panel.png",bbox_inches="tight")
         plt.savefig(os.path.join(PAPER_DIR,"fig_periodcolor_panel.pdf"),
                     bbox_inches="tight")
+    plt.close()
+
+
+def plot_periodcolor_membership(dat):
+
+    bp_rp = dat["GAIAEDR3_BP"]-dat["GAIAEDR3_RP"]
+
+    fig, axes = plt.subplots(2,2,figsize=(12,8),sharex=True,sharey=True)
+    fl_axes = np.asarray(axes).flatten()
+    ax_all = fl_axes[-1]
+
+    # Membership filter for plotting
+    hdb_memb = (dat["MemBool"]==1)  #& (dat["MemBool"].mask==False)
+
+    # Jackson+2020 table 4/Section 4 indictes that 0.9 is the membership cutoff
+    ges_memb = ((dat["GES_MemProb"]>=0.9) & (dat["GES_MemProb"]<=1))
+                # & (dat["GES_MemProb"].mask==False))
+
+    can_memb = ((dat["CG_MemProb"]>=0.7) & (dat["CG_MemProb"]<=1))
+                # & (dat["CG_MemProb"].mask==False))
+
+    catalogs = ["HDBScan","Gaia-ESO Survey","Cantat-Gaudin","Combined"]
+    memb = [hdb_memb, ges_memb, can_memb, dat["to_plot"]==1]
+
+    for i, catalog in enumerate(catalogs):
+
+        ax = fl_axes[i]
+
+        if (i==0):
+            ax.set_ylim(0.1,50)
+            ax.set_xlim(0.5,3.5)
+            ax.set_yscale("log")
+
+        if (i % 2 == 0):
+            ax.set_ylabel("Period (d)")#,fontsize=16)
+        if (i>=2):
+            ax.set_xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)")#,fontsize=16)
+            # ax.tick_params(labelsize=14)
+
+        # ax.axhline(12,linestyle="--",color="tab:grey")
+        ax.set_title(catalog)
+
+        cloc = memb[i] & (dat["Q1"]==0)
+        cloc1 = memb[i] & (dat["Q1"]==1)
+
+        ax.plot(bp_rp[cloc],dat["Prot1"][cloc],'o',
+                 label="High Q TESS",ms=5,color="k",zorder=6)
+        ax.plot(bp_rp[cloc1],dat["Prot1"][cloc1],'o',
+                 label="Low Q TESS",ms=5,color="k",zorder=6,mfc="none")
+        ax.legend(loc=1,fontsize=12)
+
+
+    plt.savefig("plots/periocdolor_membership.png",bbox_inches="tight")
+    # plt.savefig(os.path.join(PAPER_DIR,"fig_periodcolor_panel.pdf"),
+    #             bbox_inches="tight")
     plt.close()
 
 
@@ -354,4 +409,5 @@ if __name__=="__main__":
     dat = at.read("tab_all_stars.csv")
 
     plot_periodcolor(dat, clusters, single_figure=True)
+    plot_periodcolor_membership(dat)
     # plot_periodmass(dat, clusters)
