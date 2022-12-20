@@ -15,7 +15,7 @@ import get_colors
 norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
 plt.style.use('./paper.mplstyle')
 PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
-lit_clusters = ["IC_2391","NGC_2547","IC_2602"]
+lit_clusters = ["IC_2391","IC_2602","NGC_2547"]
 
 lit_papers = {"IC_2391":"Patten & Simon (1996)",
               "IC_2602":"Patten+ (1996), Barnes+ (1999)",
@@ -38,9 +38,22 @@ def compare_literature():
         q1 = (ltab["Q1"]==1) & (ltab["Cluster"]==cluster)
         ax.plot(ltab["LitPeriod"][q0],ltab["Prot1"][q0],shapes[cluster],
                  color=colors[cluster],label=lit_papers[cluster])
-        ax.plot(ltab["LitPeriod"][q1],ltab["Prot1"][q1],shapes[cluster],color=colors[cluster],
-                 mfc="none",label="TESS low-quality")
+        ax.plot(ltab["LitPeriod"][q1],ltab["Prot1"][q1],shapes[cluster],
+                color=colors[cluster],mfc="none",label="TESS low-quality")
         ax.legend(loc=2)
+
+        multi = np.where((q0 | q1) & (ltab["Q2"]<=1))[0]
+        for i in multi:
+            ax.plot([ltab["LitPeriod"][i],ltab["LitPeriod"][i]],
+                    [ltab["Prot1"][i],ltab["Prot2"][i]],"-",color=colors[cluster],
+                    zorder=-5)
+            if ltab["Q2"][i]==0:
+                ax.plot(ltab["LitPeriod"][i],ltab["Prot2"][i],shapes[cluster],
+                        color=colors[cluster],label=lit_papers[cluster])
+            else:
+                ax.plot(ltab["LitPeriod"][i],ltab["Prot2"][i],shapes[cluster],
+                        color=colors[cluster],mfc="none",label="TESS low-quality")
+
 
 
         # Identify significant discrepancies
@@ -63,6 +76,9 @@ def compare_literature():
                 ax.plot(x,beat_period,":",zorder=-5,color="lightgrey")
                 ax.plot(beat_period,x,":",zorder=-5,color="lightgrey")
 
+        if cluster=="IC_2391":
+            # Connect the components of Cl* IC 2391 SHJM 4/5
+            ax.plot([0.21,0.93],[0.11,0.11],'-',color=colors[cluster],zorder=-5)
 
         ax.set_xlim(0.1,50)
         ax.set_ylim(0.1,50)

@@ -48,7 +48,7 @@ def read_validation_results(cluster, date, which=None):
     # These have to be -9999 because comparison with NaNs gets messed up
     vis["second_period"] = np.ones_like(vis["final_period"])*-9999
     vis["second_power"] = np.ones_like(vis["final_power"])*-9999
-    vis["second_Q"] = np.ones_like(vis["final_Q"])*8
+    vis["second_Q"] = np.ones_like(vis["final_Q"])*9
 
     # If I flaggged the highest peak as bad, but selected another peak,
     # Select that one instead
@@ -85,7 +85,7 @@ def read_validation_results(cluster, date, which=None):
     good3 = (vis["Q3"]==0) | (vis["Q3"]==1)
     multi_q = (good1 & good2) | (good1 & good3) | (good2 & good3)
 
-    q2 = ["Q2","Q3","Q3"]
+    # q2 = ["Q2","Q3","Q3"] # What was this for?
 
     for gi in np.where((good1 & good2))[0]:
         vis["second_period"][gi] = vis["sec_periods"][gi]
@@ -222,7 +222,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             # higher_peak = np.argmax(allcat["final_"])
 
             # If I assigned different Q values, assign the lower Q value
-            allcat["Q1"][i] = max(allcat["final_Q_1","final_Q_2"][i])
+            allcat["Q1"][i] = min(allcat["final_Q_1","final_Q_2"][i])
             allcat["Prot1"][i] = allcat["final_period_1"][i]
             allcat["Pw1"][i] = allcat["final_power_1"][i]
             allcat["provenance_name"][i] = allcat["provenance_name_1"][i]
@@ -294,7 +294,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             # higher_peak = np.argmax(allcat["final_"])
 
             # If I assigned different Q values, assign the lower Q value
-            allcat["Q2"][i] = max(allcat["second_Q_1","second_Q_2"][i])
+            allcat["Q2"][i] = min(allcat["second_Q_1","second_Q_2"][i])
             allcat["Prot2"][i] = allcat["second_period_1"][i]
             allcat["Pw2"][i] = allcat["second_power_1"][i]
 
@@ -328,7 +328,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     secondary_still_bad = np.array(secondary_still_bad)
     still_bad = np.asarray(np.union1d(primary_still_bad,secondary_still_bad),int)
 
-    if (len(still_bad)>0) and (cluster!="IC_2602"):
+    if len(still_bad)>0:
         resolved = at.read("resolved_discrepant_validations.dat")
         for i in still_bad:
             loc = np.where(allcat["TIC"][i]==resolved["TIC"])[0]

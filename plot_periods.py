@@ -16,6 +16,9 @@ from model_data_percentiles import zams_percentiles
 import get_colors
 norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
 
+plt.style.use('./paper.mplstyle')
+PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
+
 def plot_periodmass(dat, clusters):
 
     mass = dat["Mass"]
@@ -151,67 +154,102 @@ def plot_periodmass(dat, clusters):
     plt.close()
 
 
-def plot_periodcolor(dat, clusters):
+def plot_periodcolor(dat, clusters, single_figure=False):
 
     bp_rp = dat["GAIAEDR3_BP"]-dat["GAIAEDR3_RP"]
 
+    if single_figure:
+        fig, axes = plt.subplots(3,2,figsize=(12,12),sharex=True,sharey=True)
+        fl_axes = np.asarray(axes).flatten()
+        ax_all = fl_axes[-1]
+
     for i, cluster in enumerate(clusters):
-        plt.figure()
+
+        if single_figure is False:
+            plt.figure()
+            ax = plt.subplot()
+        else:
+            ax = fl_axes[i]
+
+        if (single_figure is False) or (i==0):
+            ax.set_ylim(0.1,50)
+            ax.set_xlim(0.5,3.5)
+            ax.set_yscale("log")
+
+        if (single_figure is False) or (i % 2 == 0):
+            ax.set_ylabel("Period (d)")#,fontsize=16)
+        if (single_figure is False) or (i>=4):
+            ax.set_xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)")#,fontsize=16)
+            # ax.tick_params(labelsize=14)
+
+        # ax.axhline(12,linestyle="--",color="tab:grey")
+        ax.set_title(cluster.replace("_"," "))
+
         cloc = (dat["Cluster"]==cluster) & (dat["Q1"]==0)
         cloc1 = (dat["Cluster"]==cluster) & (dat["Q1"]==1)
 
-        plt.title(cluster.replace("_"," "))
-        plt.plot(bp_rp[cloc],dat["Prot1"][cloc],shapes[cluster],
-                 label="High quality TESS periods",
+        ax.plot(bp_rp[cloc],dat["Prot1"][cloc],shapes[cluster],
+                 label="High Q TESS",
                  ms=5,color=colors[cluster],zorder=6)
-        plt.plot(bp_rp[cloc1],dat["Prot1"][cloc1],shapes[cluster],
+        ax.plot(bp_rp[cloc1],dat["Prot1"][cloc1],shapes[cluster],
                  ms=5,color=colors[cluster],mfc="none",zorder=0,
-                 label="Lower confidence TESS periods")
-        plt.legend(loc=1)
+                 label="Low Q TESS")
+        ax.legend(loc=1,fontsize=12)
 
-        plt.ylim(0.1,50)
-        plt.xlim(0.5,3.5)
-        plt.yscale("log")
-
-        plt.xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)",fontsize=16)
-        plt.ylabel("Period (d)",fontsize=16)
-
-        ax = plt.gca()
-        ax.tick_params(labelsize=14)
-
-        plt.savefig(f"plots/periodcolor_{cluster}.png",
-                    bbox_inches="tight",dpi=600)
+        if single_figure is False:
+            plt.savefig(f"plots/periodcolor_{cluster}.png",
+                        bbox_inches="tight",dpi=600)
 
         cl_lit = ((dat["Cluster"]==cluster) & (dat["LitPeriod"].mask==False)
                 & (dat["LitPeriod"]>0))
         if np.any(cl_lit):
-            plt.plot(bp_rp[cl_lit],dat["LitPeriod"][cl_lit],shapes[cluster],
+            ax.plot(bp_rp[cl_lit],dat["LitPeriod"][cl_lit],shapes[cluster],
                     mec="DarkGrey",mfc="none",ms=9,label="Literature")
-            plt.legend(loc=1)
-            plt.savefig(f"plots/periodcolor_{cluster}_lit.png",
-                        bbox_inches="tight",dpi=600)
-        plt.close()
-    # ax.axhline(12,linestyle="--",color="tab:grey")
+            ax.legend(loc=1,fontsize=12,ncol=2)
+            if single_figure is False:
+                plt.savefig(f"plots/periodcolor_{cluster}_lit.png",
+                            bbox_inches="tight",dpi=600)
+        if single_figure is False:
+            plt.close()
+
+
+    if single_figure is False:
+        plt.figure()
+        ax = plt.subplot()
+        ax.set_ylim(0.1,50)
+        ax.set_xlim(0.5,3.5)
+        ax.set_yscale("log")
+        ax.set_xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)",fontsize=16)
+        ax.set_ylabel("Period (d)",fontsize=16)
+    else:
+        ax = fl_axes[-1]
+        ax.set_xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)")
 
     no_blend = dat["Bl?"]=="n"
     maybe_blend = dat["Bl?"]=="m"
     good = (dat["Q1"]==0)
-    plt.plot(bp_rp[good],dat["Prot1"][good],'k.',alpha=0.1)
-    plt.plot(bp_rp[good & maybe_blend],dat["Prot1"][good & maybe_blend],'k.',mfc="none")
-    plt.plot(bp_rp[good & no_blend],dat["Prot1"][good & no_blend],'k.')
-    plt.ylim(0.1,50)
-    plt.xlim(0.5,3.5)
-    plt.yscale("log")
+    ax.plot(bp_rp[good],dat["Prot1"][good],'k.',alpha=0.1,label="High Q TESS")
+    ax.plot(bp_rp[good & maybe_blend],dat["Prot1"][good & maybe_blend],'k.',
+            mfc="none",label="Possible blend")
+    ax.plot(bp_rp[good & no_blend],dat["Prot1"][good & no_blend],'k.',
+            label="Not blended")
 
-    plt.xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)",fontsize=16)
-    plt.ylabel("Period (d)",fontsize=16)
+    lit = dat["LitPeriod"].mask==False
+    bad_tess = (dat["Q1"]>=1) | (dat["Bl?"]=="y")
+    lit_replace = lit &  bad_tess
+    ax.plot(bp_rp[lit_replace],dat["LitPeriod"][lit_replace],'*',ms=7,
+            label="Lit replaces TESS",color=cmap2(5),mec=cmap2(2))
+    ax.legend(fontsize=12,ncol=2)
+    ax.set_title("Combined sample")
 
-    ax = plt.gca()
-    ax.tick_params(labelsize=14)
+    if single_figure is False:
+        plt.savefig("plots/periodcolor_all.png",bbox_inches="tight")
+    else:
+        plt.savefig("plots/periocdolor_panel.png",bbox_inches="tight")
+        plt.savefig(os.path.join(PAPER_DIR,"fig_periodcolor_panel.pdf"),
+                    bbox_inches="tight")
+    plt.close()
 
-    plt.savefig("plots/periodcolor_all.png",bbox_inches="tight")
-
-    # return ax
 
 
 def plot_periodcolor_ruwe(clean_limit=0,to_plot_indiv=False):
@@ -308,95 +346,12 @@ def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False,ax=None):
 
     return ax
 
-# def compare_lit_periods(dat,clusters=["IC_2391","IC_2602","NGC_2547"]):
-#
-#     # plt.figure(figsize=(11,3.5))
-#     fig, axes = plt.subplots(1, len(clusters), figsize=(11,3.5),
-#                              sharex=True,sharey=True)
-#
-#     for i, cluster in enumerate(clusters):
-#         cloc = (dat["Cluster"]==cluster) & (dat["LitPeriod"]>0)
-#         good = cloc & (dat["Q1"]==0)
-#         okay = cloc & (dat["Q1"]==1)
-#         secondary = cloc & (dat["Q2"]<=1)
-#
-#         axes[i].plot(dat["LitPeriod"][okay],dat["Prot1"][okay],
-#                     shapes[cluster],ms=5,mec=colors[cluster],mfc="none")
-#         axes[i].plot(dat["LitPeriod"][good],dat["Prot1"][good],
-#                     shapes[cluster],ms=5,color=colors[cluster])
-#         if len(np.where(secondary)[0]):
-#             for j in np.where(secondary)[0]:
-#                 # print(j,dat["Prot1"][j],dat["Prot2"][j],
-#                 #         dat["Q1"][j],dat["Q2"][j])
-#                 axes[i].plot(dat["LitPeriod"][j],dat["Prot2"][j],
-#                             shapes[cluster],ms=5,color=colors[cluster],alpha=0.5)
-#                 axes[i].plot([dat["LitPeriod"][j],dat["LitPeriod"][j]],
-#                              [dat["Prot1"][j],dat["Prot2"][j]],'-',
-#                              color=colors[cluster],linewidth=0.5)
-#         # multi = (good | okay) & ((dat["MP?"]=="y"))
-#         # axes[i].plot(dat["LitPeriod"][multi],dat["Prot1"][multi],shapes[cluster],
-#         #              ms=8,color='k',mfc="none")
-#         x = np.linspace(0.1,50,20)
-#         axes[i].plot(x,x,"-",zorder=-5,color="grey")
-#         axes[i].plot(x,x/2,"--",zorder=-5,color="grey")
-#         axes[i].plot(x,x*2,"--",zorder=-5,color="grey")
-#         axes[i].set_xlabel("Literature Period (d)",fontsize=14)
-#         axes[i].set_title(cluster.replace("_"," "))
-#         axes[i].tick_params(labelsize=12)
-#
-#         print("\n",cluster)
-#         print(len(np.where(cloc)[0]),"literature periods")
-#         print(len(np.where(good)[0]),"with lit and TESS")
-#
-#         no_lit = (dat["LitPeriod"]<=0) | (dat["LitPeriod"].mask==True)
-#         new_tess = (dat["Cluster"]==cluster) & no_lit
-#         print(len(np.where(new_tess)[0]),"new TESS")
-#         solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
-#         print(len(np.where(new_tess & solar)[0]),"new TESS solar")
-#
-#     axes[0].set_xlim(0.1,20)
-#     axes[0].set_ylim(0.1,20)
-#     axes[0].set_yscale("log")
-#     axes[0].set_xscale("log")
-#     axes[0].set_ylabel("TESS Period (d)",fontsize=14)
-#     plt.savefig(f"plots/literature_comparison.png",
-#                 bbox_inches="tight")
-
 
 
 if __name__=="__main__":
-    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
-    dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
+    clusters = ["Collinder_135","NGC_2451A","NGC_2547","IC_2391","IC_2602"]
     dat = at.read("tab_all_stars.csv")
 
-    plot_periodcolor(dat, clusters)
-    plot_periodmass(dat, clusters)
-
-    # # compare_lit_periods(dat)
-    #
-    # cluster = clusters[1]
-    # print("\n",cluster)
-    # new_tess = (dat["Cluster"]==cluster)
-    # print(len(np.where(new_tess)[0]),"new TESS")
-    # solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
-    # print(len(np.where(new_tess & solar)[0]),"new TESS solar")
-    # cluster = clusters[2]
-    # print("\n",cluster)
-    # new_tess = (dat["Cluster"]==cluster)
-    # print(len(np.where(new_tess)[0]),"new TESS")
-    # solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
-    # print(len(np.where(new_tess & solar)[0]),"new TESS solar")
-    #
-    #
-    # print("\nTotals")
-    # solar = (dat["Mass"]>=0.9) & (dat["Mass"]<=1.1)
-    # lit = (dat["LitPeriod"].mask==False) & (dat["LitPeriod"]>0)
-    # lit_solar = lit & solar
-    # tess_solar = ((dat["Q1"]<=1)) & solar
-    # print(len(np.where(lit_solar)[0]),"Literature, solar")
-    # print(len(np.where(tess_solar)[0]),"TESS, solar")
-
-    # plot_periodcolor_ruwe()
-    # plt.savefig("plots/periodcolor_all_ruwe.png",bbox_inches="tight",dpi=300)
-    # plt.show()
+    plot_periodcolor(dat, clusters, single_figure=True)
+    # plot_periodmass(dat, clusters)
