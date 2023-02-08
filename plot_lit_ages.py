@@ -8,77 +8,68 @@ import numpy as np
 import astropy.io.ascii as at
 from astropy.table import join, Table, vstack
 
+import get_colors
+norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+plt.style.use('./paper.mplstyle')
+PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
 
-cmap2 = cm.get_cmap("viridis",7)
-colors = {"IC_2391": cmap2(0),
-         "IC_2602": cmap2(4),
-         "NGC_2547": cmap2(3),
-         "NGC_2451A": cmap2(2),
-         "Collinder_135": cmap2(1)}
-
-
-shapes= {"IC_2391": "o",
-         "IC_2602": "d",
-         "NGC_2547": "v",
-         "NGC_2451A": "^",
-         "Collinder_135": "s"}
+clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
 
 if __name__=="__main__":
 
-    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
+    filename = "tables/TESS_Cluster_parameters_Comparison_Ages.csv"
+    dat = at.read(filename,delimiter=",")
+    print(dat.dtype)
 
-    all_dat = []
+    # Add year, then sort by year and author name
+    dat["year"] = np.ones(len(dat),int)*9999
+    for j, source in enumerate(dat["Source"]):
+        if "Brutus" in source:
+            continue
+        else:
+            dat["year"][j] = int(source[-4:])
+    dat.sort(["year","Source"])
 
-    # First, stack all the values together
-    for i, cluster in enumerate(clusters):
-        cf = cluster.replace("_"," ")
-        filename = f"tables/TESS Cluster parameters - {cf}.csv"
-        dat = at.read(filename,delimiter=",")
-        dat = dat[(dat["Year"]>=2010) & (dat["Age (Myr)"].mask==False)]
-        dat["Cluster"] = np.empty(len(dat),"U14")
-        dat["Cluster"][:] = cluster
-        # These columns are strings in only some tables, just remove them
-        dat.remove_column("e_Age (Myr)")
-        dat.remove_column("e_Distance (pc)")
-        all_dat.append(dat)
+    # Plot each source of ages on a separate line
+    dat["yvals"] = np.arange(len(dat))
 
-    dat = vstack(all_dat)
-    dat.sort(["Year","Source"])
-    print(dat["Source"])
+    # Make figure
+    fig = plt.figure(figsize=(5,8))
+    ax = plt.subplot(111)
+    
+    # Plot the ages for each cluster on the appropriate level
+    for i,cluster in enumerate(clusters):
+        good = dat[f"age_{cluster}"].mask==False
+        age = dat[f"age_{cluster}"][good]
+        asym_err = np.asarray([dat[f"e_dn_age_{cluster}"][good],
+                               dat[f"e_up_age_{cluster}"][good]])
+        yvals = dat["yvals"][good]+(i/25)
 
-    dat_grouped = dat.group_by(["Year","Source"])
-    print(dat_grouped.groups.keys)
-
-    # for i in range(len(dat_grouped.groups.keys)):
-
-    yval = 0
-    plt.figure(figsize=(4,8))
-    ax = plt.subplot(111)   # TODO: plot each cluster individually, and use text to label the source
-    for i, keys in enumerate(dat_grouped.groups.keys):
-        sub = dat_grouped.groups[i]
-        source = keys["Source"]
-
-
-        sub["yvals"] = np.ones(len(sub))*yval
-
-        # print(cluster,dat.dtype)
-
-
-        asym_err = np.asarray([sub["e_dn_Age"],sub["e_up_Age"]])
-        # print(asym_err)
-
-        # ax.plot(dat["Age (Myr)"],dat["yvals"],marker=shapes[cluster],
-        #         color=colors[cluster],linewidth=0)
-        ax.errorbar(sub["Age (Myr)"],sub["yvals"],
-                    xerr=asym_err,marker=shapes[cluster],
+        ax.errorbar(age,yvals,xerr=asym_err,marker=shapes[cluster],
                     color=colors[cluster],linewidth=0,elinewidth=1.5)
-    #
-    #     # break
-    #
+
+    # Add the source names (really the latex citekeys)
+    # And plot two vertical lines encapsulating most of the ages
+    textx = 1.1
+    right_line = 55
+    left_line = 25
+    for j, source in enumerate(dat["Source"]):
+        if "cummings" in source:
+            ax.text(right_line*1.1,j,source,fontsize=10,ha="left")
+        else:
+            ax.text(textx,j,source,fontsize=10)
+    ax.axvline(left_line,color="Gray",linestyle="--",zorder=-10)
+    ax.axvline(right_line,color="Gray",linestyle="--",zorder=-10)
+
+    # Final plot adjustments
     ax.set_xlim(1,300)
     ax.set_xscale("log")
     ax.tick_params(labelleft=False)
+    ax.set_yticks([])
     
-    ax.axvline(25,color="k",linestyle="--",zorder=-10)
-    ax.axvline(55,color="k",linestyle="--",zorder=-10)
-    plt.show()
+    ax.set_xlabel("Age [Myr]")
+    plt.savefig(f"plots/literature_ages.png",
+                bbox_inches="tight")
+    plt.savefig(os.path.join(PAPER_DIR,"fig_literature_ages.pdf"),
+                bbox_inches="tight")
+    plt.close("all")
