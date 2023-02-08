@@ -52,13 +52,13 @@ if __name__=="__main__":
     # for i in range(len(dat_grouped.groups.keys)):
 
     yval = 0
-    # TODO: plot each cluster individually, and use text to label the source
+    plt.figure(figsize=(4,8))
+    ax = plt.subplot(111)   # TODO: plot each cluster individually, and use text to label the source
     for i, keys in enumerate(dat_grouped.groups.keys):
         sub = dat_grouped.groups[i]
         source = keys["Source"]
 
-        plt.figure(figsize=(4,8))
-        ax = plt.subplot(111)
+
         sub["yvals"] = np.ones(len(sub))*yval
 
         # print(cluster,dat.dtype)
@@ -75,10 +75,10 @@ if __name__=="__main__":
     #
     #     # break
     #
-    # ax.set_xlim(1,300)
-    # ax.set_xscale("log")
-    # ax.tick_params(labelleft=False)
-    #
-    # ax.axvline(25,color="k",linestyle="--",zorder=-10)
-    # ax.axvline(55,color="k",linestyle="--",zorder=-10)
-    # plt.show()
+    ax.set_xlim(1,300)
+    ax.set_xscale("log")
+    ax.tick_params(labelleft=False)
+    
+    ax.axvline(25,color="k",linestyle="--",zorder=-10)
+    ax.axvline(55,color="k",linestyle="--",zorder=-10)
+    plt.show()
