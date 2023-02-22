@@ -1,28 +1,22 @@
-import os, sys, glob, time
-import itertools
+import os, glob
 import multiprocessing as mp
 
 import numpy as np
-from numpy.random import default_rng
+# from numpy.random import default_rng
 import matplotlib.pyplot as plt
 import astropy.io.ascii as at
-from astropy.io import fits
-import astropy.units as u
-from astropy import table
-from astropy.table import join,vstack,Table
-from astropy.coordinates import SkyCoord
+# from astropy.io import fits
+# import astropy.units as u
+# from astropy import table
+from astropy.table import Table #join,vstack,
+# from astropy.coordinates import SkyCoord
 
-import matplotlib as mpl
-import matplotlib.cm as cm
+import get_colors
+norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+plt.style.use('./paper.mplstyle')
+PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
 
-norm = mpl.colors.Normalize(vmin=0, vmax=5)
-mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
-
-norm2 = mpl.colors.Normalize(vmin=0, vmax=14)
-mapper2 = cm.ScalarMappable(norm=norm2, cmap=cm.viridis)
-
-from analyze_cluster_output import colors, shapes
-from plot_periods import plot_periodcolor_histogram
+# from plot_periods import plot_periodcolor_histogram
 from tau_sq import PeriodMassDistribution, SpinModel
 
 
@@ -345,30 +339,53 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
 
 
 if __name__=="__main__":
+    from argparse import ArgumentParser
+    import yaml
+    # import logging
 
+    # Define parser object
+    parser = ArgumentParser(description="")
+    parser.add_argument("-c", "--config", dest="config_file", required=True,
+                        type=str, help="Path to config file that specifies the "
+                                       "parameters for this run.")
 
-    # run_model_binned(model_names[3],max_q=0,
-    #                output_filebase="tausq_ZAMS_Compare",zoom_ymax=1.15)
+    args = parser.parse_args()
 
-    ##### Run models
-    # Original run
-    run_all_models(max_q=0,models_to_plot=model_names[3:],
-                   output_filebase="tausq_ZAMS_Compare_Widehat",zoom_ymax=4000)
+    # parse config file
+    config_file=args.config_file
+    config_file = os.path.abspath(os.path.expanduser(config_file))
+    with open(config_file, 'r') as f:
+        config = yaml.load(f.read())
+        config['config_file'] = config_file
 
-    mass_split = 0.75
-    run_all_models(max_q=0,models_to_plot=model_names[3:],
-                   output_filebase="tausq_ZAMS_Compare_Widehat_lowmass",
-                   zoom_ymax=2000,mass_limits=[0.05,mass_split])
-    run_all_models(max_q=0,models_to_plot=model_names[3:],
-                   output_filebase="tausq_ZAMS_Compare_Widehat_solarmass",
-                   zoom_ymax=2000,mass_limits=[mass_split,1.4])
+    print(config)
 
-    # # Replace blends with literature
-    # # Only q=0
-    # run_all_models(max_q=0,include_blends=False,include_lit=True,
-    #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
-    #                models_to_plot=model_names[3:],zoom_ymax=2000)
-    # # allow q=1
-    # run_all_models(max_q=1,include_blends=False,include_lit=True,
-    #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
-    #                models_to_plot=model_names[3:],zoom_ymax=2000)
+    run_all_models(max_q=config.max_q,models_to_plot=config.models,
+                   output_filebase=config.output_filebase,
+                   zoom_ymax=config.zoom_ymax,mass_limits=config.mass_limits)
+
+    # # run_model_binned(model_names[3],max_q=0,
+    # #                output_filebase="tausq_ZAMS_Compare",zoom_ymax=1.15)
+
+    # ##### Run models
+    # # Original run
+    # run_all_models(max_q=0,models_to_plot=model_names[3:],
+    #                output_filebase="tausq_ZAMS_Compare_Widehat",zoom_ymax=4000)
+
+    # mass_split = 0.75
+    # run_all_models(max_q=0,models_to_plot=model_names[3:],
+    #                output_filebase="tausq_ZAMS_Compare_Widehat_lowmass",
+    #                zoom_ymax=2000,mass_limits=[0.05,mass_split])
+    # run_all_models(max_q=0,models_to_plot=model_names[3:],
+    #                output_filebase="tausq_ZAMS_Compare_Widehat_solarmass",
+    #                zoom_ymax=2000,mass_limits=[mass_split,1.4])
+
+    # # # Replace blends with literature
+    # # # Only q=0
+    # # run_all_models(max_q=0,include_blends=False,include_lit=True,
+    # #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
+    # #                models_to_plot=model_names[3:],zoom_ymax=2000)
+    # # # allow q=1
+    # # run_all_models(max_q=1,include_blends=False,include_lit=True,
+    # #                period_scale = "linear",output_filebase="tausq_ZAMS_Compare_Widehat",
+    # #                models_to_plot=model_names[3:],zoom_ymax=2000)
