@@ -46,7 +46,10 @@ if __name__=="__main__":
         yvals = dat["yvals"][good]+(i/25)
 
         ax.errorbar(age,yvals,xerr=asym_err,marker=shapes[cluster],
-                    color=colors[cluster],linewidth=0,elinewidth=1.5)
+                    color=colors[cluster],linewidth=0,elinewidth=1.5,
+                    label=cluster)
+
+    ax.legend(loc=2,ncol=2)
 
     # Add the source names (really the latex citekeys)
     # And plot two vertical lines encapsulating most of the ages
@@ -64,6 +67,8 @@ if __name__=="__main__":
     # Final plot adjustments
     ax.set_xlim(1,300)
     ax.set_xscale("log")
+
+    ax.set_ylim(-0.5,max(dat["yvals"])+5)
     ax.tick_params(labelleft=False)
     ax.set_yticks([])
     
