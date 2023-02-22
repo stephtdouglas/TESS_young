@@ -360,9 +360,9 @@ if __name__=="__main__":
 
     print(config)
 
-    run_all_models(max_q=config.max_q,models_to_plot=config.models,
-                   output_filebase=config.output_filebase,
-                   zoom_ymax=config.zoom_ymax,mass_limits=config.mass_limits)
+    run_all_models(max_q=config["max_q"],models_to_plot=config["models"],
+                   output_filebase=config["output_filebase"],
+                   zoom_ymax=config["zoom_ymax"],mass_limits=config["mass_limits"])
 
     # # run_model_binned(model_names[3],max_q=0,
     # #                output_filebase="tausq_ZAMS_Compare",zoom_ymax=1.15)
