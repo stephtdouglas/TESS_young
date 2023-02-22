@@ -76,7 +76,9 @@ def run_all_models(config_file):
     mass_limits=config["mass_limits"]
     include_blends=config["include_blends"]
     include_lit=config["include_lit"]
-
+    to_plot=config["to_plot"]
+    period_scale=config["period_scale"]
+    
     nmod_l = len(models_to_plot)
 
     pmd = PeriodMassDistribution(max_q,include_blends,include_lit,
