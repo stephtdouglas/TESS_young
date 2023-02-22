@@ -1,27 +1,12 @@
 import os, sys
-import glob
-import itertools
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.cm as cm
 import astropy.io.fits as fits
 import astropy.io.ascii as at
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-import astropy.table as table
 from astropy.table import join,vstack,Table
-from scipy import stats
-from scipy.interpolate import interp1d
 from astroquery.mast import Catalogs
-
-# import warnings
-# with warnings.catch_warnings():
-#     warnings.filterwarnings("ignore", category=VerifyWarning)
-#     import astropy.table as table
-#     from astropy.table import join,vstack,Table
-
 
 
 def read_validation_results(cluster, date, which=None):
@@ -203,6 +188,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         half_dbl = allcat["final_period_1"][i]/allcat["final_period_2"][i]
 
         # If one was flagged as Q=2, flag both as Q=2
+        # AND remove any secondary period
         if (allcat["final_Q_1"][i]==2) or (allcat["final_Q_2"][i]==2):
             allcat["Q1"][i] = 2
             allcat["Prot1"][i] = -9999
@@ -212,6 +198,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["sequence_number"][i] = allcat["sequence_number_1"][i]
             allcat["obs_id"][i] = allcat["obs_id_1"][i]
             allcat["Sig"][i] = allcat["thresholds_1"][i]
+            allcat["Q2"][i] = 2
+            allcat["Prot2"][i] = -9999
+            allcat["Pw2"][i] = -9999
 
         # If the period is (almost) the same (and Q=1 or Q=0):
         # elif allcat["final_period_1"][i]==allcat["final_period_2"][i]:
@@ -254,9 +243,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["Sig"][i] = allcat["thresholds_1"][i]
 
         # If the periods are not the same...
-        # TODO: so far most of these look impossibly confused, though a few
-        # could be salvageable. I'll probably have to have a list of stars
-        # that I've resolved by hand at this point.
+        # so far most of these look impossibly confused, though a few
+        # could be salvageable. I have a list of stars
+        # that I've resolved by hand
         else:
             print("\n",allcat["TIC"][i],"primary mismatch")
             # print(allcat["TIC","provenance_name_1","flux_cols_1",
@@ -286,12 +275,13 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["Pw2"][i] = -9999
 
         # If the period is (almost) the same (and Q=1 or Q=0):
-        # elif allcat["final_period_1"][i]==allcat["final_period_2"][i]:
         elif diff_frac<0.05:
 
             # TODO: but it's just a different light curve, pick the one with the
             # higher periodogram peak and assign the lower Q value
             # higher_peak = np.argmax(allcat["final_"])
+
+            # TODO: Could this be where the random 0/1 values are being included? If the issue is two -9999 values?
 
             # If I assigned different Q values, assign the lower Q value
             allcat["Q2"][i] = min(allcat["second_Q_1","second_Q_2"][i])
@@ -311,9 +301,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["Pw2"][i] = allcat["second_power_1"][i]
 
         # If the periods are not the same...
-        # TODO: so far most of these look impossibly confused, though a few
-        # could be salvageable. I'll probably have to have a list of stars
-        # that I've resolved by hand at this point.
+        # resolve by hand
         else:
             print("\n",allcat["TIC"][i],"secondary mismatch")
             # print(allcat["TIC","provenance_name_1","flux_cols_1",
@@ -341,7 +329,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["provenance_name"][i] = resolved["provenance_name"][loc][0]
             allcat["flux_cols"][i] = resolved["flux_cols"][loc][0]
             allcat["sequence_number"][i] = resolved["sequence_number"][loc][0]
-            if resolved["second_Q"][loc]<=2:
+            if resolved["second_Q"][loc]<=4:
                 allcat["Q2"][i] = resolved["second_Q"][loc]
             if np.isfinite(resolved["second_period"][loc]):
                 allcat["Prot2"][i] = resolved["second_period"][loc]
@@ -376,6 +364,11 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     bad_prot = periods["Q1"]>=2
     periods["Prot1"][bad_prot] = -9999
     periods["Pw1"][bad_prot] = -9999
+    periods["Prot2"][bad_prot] = -9999
+    periods["Pw2"][bad_prot] = -9999
+    replace_Q2 = bad_prot & (periods["Q2"]<2)
+    periods["Q2"][replace_Q2] = 2
+
     bad_prot2 = periods["Q2"]>=2
     periods["Prot2"][bad_prot2] = -9999
     periods["Pw2"][bad_prot2] = -9999
