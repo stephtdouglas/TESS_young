@@ -1,29 +1,15 @@
-import os, sys, glob, time
-import itertools
-import multiprocessing as mp
+import os, glob
 
 import numpy as np
-from numpy.random import default_rng
 import matplotlib.pyplot as plt
-import astropy.io.ascii as at
-from astropy.io import fits
-import astropy.units as u
-from astropy import table
-from astropy.table import join,vstack,Table
-from astropy.coordinates import SkyCoord
 
-import matplotlib as mpl
-import matplotlib.cm as cm
+import get_colors
+norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+plt.style.use('./paper.mplstyle')
+PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
 
-norm = mpl.colors.Normalize(vmin=0, vmax=5)
-mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
-
-norm2 = mpl.colors.Normalize(vmin=0, vmax=14)
-mapper2 = cm.ScalarMappable(norm=norm2, cmap=cm.viridis)
-
-from analyze_cluster_output import colors, shapes
-from plot_periods import plot_periodcolor_histogram
-from tau_sq import PeriodMassDistribution, SpinModel
+from periodmass import PeriodMassDistribution
+from spinmodel import SpinModel
 
 
 # In[2]:

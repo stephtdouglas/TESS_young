@@ -1,11 +1,13 @@
-import os, sys, glob, time
+import os, sys, time
 
 import numpy as np
-import matplotlib.pyplot as plt
 import astropy.io.ascii as at
 
-from tau_sq import SpinModel, PeriodMassModel, PeriodMassDistribution
 from tau_sq_run import run_all_models
+
+from periodmass import PeriodMassDistribution, PeriodMassModel
+from spinmodel import SpinModel
+
 
 model_names = ["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque",
                "WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]

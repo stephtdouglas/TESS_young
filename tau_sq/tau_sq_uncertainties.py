@@ -1,18 +1,16 @@
-import os, sys, glob, time
+import os, glob
 
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.io.ascii as at
-import matplotlib as mpl
-import matplotlib.cm as cm
 
 from tau_sq_plot import plot_tausq_tracks
 
-norm = mpl.colors.Normalize(vmin=0, vmax=5)
-mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
+import get_colors
+norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+plt.style.use('./paper.mplstyle')
+PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
 
-norm2 = mpl.colors.Normalize(vmin=0, vmax=14)
-mapper2 = cm.ScalarMappable(norm=norm2, cmap=cm.viridis)
 
 model_names = np.asarray(["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque",
                "WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"])
