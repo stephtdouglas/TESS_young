@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import astropy.io.ascii as at
 from astropy.table import Table
 
-import get_colors
+import ..get_colors
 norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
 plt.style.use('./paper.mplstyle')
 PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
