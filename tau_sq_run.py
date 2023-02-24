@@ -54,13 +54,7 @@ def run_one_model_binned(age,pmd,model,period_scale,init_type):
 
     return sm.tau_sq
 
-
-def run_all_models(config_file):
-        # max_q=0,include_blends=True,include_lit=False,
-        #            period_scale="linear",output_filebase="tausq_ZAMS_Compare",
-        #            models_to_plot=model_names,zoom_ymax=None,
-        #            mass_limits=None,pmd=None,to_plot=True):
-    
+def run_all_models_yaml(config_file):
     # parse config file
     config_file = os.path.abspath(os.path.expanduser(config_file))
     with open(config_file, 'r') as f:
@@ -69,22 +63,37 @@ def run_all_models(config_file):
 
     print(config)
 
-    max_q=config["max_q"]
-    models_to_plot=config["models"]
-    output_filebase=config["output_filebase"]
-    zoom_ymax=config["zoom_ymax"]
-    mass_limits=config["mass_limits"]
-    include_blends=config["include_blends"]
-    include_lit=config["include_lit"]
+    run_all_models(max_q=config["max_q"],
+                   include_blends=config["include_blends"],
+                   include_lit=config["include_lit"],
+                   period_scale="linear",
+                   output_filebase=config["output_filebase"],
+                   models_to_plot=config["models"],
+                   zoom_ymax=config["zoom_ymax"],
+                   mass_limits=config["mass_limits"],
+                   pmd=None,
+                   to_plot=True,
+                   overwrite=config["overwrite"])
+
+
+def run_all_models(max_q=0,include_blends=True,include_lit=False,
+                   period_scale="linear",output_filebase="tausq_ZAMS_Compare",
+                   models_to_plot=model_names,zoom_ymax=None,
+                   mass_limits=None,pmd=None,to_plot=True,overwrite=False):
+    
 
     nmod_l = len(models_to_plot)
 
-    pmd = PeriodMassDistribution(max_q,include_blends,include_lit,
-                                    mass_limits=mass_limits)
+    if pmd is None:
+        pmd = PeriodMassDistribution(max_q,include_blends,include_lit,
+                                     mass_limits=mass_limits)
+    else:
+        print("WARNING: Using input period-mass distribution.")
+        print("Ignoring input q, include_*, and scale match.")
 
     # Check for the matching output csv and skip straight to plotting if found
     outfilename = f"{output_filebase}_{pmd.param_string}"
-    if (config["overwrite"]==False) and (os.path.exists(f"tables/{outfilename}.csv")):
+    if (overwrite==False) and (os.path.exists(f"tables/{outfilename}.csv")):
         print("computation already completed")
         run_fits = False
         if to_plot:
@@ -358,4 +367,4 @@ if __name__=="__main__":
 
     args = parser.parse_args()
 
-    run_all_models(args.config_file)
+    run_all_models_yaml(args.config_file)
