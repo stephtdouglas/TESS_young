@@ -3,7 +3,7 @@ import os, glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-import ..get_colors
+from tess_young import get_colors
 norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
 plt.style.use('./paper.mplstyle')
 PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")

@@ -3,10 +3,10 @@ import os, sys, time
 import numpy as np
 import astropy.io.ascii as at
 
-from tau_sq_run import run_all_models
+from .tau_sq_run import run_all_models
 
-from periodmass import PeriodMassDistribution, PeriodMassModel
-from spinmodel import SpinModel
+from .periodmass import PeriodMassDistribution, PeriodMassModel
+from .spinmodel import SpinModel
 
 
 model_names = ["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque",
