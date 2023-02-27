@@ -7,15 +7,7 @@ import astropy.io.ascii as at
 from astropy.table import Table
 
 from tess_young.get_const import *
-# from tess_young import get_colors
-# norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
 plt.style.use('./paper.mplstyle')
-# PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
-
-
-
-# clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
-# dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
 
 class PeriodMassDistribution:
@@ -308,5 +300,3 @@ class PeriodMassModel(PeriodMassDistribution):
 
         self.period_perc = period_perc
         self.perc_mass_bins = mass_bins
-
-# %%

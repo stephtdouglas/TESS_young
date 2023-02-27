@@ -151,33 +151,3 @@ if __name__=="__main__":
         print(f"model {model_id}, start-end {start_i} {end_i}")
         sys.exit(42)
 
-
-
-
-
-    # # 1) Generate a fake model set
-    # model="WideHat8Myr_Mattea2022"
-    # age=80
-    # period_scale="linear"
-    # init_type="kde"
-    # sm = SpinModel(model,age,period_scale,init_type=init_type)
-    #
-    # sm.normalize()
-    # pmd = PeriodMassModel(sm,n_select=500,rng_seed=9302)
-    # pmd.select_obs(sm)
-    #
-    # # pmd_obs = PeriodMassDistribution(max_q=0)
-    # # pmd_obs.select_obs(sm)
-    # # n_select = count_bins(pmd_obs,sm)
-    # #
-    # # pmd = PeriodMassModel(sm,n_select=n_select,
-    # #                       rng_seed=9302,id_str="binselect")
-    # # pmd.select_obs(sm)
-    #
-    #
-    # # 2) Compare the first synthetic set to all models
-    # run_all_models(pmd=pmd,output_filebase="tausq_compare",
-    #                models_to_plot=model_names)
-    #
-    # # 3) Generate multiple fake model sets and compare to all models
-    # generate_synthetic_obs(model,age,period_scale,init_type)
