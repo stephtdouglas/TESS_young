@@ -6,17 +6,11 @@ import matplotlib.pyplot as plt
 import astropy.io.ascii as at
 from astropy.table import Table
 
-from tess_young import get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+from tess_young.get_const import *
 plt.style.use('./paper.mplstyle')
-PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
 
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
-
-
-clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
-dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
 
 display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",

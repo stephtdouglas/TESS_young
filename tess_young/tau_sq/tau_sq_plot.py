@@ -3,34 +3,12 @@ import os, glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tess_young import get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+from tess_young.get_const import *
 plt.style.use('./paper.mplstyle')
-PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
 
-from .periodmass import PeriodMassDistribution
-from .spinmodel import SpinModel
+from periodmass import PeriodMassDistribution
+from spinmodel import SpinModel
 
-
-# In[2]:
-
-
-clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
-dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
-
-
-display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",
-                 "UpSco_Mattea2022":"Matt+in prep; UpSco initialization",
-                 "UpSco_ZeroTorque":"Zero Torque; UpSco initialization",
-                 "WideHat8Myr_Mattea2015":"Matt+15; uniform initialization",
-                 "WideHat8Myr_Mattea2022":"Matt+in prep; uniform initialization",
-                 "WideHat8Myr_ZeroTorque":"Zero Torque; uniform initialization"}
-model_names = np.asarray(["UpSco_Mattea2015","UpSco_Mattea2022",
-                          "UpSco_ZeroTorque","WideHat8Myr_Mattea2015",
-                          "WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"])
-nmod = 6
-nage = 118
-# In[3]:
 
 def plot_all_upsco():
 
