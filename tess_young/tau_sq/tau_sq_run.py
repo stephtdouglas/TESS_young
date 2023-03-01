@@ -12,18 +12,6 @@ plt.style.use('./paper.mplstyle')
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
 
-
-display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",
-                 "UpSco_Mattea2022":"Matt+in prep; UpSco initialization",
-                 "UpSco_ZeroTorque":"Zero Torque; UpSco initialization",
-                 "WideHat8Myr_Mattea2015":"Matt+15; uniform initialization",
-                 "WideHat8Myr_Mattea2022":"Matt+in prep; uniform initialization",
-                 "WideHat8Myr_ZeroTorque":"Zero Torque; uniform initialization"}
-model_names = ["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque",
-               "WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
-nmod = 6
-nage = 118
-
 def run_one_model(age,pmd,model,period_scale,init_type):
     sm = SpinModel(model,age,period_scale,init_type=init_type)
 

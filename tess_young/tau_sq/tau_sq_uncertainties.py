@@ -6,20 +6,8 @@ import astropy.io.ascii as at
 
 from tau_sq_plot import plot_tausq_tracks
 
-import ..get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+from tess_young.get_const import *
 plt.style.use('./paper.mplstyle')
-PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
-
-
-model_names = np.asarray(["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque",
-               "WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"])
-display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",
-                 "UpSco_Mattea2022":"Matt+in prep; UpSco initialization",
-                 "UpSco_ZeroTorque":"Zero Torque; UpSco initialization",
-                 "WideHat8Myr_Mattea2015":"Matt+15; uniform initialization",
-                 "WideHat8Myr_Mattea2022":"Matt+in prep; uniform initialization",
-                 "WideHat8Myr_ZeroTorque":"Zero Torque; uniform initialization"}
 
 def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
                           output_filebase="tausq_tracks",best_age_init=80):
