@@ -7,12 +7,12 @@ import astropy.io.ascii as at
 from tau_sq_plot import plot_tausq_tracks
 
 from tess_young.get_const import *
-plt.style.use('./paper.mplstyle')
+plt.style.use('../../paper.mplstyle')
 
 def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
                           output_filebase="tausq_tracks",best_age_init=80):
 
-    _dir = "./tables/"
+    _dir = "../../tables/"
     outfilename = f"{output_filebase}_{ref_model}"
 
     # Make a figure and plot all of the individual runs
@@ -35,7 +35,7 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
     plt.title("Synthetic Obs Set 2")
     plt.xlabel("Age [Myr]")
     plt.ylabel("Tau squared")
-    plt.savefig(f"plots/{outfilename}_set2.png",dpi=600,bbox_inches="tight")
+    plt.savefig(f"../../plots/{outfilename}_set2.png",dpi=600,bbox_inches="tight")
 
     # # Histogram the best fit ages (not statistically useful, but interesting)
     # plt.figure()
@@ -91,7 +91,7 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
     ax.set_xlim(xmin,xmax)
     ax.set_ylim(ymin,ymax)
 
-    plt.savefig(f"plots/{outfilename}.png",dpi=600,bbox_inches="tight")
+    plt.savefig(f"../../plots/{outfilename}.png",dpi=600,bbox_inches="tight")
 
 
     good = syn1[ref_model]<=ts67

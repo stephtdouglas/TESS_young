@@ -7,12 +7,15 @@ import astropy.io.ascii as at
 from astropy.table import Table
 
 from tess_young.get_const import *
-plt.style.use('./paper.mplstyle')
+plt.style.use('../../paper.mplstyle')
 
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
 
 def run_one_model(age,pmd,model,period_scale,init_type):
+    """
+    Generate a SpinModel and calculate tau-squared from the input PeriodMassDistribution
+    """
     sm = SpinModel(model,age,period_scale,init_type=init_type)
 
     # Normalize the model and calculate tau-squared
@@ -24,6 +27,9 @@ def run_one_model(age,pmd,model,period_scale,init_type):
     return sm.tau_sq
 
 def run_one_model_binned(age,pmd,model,period_scale,init_type):
+    """
+    Generate a SpinModel and calculate tau-squared for each individual mass bin
+    """
     sm = SpinModel(model,age,period_scale,init_type=init_type)
 
     # Normalize the model and calculate tau-squared
@@ -35,6 +41,9 @@ def run_one_model_binned(age,pmd,model,period_scale,init_type):
     return sm.tau_sq
 
 def run_all_models_yaml(config_file):
+    """
+
+    """
     # parse config file
     config_file = os.path.abspath(os.path.expanduser(config_file))
     with open(config_file, 'r') as f:
@@ -60,6 +69,27 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
                    models_to_plot=model_names,zoom_ymax=None,
                    mass_limits=None,pmd=None,to_plot=True,overwrite=False):
+    """
+    Compare a single period-mass distribution to multiple sets of models.
+
+    Inputs
+    ------
+    max_q: integer, maximum quality flag to include (should be 0 or 1)
+    include_blends: boolean, whether or not to include potentially blended targets
+    include_lit: boolean, whether or not to include literature values
+    period_scale: (string) "log" or "linear"
+    output_filebase: (string) identifier for this run, will be included in output filenames
+    models_to_plot: (list of strings) identifiers for the torque laws/models to be used. Options:
+                         "UpSco_Mattea2015", "UpSco_Mattea2022",
+                         "UpSco_"ZeroTorque", "WideHat8Myr_Mattea2015",
+                         "WideHat8Myr_Mattea2022", "WideHat8Myr_ZeroTorque"
+    zoom_ymax: (number, optional) if included, set the maximum for the tau-squared axis
+    mass_limits: (tuple or list, optional) minimum and maximum masses to include
+    pmd: (PeriodMass object, optional) if included, will override max_q, include_blends, and include_lit
+    to_plot: (boolean), whether to generate output plots. Default=True
+    overwrite: (boolean), whether to overwrite existing table files. Default=False. 
+
+    """
     
 
     nmod_l = len(models_to_plot)
@@ -73,11 +103,11 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
 
     # Check for the matching output csv and skip straight to plotting if found
     outfilename = f"{output_filebase}_{pmd.param_string}"
-    if (overwrite==False) and (os.path.exists(f"tables/{outfilename}.csv")):
+    if (overwrite==False) and (os.path.exists(f"../../tables/{outfilename}.csv")):
         print("computation already completed")
         run_fits = False
         if to_plot:
-            ttab = at.read(f"tables/{outfilename}.csv")
+            ttab = at.read(f"../../tables/{outfilename}.csv")
         else:
             return
     else:
@@ -183,7 +213,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         fig.savefig(f"plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
 
     if run_fits:
-        ttab.write(f"tables/{outfilename}.csv",delimiter=",",overwrite=True)
+        ttab.write(f"../../tables/{outfilename}.csv",delimiter=",",overwrite=True)
 
 
 
@@ -328,10 +358,10 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
     if zoom_ymax is not None:
         ymax = zoom_ymax
         ax.set_ylim(0.99,ymax)
-    fig.savefig(f"plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
+    fig.savefig(f"../../plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
     #
     #
-    ttab.write(f"tables/{outfilename}.csv",delimiter=",",overwrite=True)
+    ttab.write(f"../../tables/{outfilename}.csv",delimiter=",",overwrite=True)
 
 
 if __name__=="__main__":

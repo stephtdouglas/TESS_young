@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tess_young.get_const import *
-plt.style.use('./paper.mplstyle')
+plt.style.use('../../paper.mplstyle')
 
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
