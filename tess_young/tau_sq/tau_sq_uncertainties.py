@@ -7,7 +7,7 @@ import astropy.io.ascii as at
 from tau_sq_plot import plot_tausq_tracks
 
 from tess_young.get_const import *
-plt.style.use('../../paper.mplstyle')
+# plt.style.use('../../paper.mplstyle')
 
 def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
                           output_filebase="tausq_tracks",best_age_init=80):

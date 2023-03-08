@@ -5,9 +5,12 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 
 __all__ = ['norm', 'mapper','cmap2', 'colors', 'shapes',
-           'clusters','dates','display_names','model_names','nmod','nage','PAPER_DIR']
+           'clusters','dates','display_names','model_names','nmod','nage','PAPER_DIR',
+           'MODEL_DIR']
 
 PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
+
+MODEL_DIR = os.path.expanduser("~/Dropbox/Models/")
 
 norm = mpl.colors.LogNorm(vmin=0.1, vmax=30)
 mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)

@@ -7,7 +7,7 @@ import astropy.io.ascii as at
 from astropy.table import Table
 
 from tess_young.get_const import *
-plt.style.use('../../paper.mplstyle')
+# plt.style.use('../../paper.mplstyle')
 
 
 class PeriodMassDistribution:

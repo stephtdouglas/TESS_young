@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, pathlib
 import multiprocessing as mp
 
 import numpy as np
@@ -6,8 +6,10 @@ import matplotlib.pyplot as plt
 import astropy.io.ascii as at
 from astropy.table import Table
 
+import tess_young
 from tess_young.get_const import *
-plt.style.use('../../paper.mplstyle')
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
+plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
@@ -102,12 +104,13 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         print("Ignoring input q, include_*, and scale match.")
 
     # Check for the matching output csv and skip straight to plotting if found
-    outfilename = f"{output_filebase}_{pmd.param_string}"
-    if (overwrite==False) and (os.path.exists(f"../../tables/{outfilename}.csv")):
+    outfilename = f"{output_filebase}_{pmd.param_string}.csv"
+    outfilepath = os.path.join(_DIR,f"tables/{outfilename}")
+    if (overwrite==False) and (os.path.exists(outfilepath)):
         print("computation already completed")
         run_fits = False
         if to_plot:
-            ttab = at.read(f"../../tables/{outfilename}.csv")
+            ttab = at.read(outfilepath)
         else:
             return
     else:
@@ -141,7 +144,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             else:
                 init_type="cluster"
 
-            models = glob.glob(os.path.expanduser(f"~/Dropbox/Models/{model}/{model}*Myr.txt"))
+            models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
             # print(models)
 
             model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
@@ -201,7 +204,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         ax.tick_params(labelsize=12)
         ax.set_xticks(np.arange(0,300,25),minor=True)
 
-        fig.savefig(f"plots/{outfilename}.png",bbox_inches="tight",dpi=600)
+        fig.savefig(os.path.join(_DIR,f"plots/{outfilename}.png"),bbox_inches="tight",dpi=600)
 
         ax.set_xlim(0,300)
         ylims = ax.get_ylim()
@@ -210,10 +213,10 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         else:
             ymax = zoom_ymax
         ax.set_ylim(ylims[0],ymax)
-        fig.savefig(f"plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
+        fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_zoom.png"),bbox_inches="tight",dpi=600)
 
     if run_fits:
-        ttab.write(f"../../tables/{outfilename}.csv",delimiter=",",overwrite=True)
+        ttab.write(os.path.join(_DIR,f"tables/{outfilename}.csv"),delimiter=",",overwrite=True)
 
 
 
@@ -261,7 +264,7 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
         else:
             init_type="cluster"
 
-        models = glob.glob(os.path.expanduser(f"~/Dropbox/Models/{model}/{model}*Myr.txt"))
+        models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
         # print(models)
 
         model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
@@ -328,7 +331,7 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
     ax.tick_params(labelsize=12)
     ax.set_xticks(np.arange(0,300,25),minor=True)
 
-    fig.savefig(f"plots/{outfilename}.png",bbox_inches="tight",dpi=600)
+    fig.savefig(os.path.join(_DIR,f"plots/{outfilename}.png"),bbox_inches="tight",dpi=600)
 
     # Normalized tau_sq
     fig = plt.figure()
@@ -351,17 +354,17 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
     ax.tick_params(labelsize=12)
     ax.set_xticks(np.arange(0,300,25),minor=True)
 
-    fig.savefig(f"plots/{outfilename}_normalized.png",bbox_inches="tight",dpi=600)
+    fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_normalized.png"),bbox_inches="tight",dpi=600)
 
 
     ax.set_xlim(0,300)
     if zoom_ymax is not None:
         ymax = zoom_ymax
         ax.set_ylim(0.99,ymax)
-    fig.savefig(f"../../plots/{outfilename}_zoom.png",bbox_inches="tight",dpi=600)
+    fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_zoom.png"),bbox_inches="tight",dpi=600)
     #
     #
-    ttab.write(f"../../tables/{outfilename}.csv",delimiter=",",overwrite=True)
+    ttab.write(os.path.join(_DIR,f"tables/{outfilename}.csv"),delimiter=",",overwrite=True)
 
 
 if __name__=="__main__":
@@ -374,7 +377,12 @@ if __name__=="__main__":
     parser.add_argument("-c", "--config", dest="config_file", required=True,
                         type=str, help="Path to config file that specifies the "
                                        "parameters for this run.")
+    # parser.add_argument("-m", "--style", dest="style_file", required=False,
+    #                     type=str, help="Path to matplotlib style file")
 
     args = parser.parse_args()
+
+    # if os.path.exists(args.style_file):
+    #     plt.style.use(args.style_file)
 
     run_all_models_yaml(args.config_file)

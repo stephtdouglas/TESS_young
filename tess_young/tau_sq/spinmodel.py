@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.io.ascii as at
 
 from tess_young.get_const import *
-plt.style.use('../../paper.mplstyle')
+# plt.style.use('../../paper.mplstyle')
 
 class SpinModel:
 
