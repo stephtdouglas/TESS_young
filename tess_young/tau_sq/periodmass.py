@@ -103,11 +103,11 @@ class PeriodMassDistribution:
 #         print(type(self.mass),np.where(self.mass.mask==True)[0])
 #         print(type(self.prot),np.where(self.prot.mask==True)[0])
 #         print(type(self.mass_err),np.where(self.mass_err.mask==True)[0])
-        ax.errorbar(self.mass,self.prot,
-                    xerr=self.mass_err,
-                    marker=None,linewidth=0,elinewidth=1,color="DarkGrey",alpha=0.75)
+        ax.errorbar(self.mass,self.prot,xerr=self.mass_err,
+                    marker=None,linewidth=0,elinewidth=1,color="DarkGrey",alpha=0.75,
+                    zorder=15)
 
-        ax.plot(self.mass,self.prot,"k.",ms=2,alpha=0.75)
+        ax.plot(self.mass,self.prot,"k.",ms=2,alpha=0.75,zorder=16)
 
         return ax
 

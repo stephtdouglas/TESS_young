@@ -3,6 +3,8 @@ import multiprocessing as mp
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.cm as cm
 import astropy.io.ascii as at
 from astropy.table import Table
 
@@ -13,6 +15,10 @@ plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
+
+# mapper and normalization for binning by mass
+norm2 = mpl.colors.Normalize(vmin=0, vmax=14)
+mapper2 = cm.ScalarMappable(norm=norm2, cmap=cm.viridis)
 
 def run_one_model(age,pmd,model,period_scale,init_type):
     """
@@ -104,8 +110,9 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         print("Ignoring input q, include_*, and scale match.")
 
     # Check for the matching output csv and skip straight to plotting if found
-    outfilename = f"{output_filebase}_{pmd.param_string}.csv"
-    outfilepath = os.path.join(_DIR,f"tables/{outfilename}")
+    outfilename = f"{output_filebase}_{pmd.param_string}"
+    outfilepath = os.path.join(_DIR,f"tables/{outfilename}.csv")
+    outplotpath = os.path.join(_DIR,f"plots/{outfilename}.png")
     if (overwrite==False) and (os.path.exists(outfilepath)):
         print("computation already completed")
         run_fits = False
@@ -203,8 +210,9 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
 
         ax.tick_params(labelsize=12)
         ax.set_xticks(np.arange(0,300,25),minor=True)
+        ax.set_title(outfilename)
 
-        fig.savefig(os.path.join(_DIR,f"plots/{outfilename}.png"),bbox_inches="tight",dpi=600)
+        fig.savefig(outplotpath,bbox_inches="tight",dpi=600)
 
         ax.set_xlim(0,300)
         ylims = ax.get_ylim()
@@ -213,10 +221,11 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         else:
             ymax = zoom_ymax
         ax.set_ylim(ylims[0],ymax)
-        fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_zoom.png"),bbox_inches="tight",dpi=600)
+        ax.set_title(outfilename)
+        fig.savefig(outplotpath.replace(".png","_zoom.png"),bbox_inches="tight",dpi=600)
 
     if run_fits:
-        ttab.write(os.path.join(_DIR,f"tables/{outfilename}.csv"),delimiter=",",overwrite=True)
+        ttab.write(outfilepath,delimiter=",",overwrite=True)
 
 
 
@@ -374,9 +383,13 @@ if __name__=="__main__":
 
     # Define parser object
     parser = ArgumentParser(description="")
-    parser.add_argument("-c", "--config", dest="config_file", required=True,
+    c_group = parser.add_mutually_exclusive_group(required=True)
+    c_group.add_argument("-c", "--config", dest="config_file", #required=True,
                         type=str, help="Path to config file that specifies the "
                                        "parameters for this run.")
+    c_group.add_argument("-b", "--binned", dest="binned_config", #required=True,
+                        type=str, help="Path to config file that specifies the "
+                                       "run parameters (binned by mass)")
     # parser.add_argument("-m", "--style", dest="style_file", required=False,
     #                     type=str, help="Path to matplotlib style file")
 
@@ -385,4 +398,22 @@ if __name__=="__main__":
     # if os.path.exists(args.style_file):
     #     plt.style.use(args.style_file)
 
-    run_all_models_yaml(args.config_file)
+    if args.config_file is not None:
+        run_all_models_yaml(args.config_file)
+    else:
+        # parse config file
+        config_file = os.path.abspath(os.path.expanduser(args.binned_config))
+        with open(config_file, 'r') as f:
+            config = yaml.load(f.read())
+            config['config_file'] = config_file
+
+        print(config)
+
+        for model_name in config["models"]:
+            run_model_binned(model_name,max_q=config["max_q"],
+                           include_blends=config["include_blends"],
+                           include_lit=config["include_lit"],
+                           period_scale="linear",
+                           output_filebase=config["output_filebase"]
+                           )
+

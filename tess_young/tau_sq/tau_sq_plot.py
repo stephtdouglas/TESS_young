@@ -1,20 +1,69 @@
-import os, glob
+import os, sys, glob, pathlib
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
+import tess_young
 from tess_young.get_const import *
-# plt.style.use('../../paper.mplstyle')
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
+plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
 
+def plot_all_models_yaml(config_file):
+    """
+
+    """
+    # parse config file
+    config_file = os.path.abspath(os.path.expanduser(config_file))
+    with open(config_file, 'r') as f:
+        config = yaml.load(f.read())
+        config['config_file'] = config_file
+
+    print(config)
+
+    plot_all_models(max_q=config["max_q"],
+                   include_blends=config["include_blends"],
+                   include_lit=config["include_lit"],
+                   period_scale="linear",
+                   output_filebase=config["output_filebase"],
+                   models_to_plot=config["models"],
+                   mass_limits=config["mass_limits"]
+                   )
+
+
 def plot_all_models(max_q=0,include_blends=True,include_lit=False,
-                    period_scale = "linear",models_to_plot=model_names):
-    pmd = PeriodMassDistribution(max_q,include_blends,include_lit)
+                    period_scale = "linear",models_to_plot=model_names,
+                    output_filebase="tausq_ZAMS_Compare",mass_limits=None):
+    pmd = PeriodMassDistribution(max_q,include_blends,include_lit,mass_limits)
+
+    ymin, ymax = 0,14
+
+    if mass_limits is not None:
+        pmd_all = PeriodMassDistribution(max_q,include_blends,include_lit)
+        if mass_limits[0]>0.05:
+            rect_low = Rectangle((0.05,ymin),width=mass_limits[0]-0.05,height=ymax-ymin,
+                                 alpha=0.5,color="w",zorder=10)
+        else:
+            rect_low = None
+        if mass_limits[1]<1.3:
+            rect_high = Rectangle((mass_limits[1],ymin),width=1.3-mass_limits[1],
+                                  height=ymax-ymin,
+                                  alpha=0.5,color="w",zorder=10)
+        else:
+            rect_high = None
+    # outfilename = f"{output_filebase}_{pmd.param_string}"
+    # outfilepath = os.path.join(_DIR,f"tables/{outfilename}.csv")
+    # if os.path.exists(outfilepath)==False:
+    #     print("No matching output file found.")
+    #     print("Please run tau-squared fits first")
+    #     sys.exit()
+    # else:
+    #     results = at.read(outfilepath)
 
     plt.figure()
-#     for j,model in enumerate(model_names):
     for j,model in enumerate(models_to_plot):
         print(model)
 
@@ -23,7 +72,7 @@ def plot_all_models(max_q=0,include_blends=True,include_lit=False,
         else:
             init_type="cluster"
 
-        models = glob.glob(os.path.expanduser(f"~/Dropbox/Models/{model}/{model}*Myr.txt"))
+        models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
 
         model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
         # print(model_ages)
@@ -31,27 +80,108 @@ def plot_all_models(max_q=0,include_blends=True,include_lit=False,
         model_ages = model_ages[(model_ages<=150) & (model_ages>=0)]
 
         for i, age in enumerate(model_ages):
-        #     print("\n",age)
+            # if results["age_col"][i]!=age:
+            #     print("ERROR: table and file ages do not match")
+            #     print(results["age_col"][i],age)
+            #     sys.exit()
             sm = SpinModel(model,age,period_scale,init_type=init_type)
-            if j==0 and i==0:
-                pmd.select_obs(sm)
+            # if j==0 and i==0:
+            #     pmd.select_obs(sm)
 
             # Normalize the model and calculate tau-squared
             if ("WideHat" in model)==False:
                 sm.normalize()
             sm.add_mask()
-            sm.calc_tau_sq(pmd)
-
-    #         print(model,age,np.max(sm.img))
-    #         print(sm.img)
+            # sm.calc_tau_sq(pmd)
 
 
             # Plot
             ax = sm.plot_hist()
-            pmd.plot_obs(ax)
-            ax.set_ylim(0,14)
-            plt.savefig(f"plots/model_frames/tausq_{model}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png",bbox_inches="tight",dpi=600)
+            ax.set_ylim(ymin,ymax)
+
+            if mass_limits is None:
+                pmd.plot_obs(ax)
+            else:
+                pmd_all.plot_obs(ax)
+                if mass_limits[0]>0.05:
+                    rect_low = Rectangle((0.05,ymin),width=mass_limits[0]-0.05,height=ymax-ymin,
+                                         alpha=1,color="w",zorder=10)
+                    ax.add_patch(rect_low)
+                if mass_limits[1]<1.3:
+                    rect_high = Rectangle((mass_limits[1],ymin),width=1.3-mass_limits[1],
+                                          height=ymax-ymin,
+                                          alpha=1,color="w",zorder=10)
+                    ax.add_patch(rect_high)
+
+            plt.savefig(os.path.join(_DIR,f"plots/model_frames/tausq_{output_filebase}_{model}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
             plt.close()
+
+
+# def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
+#                     period_scale = "linear",models_to_plot=model_names,
+#                     mass_limits=None):
+#     """
+#     Create a two-panel plot showing the model/data and the point on the tau-squared vs. age plot
+#     """
+
+#     pmd = PeriodMassDistribution(max_q,include_blends,include_lit,mass_limits)
+#     outfilename = f"{output_filebase}_{pmd.param_string}"
+#     outfilepath = os.path.join(_DIR,f"tables/{outfilename}.csv")
+#     if os.path.exists(outfilepath)==False:
+#         print("No matching output file found.")
+#         print("Please run tau-squared fits first")
+#         sys.exit()
+#     else:
+#         results = at.read(outfilepath)
+
+
+#     fix, axes = plt.subplots(ncols=2,figsize=(10,5))
+
+#     for j,model in enumerate(models_to_plot):
+#         print(model)
+
+#         if "WideHat" in model:
+#             init_type="kde"
+#         else:
+#             init_type="cluster"
+
+#         models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
+
+#         model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
+#         # print(model_ages)
+
+#         model_ages = model_ages[(model_ages<=150) & (model_ages>=0)]
+
+#         age_col = f"Age_{model}"
+
+#         for i, age in enumerate(model_ages):
+#         #     print("\n",age)
+#             if results["age_col"][i]!=age:
+#                 print("ERROR: table and file ages do not match")
+#                 print(results["age_col"][i],age)
+#                 sys.exit()
+
+#             sm = SpinModel(model,age,period_scale,init_type=init_type)
+#             if j==0 and i==0:
+#                 pmd.select_obs(sm)
+
+#             # Normalize the model and calculate tau-squared
+#             if ("WideHat" in model)==False:
+#                 sm.normalize()
+#             sm.add_mask()
+#             sm.calc_tau_sq(pmd)
+
+#     #         print(model,age,np.max(sm.img))
+#     #         print(sm.img)
+
+
+#             # Plot
+#             ax = sm.plot_hist()
+#             pmd.plot_obs(ax)
+#             ax.set_ylim(0,14)
+#             plt.savefig(os.path.join(_DIR,f"plots/model_frames/tausq2_{model}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
+#             plt.close()
+
 
 def plot_tausq_tracks(ttab,models_to_plot=None,ax=None,
                       output_filebase="tausq_tracks"):
@@ -95,64 +225,24 @@ def plot_tausq_tracks(ttab,models_to_plot=None,ax=None,
 
 
 if __name__=="__main__":
+    from argparse import ArgumentParser
+    import yaml
+    # import logging
 
-    #### Plot model comparisons with data
-    # Original run
-    plot_all_models(max_q=0,models_to_plot=["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022"])
+    # Define parser object
+    parser = ArgumentParser(description="")
+    parser.add_argument("-c", "--config", dest="config_file", required=True,
+                        type=str, help="Path to config file that specifies the "
+                                       "parameters for this run.")
+    # parser.add_argument("-m", "--style", dest="style_file", required=False,
+    #                     type=str, help="Path to matplotlib style file")
 
-    # Replace blends with literature
-    # Only q=0
-    plot_all_models(max_q=0,include_blends=False,include_lit=True,
-                    period_scale = "linear",models_to_plot=["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022"])
-    # allow q=1
-    plot_all_models(max_q=1,include_blends=False,include_lit=True,
-                    period_scale = "linear",models_to_plot=["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022"])
+    args = parser.parse_args()
 
+    # if os.path.exists(args.style_file):
+    #     plt.style.use(args.style_file)
 
-    # # Demo PMD/model plots for the CS poster
+    plot_all_models
 
-    pmd = PeriodMassDistribution(max_q=0,include_blends=False,include_lit=True)
-    pmd.calc_mass_percentiles(mass_bins=np.linspace(0.05,1.35,14))
-    ax = pmd.plot_obs(plot_errors=True)
-    _ = pmd.plot_period_perc(ax)
-    _ = ax.set_title(pmd.param_string)
-    ax.set_yscale("log")
+    plot_all_models_yaml(args.config_file)
 
-    sm = SpinModel("WideHat8Myr_Mattea2015",130,"linear",
-                   init_type="kde")
-    pmd.select_obs(sm)
-
-    # Normalize the model and calculate tau-squared
-    # sm.normalize()
-    sm.add_mask()
-    sm.calc_tau_sq(pmd)
-
-    # Plot
-    ax = sm.plot_hist()
-    pmd.plot_obs(ax)
-    ax.set_ylim(0,12)
-
-    ax.set_title(f"Matt+2015; 130 Myr; tau2={sm.tau_sq:.0f}")
-    plt.savefig(f"plots/tausq_WideHat8Myr_Mattea2015_{pmd.param_string}_linear_00130Myr_ZAMS.png",bbox_inches="tight",dpi=600)
-
-    like = np.exp(-0.5*sm.tau_sq)
-    print(f"likelihood {like}")
-
-    sm = SpinModel("WideHat8Myr_Mattea2022",80,"linear",
-                   init_type="kde")
-    pmd.select_obs(sm)
-
-    # Normalize the model and calculate tau-squared
-    # sm.normalize()
-    sm.add_mask()
-    sm.calc_tau_sq(pmd)
-
-    # Plot
-    ax = sm.plot_hist()
-    pmd.plot_obs(ax)
-    ax.set_ylim(0,12)
-    ax.set_title(f"Matt+ in prep; 80 Myr; tau2={sm.tau_sq:.0f}")
-    plt.savefig(f"plots/tausq_WideHat8Myr_Mattea2022_{pmd.param_string}_linear_00080Myr_ZAMS.png",bbox_inches="tight",dpi=600)
-
-    like = np.exp(-0.5*sm.tau_sq)
-    print(f"likelihood {like}")
