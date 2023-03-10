@@ -70,13 +70,15 @@ def run_all_models_yaml(config_file):
                    mass_limits=config["mass_limits"],
                    pmd=None,
                    to_plot=True,
-                   overwrite=config["overwrite"])
+                   overwrite=config["overwrite"],
+                   init_types=config["init_types"])
 
 
 def run_all_models(max_q=0,include_blends=True,include_lit=False,
                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
                    models_to_plot=model_names,zoom_ymax=None,
-                   mass_limits=None,pmd=None,to_plot=True,overwrite=False):
+                   mass_limits=None,pmd=None,to_plot=True,overwrite=False, 
+                   init_types=None):
     """
     Compare a single period-mass distribution to multiple sets of models.
 
@@ -109,10 +111,26 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         print("WARNING: Using input period-mass distribution.")
         print("Ignoring input q, include_*, and scale match.")
 
+ 
+    # output_filebase = f"{output_filebase}_{model_name}_{init_type}"
+
     # Check for the matching output csv and skip straight to plotting if found
     outfilename = f"{output_filebase}_{pmd.param_string}"
     outfilepath = os.path.join(_DIR,f"tables/{outfilename}.csv")
     outplotpath = os.path.join(_DIR,f"plots/{outfilename}.png")
+
+    if (init_types is None):
+        init_types = np.zeros(nmod_l,"U8")
+        for j, model in enumerate(models_to_plot):
+            if("WideHat" in model):
+                init_types[j] = "tophat"
+            elif ("UpSco" in model):
+                init_type="cluster"
+            else:
+                print("ERROR: Unknown model, ", model)
+                print("requires init_type to be specified")
+                return
+
     if (overwrite==False) and (os.path.exists(outfilepath)):
         print("computation already completed")
         run_fits = False
@@ -122,7 +140,9 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             return
     else:
         run_fits = True
-        ttab = Table(np.zeros(nmod_l*nage).reshape(nage,nmod_l),names=models_to_plot)
+        colnames = [f"{models_to_plot[i]}_{init_types[i]}" for i in range(nmod_l)]
+        print("Cols",colnames)
+        ttab = Table(np.zeros(nmod_l*nage).reshape(nage,nmod_l),names=colnames)
 
     # Set up figure
     if to_plot:
@@ -142,14 +162,11 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
 
     # Run comparison to data for every model
     if run_fits:
+
         for j,model in enumerate(models_to_plot):
+            init_type = init_types[j]
 
-            print(model)
-
-            if "WideHat" in model:
-                init_type="kde"
-            else:
-                init_type="cluster"
+            print(model, init_type)
 
             models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
             # print(models)
@@ -158,7 +175,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             # print(model_ages)
 
             model_ages = model_ages#[model_ages<=300]
-            age_colname = f"Age_{model}"
+            age_colname = f"Age_{model}_{init_type}"
             ttab[age_colname] = model_ages
 
             all_tau_sq = np.zeros(len(model_ages))
@@ -167,7 +184,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             chunksize = len(model_ages) // cpu_count
 
             print(f"{cpu_count} CPUs, chunk size {chunksize}")
-            print("starting multiprocessing run",model)
+            print("starting multiprocessing run",model, init_type)
 
             tau_sq_args = [[age,pmd,model,period_scale,init_type] for
                             age in model_ages]
@@ -175,15 +192,16 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             all_tau_sq = pool.starmap(run_one_model,tau_sq_args,
                                           chunksize=chunksize)
 
-            if "UpSco" in model:
+            if init_type=="kde":
                 ls = "--"
             else:
                 ls = "-"
 
             if to_plot:
-                ax.plot(model_ages,all_tau_sq,ls,label=display_names[model],
+                ax.plot(model_ages,all_tau_sq,ls,label=display_names[model]+init_names[init_type],
                         color=mapper.to_rgba((j % 3)+1),alpha=0.75)
-            ttab[model] = all_tau_sq
+            colname = f"{model}_{init_type}"
+            ttab[colname] = all_tau_sq
 
             if j==0:
                 ttab["Age(Myr)"] = model_ages
@@ -191,15 +209,20 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
     # If the comparison was already run, just re-plot
     else:
         for j,model in enumerate(models_to_plot):
-            age_colname = f"Age_{model}"
-            if "UpSco" in model:
+            init_type = init_types[j]
+
+            print(model, init_type)
+
+            age_colname = f"Age_{model}_{init_type}"
+            colname = f"{model}_{init_type}"
+            if init_type=="kde":
                 ls = "--"
             else:
                 ls = "-"
 
             if to_plot:
-                ax.plot(ttab[age_colname],ttab[model],ls,
-                        label=display_names[model],
+                ax.plot(ttab[age_colname],ttab[colname],ls,
+                        label=display_names[model]+init_names[init_type],
                         color=mapper.to_rgba((j % 3)+1),alpha=0.75)
         # Plot the models from the saved file
 
@@ -216,11 +239,10 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
 
         ax.set_xlim(0,300)
         ylims = ax.get_ylim()
-        if zoom_ymax is None:
-            ymax = max(ttab[models_to_plot[-1]][ttab["Age(Myr)"]<350])
-        else:
+        # colname = f"{models_to_plot[-1]}_{init_types[-1]}"
+        if zoom_ymax is not None:
             ymax = zoom_ymax
-        ax.set_ylim(ylims[0],ymax)
+            ax.set_ylim(ylims[0],ymax)
         ax.set_title(outfilename)
         fig.savefig(outplotpath.replace(".png","_zoom.png"),bbox_inches="tight",dpi=600)
 
@@ -232,10 +254,20 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
 def run_model_binned(model_name,max_q=0,include_blends=True,
                      include_lit=False,period_scale = "linear",
                      output_filebase="tausq_ZAMS_Compare",
-                     zoom_ymax=None):
+                     zoom_ymax=None, init_type=None):
     pmd = PeriodMassDistribution(max_q,include_blends,include_lit)
 
-    output_filebase = f"{output_filebase}_{model_name}"
+    if (init_type is None) and ("WideHat" in model):
+        init_type = "tophat"
+    elif (init_type is None) and ("UpSco" in model):
+        init_type="cluster"
+    elif init_type is None:
+        print("ERROR: Unknown model, requires init_type to be specified")
+        return
+    else:
+        print(init_type)
+
+    output_filebase = f"{output_filebase}_{model_name}_{init_type}"
     model = model_name
 
     mass_bins = np.arange(0.05,1.4,0.1)
@@ -268,10 +300,6 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
     # Run comparison to data for every model
     if run_fits:
 
-        if "WideHat" in model:
-            init_type="kde"
-        else:
-            init_type="cluster"
 
         models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
         # print(models)

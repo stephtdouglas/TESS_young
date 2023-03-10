@@ -1,6 +1,6 @@
 name: "tausq_linear_massall"
 max_q: 0
-models: ["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque","WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
+models: ["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque","WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
 output_filebase: "tausq_linear_massall"
 mass_limits: [0.05,1.35]
 zoom_ymax: null
@@ -9,3 +9,4 @@ include_lit: !!bool false
 period_scale: "linear"
 to_plot: !!bool true
 overwrite: !!bool false
+init_type: ["tophat", "tophat", "tophat", "kde", "kde", "kde"]

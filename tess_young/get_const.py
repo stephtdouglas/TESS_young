@@ -6,7 +6,7 @@ import matplotlib.cm as cm
 
 __all__ = ['norm', 'mapper','cmap2', 'colors', 'shapes',
            'clusters','dates','display_names','model_names','nmod','nage','PAPER_DIR',
-           'MODEL_DIR']
+           'MODEL_DIR', 'init_names']
 
 PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
 
@@ -33,12 +33,15 @@ clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
 dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
 
-display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",
-                 "UpSco_Mattea2022":"Matt+in prep; UpSco initialization",
-                 "UpSco_ZeroTorque":"Zero Torque; UpSco initialization",
-                 "WideHat8Myr_Mattea2015":"Matt+15; uniform initialization",
-                 "WideHat8Myr_Mattea2022":"Matt+in prep; uniform initialization",
-                 "WideHat8Myr_ZeroTorque":"Zero Torque; uniform initialization"}
+display_names = {"UpSco_Mattea2015":"Classical",
+                 "UpSco_Mattea2022":"Standard",
+                 "UpSco_ZeroTorque":"Zero Torque",
+                 "WideHat8Myr_Mattea2015":"Classical",
+                 "WideHat8Myr_Mattea2022":"Standard",
+                 "WideHat8Myr_ZeroTorque":"Zero Torque"}
+init_names = {"tophat": "; uniform init",
+              "kde": "; UpSco KDE init",
+              "cluster": "; UpSco init"}
 model_names = np.asarray(["UpSco_Mattea2015","UpSco_Mattea2022",
                           "UpSco_ZeroTorque","WideHat8Myr_Mattea2015",
                           "WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"])
