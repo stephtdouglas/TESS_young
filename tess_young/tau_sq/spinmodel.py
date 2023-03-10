@@ -59,6 +59,9 @@ class SpinModel:
             mod_file = os.path.expanduser(f"~/Dropbox/Models/{model}/{model}_{model_age:05d}Myr.txt")
         #     print(mod_file)
             mod = at.read(mod_file,names=["mass","prot"])
+            if self.init_type=="tophat":
+                keep = (mod["prot"]>=0.6) & (mod["prot"]<12)
+                mod = mod[keep]
             img_raw, self.xedges, self.yedges = np.histogram2d(mod["mass"],mod["prot"],
                                                                bins=[self.mass_bins,self.period_bins])
             self.prot_prob = np.ones_like(mod["prot"])
