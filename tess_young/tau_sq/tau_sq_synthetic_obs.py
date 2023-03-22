@@ -225,10 +225,10 @@ if __name__=="__main__":
 
     parser.add_argument("-q", dest="max_q", default=0, required=False, help="maximum Q flag to include")
 
-    parser.add_argument("-b", dest="include_blends", default=True, required=False,
+    parser.add_argument("-b", dest="include_blends", default=True, required=False, type=bool,
                         help="whether or not to include potentially blended stars")
 
-    parser.add_argument("-l", dest="include_lit", default=True, required=False,
+    parser.add_argument("-l", dest="include_lit", default=True, required=False, type=bool,
                         help="whether or not to include literature periods")
 
     parser.add_argument("-o", dest="output_filebase", default="tausq_SYN", required=False,
@@ -239,7 +239,7 @@ if __name__=="__main__":
     parser.add_argument("-e", dest="end_i", required=False)
 
     age_group = parser.add_mutually_exclusive_group(required=True)
-    age_group.add_argument("-a","--age",dest="age")
+    age_group.add_argument("-a","--age",dest="age", type=int)
     age_group.add_argument("-f", "--filename", dest="filename")
 
 
