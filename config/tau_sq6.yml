@@ -8,5 +8,5 @@ include_blends: !!bool false
 include_lit: !!bool true
 period_scale: "linear"
 to_plot: !!bool true
-overwrite: !!bool false
+overwrite: !!bool true
 init_types: ["tophat", "tophat", "tophat", "kde", "kde", "kde"]

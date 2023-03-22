@@ -256,19 +256,20 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
                      output_filebase="tausq_ZAMS_Compare",
                      zoom_ymax=None, init_type=None):
     pmd = PeriodMassDistribution(max_q,include_blends,include_lit)
+    
+    model = model_name
+    if init_type is None:
+            if("WideHat" in model):
+                init_type = "tophat"
+            elif ("UpSco" in model):
+                init_type="cluster"
+            else:
+                print("ERROR: Unknown model, ", model)
+                print("requires init_type to be specified")
+                return
 
-    if (init_type is None) and ("WideHat" in model):
-        init_type = "tophat"
-    elif (init_type is None) and ("UpSco" in model):
-        init_type="cluster"
-    elif init_type is None:
-        print("ERROR: Unknown model, requires init_type to be specified")
-        return
-    else:
-        print(init_type)
 
     output_filebase = f"{output_filebase}_{model_name}_{init_type}"
-    model = model_name
 
     mass_bins = np.arange(0.05,1.4,0.1)
     mass_labels = [f"{mass:.2f} Msun" for mass in mass_bins]
@@ -313,7 +314,7 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
         chunksize = len(model_ages) // cpu_count
 
         print(f"{cpu_count} CPUs, {len(model_ages)} models, chunk size {chunksize}")
-        print("starting multiprocessing run",model)
+        print("starting multiprocessing run",model, init_type)
 
         tau_sq_args = [[age,pmd,model,period_scale,init_type] for
                         age in model_ages]
@@ -331,76 +332,76 @@ def run_model_binned(model_name,max_q=0,include_blends=True,
         #
         ttab["Age(Myr)"] = model_ages
 
-    # If the comparison was already run, just re-plot
-    else:
-        for j,model in enumerate(models_to_plot):
-            age_colname = f"Age_{model}"
-            if "UpSco" in model:
-                ls = "--"
-            else:
-                ls = "-"
-            ax.plot(ttab[age_colname],ttab[model],ls,
-                    label=display_names[model],
-                    color=mapper.to_rgba((j % 3)+1),alpha=0.75)
-        # Plot the models from the saved file
+    # # If the comparison was already run, just re-plot
+    # else:
+    #     for j,model in enumerate(models_to_plot):
+    #         age_colname = f"Age_{model}"
+    #         if "UpSco" in model:
+    #             ls = "--"
+    #         else:
+    #             ls = "-"
+    #         ax.plot(ttab[age_colname],ttab[model],ls,
+    #                 label=display_names[model],
+    #                 color=mapper.to_rgba((j % 3)+1),alpha=0.75)
+    #     # Plot the models from the saved file
 
-    if "UpSco" in model:
-        ls = "--"
-    else:
-        ls = "-"
+    # if init_type=="kde":
+    #     ls = "--"
+    # else:
+    #     ls = "-"
 
     # print(nbins,mass_labels)
 
-    # Unnormalized tau_sq
-    fig = plt.figure()
-    fig.patch.set_facecolor('w')
-    fig.patch.set_alpha(1.0)
-    ax = plt.subplot(111)
+    # # Unnormalized tau_sq
+    # fig = plt.figure()
+    # fig.patch.set_facecolor('w')
+    # fig.patch.set_alpha(1.0)
+    # ax = plt.subplot(111)
 
-    for i,mass in enumerate(mass_bins[:-1]):
-        ax.plot(model_ages,all_tau_sq[i],ls,label=mass_labels[i],
-                color=mapper2.to_rgba((i % nbins)+1),alpha=0.75)
+    # for i,mass in enumerate(mass_bins[:-1]):
+    #     ax.plot(model_ages,all_tau_sq[i],ls,label=mass_labels[i],
+    #             color=mapper2.to_rgba((i % nbins)+1),alpha=0.75)
 
-    ax.legend(loc=2,ncol=3)
-    ax.set_xlabel("Model age (Myr)",fontsize=16)
-    ax.set_ylabel("tau squared",fontsize=16)
+    # ax.legend(loc=2,ncol=3)
+    # ax.set_xlabel("Model age (Myr)",fontsize=16)
+    # ax.set_ylabel("tau squared",fontsize=16)
 
-    ax.tick_params(labelsize=12)
-    ax.set_xticks(np.arange(0,300,25),minor=True)
+    # ax.tick_params(labelsize=12)
+    # ax.set_xticks(np.arange(0,300,25),minor=True)
 
-    fig.savefig(os.path.join(_DIR,f"plots/{outfilename}.png"),bbox_inches="tight",dpi=600)
+    # fig.savefig(os.path.join(_DIR,f"plots/{outfilename}.png"),bbox_inches="tight",dpi=600)
 
-    # Normalized tau_sq
-    fig = plt.figure()
-    fig.patch.set_facecolor('w')
-    fig.patch.set_alpha(1.0)
-    ax = plt.subplot(111)
+    # # Normalized tau_sq
+    # fig = plt.figure()
+    # fig.patch.set_facecolor('w')
+    # fig.patch.set_alpha(1.0)
+    # ax = plt.subplot(111)
 
-    for i,mass in enumerate(mass_bins[:-1]):
-        ax.plot(model_ages,all_tau_sq[i]/min(all_tau_sq[i]),ls,
-                label=mass_labels[i],
-                color=mapper2.to_rgba((i % nbins)+1),alpha=0.75)
-        min_i = np.argmin(all_tau_sq[i])
-        ax.plot(model_ages[min_i],0.99,"^",color=mapper2.to_rgba((i % nbins)+1))
-        print(mass,model_ages[min_i])
+    # for i,mass in enumerate(mass_bins[:-1]):
+    #     ax.plot(model_ages,all_tau_sq[i]/min(all_tau_sq[i]),ls,
+    #             label=mass_labels[i],
+    #             color=mapper2.to_rgba((i % nbins)+1),alpha=0.75)
+    #     min_i = np.argmin(all_tau_sq[i])
+    #     ax.plot(model_ages[min_i],0.99,"^",color=mapper2.to_rgba((i % nbins)+1))
+    #     print(mass,model_ages[min_i])
 
-    ax.legend(loc=2,ncol=3)
-    ax.set_xlabel("Model age (Myr)",fontsize=16)
-    ax.set_ylabel("tau squared (minimum = 1)",fontsize=16)
+    # ax.legend(loc=2,ncol=3)
+    # ax.set_xlabel("Model age (Myr)",fontsize=16)
+    # ax.set_ylabel("tau squared (minimum = 1)",fontsize=16)
 
-    ax.tick_params(labelsize=12)
-    ax.set_xticks(np.arange(0,300,25),minor=True)
+    # ax.tick_params(labelsize=12)
+    # ax.set_xticks(np.arange(0,300,25),minor=True)
 
-    fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_normalized.png"),bbox_inches="tight",dpi=600)
+    # fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_normalized.png"),bbox_inches="tight",dpi=600)
 
 
-    ax.set_xlim(0,300)
-    if zoom_ymax is not None:
-        ymax = zoom_ymax
-        ax.set_ylim(0.99,ymax)
-    fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_zoom.png"),bbox_inches="tight",dpi=600)
-    #
-    #
+    # ax.set_xlim(0,300)
+    # if zoom_ymax is not None:
+    #     ymax = zoom_ymax
+    #     ax.set_ylim(0.99,ymax)
+    # fig.savefig(os.path.join(_DIR,f"plots/{outfilename}_zoom.png"),bbox_inches="tight",dpi=600)
+    # #
+    # #
     ttab.write(os.path.join(_DIR,f"tables/{outfilename}.csv"),delimiter=",",overwrite=True)
 
 
@@ -437,11 +438,15 @@ if __name__=="__main__":
 
         print(config)
 
-        for model_name in config["models"]:
+        nmod_l = len(config["models"])
+        for i in range(nmod_l):
+            model_name = config["models"][i]
+            init_type = config["init_types"][i]
             run_model_binned(model_name,max_q=config["max_q"],
                            include_blends=config["include_blends"],
                            include_lit=config["include_lit"],
                            period_scale="linear",
+                           init_type=init_type,
                            output_filebase=config["output_filebase"]
                            )
 

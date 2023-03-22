@@ -1,12 +1,12 @@
-name: "tausq_linear_masshigh"
+name: "tausq_log_massall"
 max_q: 0
 models: ["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque","WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
-output_filebase: "tausq_linear_masshigh"
-mass_limits: [0.65,1.35]
-zoom_ymax: 2000
+output_filebase: "tausq_linear_massall"
+mass_limits: [0.05,1.35]
+zoom_ymax: null
 include_blends: !!bool true
 include_lit: !!bool false
-period_scale: "linear"
+period_scale: "log"
 to_plot: !!bool true
 overwrite: !!bool true
 init_types: ["tophat", "tophat", "tophat", "kde", "kde", "kde"]
