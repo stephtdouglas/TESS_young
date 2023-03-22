@@ -1,32 +1,18 @@
-import os, sys, glob, time
+import os, glob
 
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.io.ascii as at
-import matplotlib as mpl
-import matplotlib.cm as cm
 
 from tau_sq_plot import plot_tausq_tracks
 
-norm = mpl.colors.Normalize(vmin=0, vmax=5)
-mapper = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
-
-norm2 = mpl.colors.Normalize(vmin=0, vmax=14)
-mapper2 = cm.ScalarMappable(norm=norm2, cmap=cm.viridis)
-
-model_names = np.asarray(["UpSco_Mattea2015","UpSco_Mattea2022","UpSco_ZeroTorque",
-               "WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"])
-display_names = {"UpSco_Mattea2015":"Matt+15; UpSco initialization",
-                 "UpSco_Mattea2022":"Matt+in prep; UpSco initialization",
-                 "UpSco_ZeroTorque":"Zero Torque; UpSco initialization",
-                 "WideHat8Myr_Mattea2015":"Matt+15; uniform initialization",
-                 "WideHat8Myr_Mattea2022":"Matt+in prep; uniform initialization",
-                 "WideHat8Myr_ZeroTorque":"Zero Torque; uniform initialization"}
+from tess_young.get_const import *
+# plt.style.use('../../paper.mplstyle')
 
 def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
                           output_filebase="tausq_tracks",best_age_init=80):
 
-    _dir = "./tables/"
+    _dir = "../../tables/"
     outfilename = f"{output_filebase}_{ref_model}"
 
     # Make a figure and plot all of the individual runs
@@ -49,7 +35,7 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
     plt.title("Synthetic Obs Set 2")
     plt.xlabel("Age [Myr]")
     plt.ylabel("Tau squared")
-    plt.savefig(f"plots/{outfilename}_set2.png",dpi=600,bbox_inches="tight")
+    plt.savefig(f"../../plots/{outfilename}_set2.png",dpi=600,bbox_inches="tight")
 
     # # Histogram the best fit ages (not statistically useful, but interesting)
     # plt.figure()
@@ -105,7 +91,7 @@ def analyze_synthetic_obs(ref_model,compare_model,n_sets=100,
     ax.set_xlim(xmin,xmax)
     ax.set_ylim(ymin,ymax)
 
-    plt.savefig(f"plots/{outfilename}.png",dpi=600,bbox_inches="tight")
+    plt.savefig(f"../../plots/{outfilename}.png",dpi=600,bbox_inches="tight")
 
 
     good = syn1[ref_model]<=ts67
