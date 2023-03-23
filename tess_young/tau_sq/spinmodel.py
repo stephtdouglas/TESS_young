@@ -39,7 +39,8 @@ class SpinModel:
         if init_type in ["tophat","cluster","kde"]:
             self.init_type = init_type
         else:
-            print("WARNING: init_type unknown, no normalization will be performed")
+            self.init_type = "none"
+            print(f"WARNING: init_type {init_type} unknown, no normalization will be performed")
 
         # Read in the model file and calculate the histogram
         if self.init_type=="kde":

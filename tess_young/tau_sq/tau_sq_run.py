@@ -125,7 +125,7 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             if("WideHat" in model):
                 init_types[j] = "tophat"
             elif ("UpSco" in model):
-                init_type="cluster"
+                init_types[j]="cluster"
             else:
                 print("ERROR: Unknown model, ", model)
                 print("requires init_type to be specified")

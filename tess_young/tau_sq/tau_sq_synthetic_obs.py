@@ -1,4 +1,4 @@
-import os, sys, time
+import os, sys, time, pathlib
 
 import numpy as np
 import astropy.io.ascii as at
@@ -7,6 +7,10 @@ from tau_sq_run import run_all_models
 
 from periodmass import PeriodMassDistribution, PeriodMassModel
 from spinmodel import SpinModel
+
+from tess_young.get_const import *
+import tess_young
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
 def generate_synthetic_obs(model,age,period_scale,init_type,
                            n_sets=100,n_per_set=500,id_str=None,
@@ -63,7 +67,8 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
         current_time = time.strftime("%H:%M:%S", t)
         print(current_time)
         run_all_models(pmd=pmd,output_filebase=f"{outf}{i:04d}",
-                       models_to_plot=model_names,to_plot=False)
+                       models_to_plot=model_names[3:],to_plot=False,
+                       init_types=[init_type,init_type,init_type])
 
 
 def count_bins(pmd,sm):
@@ -111,6 +116,7 @@ def one_model(model,age,period_scale,init_type,
     """
 
     # Set up the model to draw fake observations from
+    print(model,age,period_scale,init_type)
     sm = SpinModel(model,age,period_scale,init_type=init_type)
     sm.normalize()
 
@@ -124,12 +130,12 @@ def one_model(model,age,period_scale,init_type,
                       rng_seed=9302,id_str=id_str)
     pmd.select_obs(sm)
 
-
     if (start_i is None) or (start_i==0): 
         # Compare the first synthetic set to all models
         # This produces a baseline tausq vs. age curve
         run_all_models(pmd=pmd,output_filebase=output_filebase,
-                       models_to_plot=model_names)
+                       models_to_plot=model_names[3:],
+                       init_types=[init_type,init_type,init_type])
 
     # Generate multiple fake model sets and compare to all models
     # Another script will analyze these results and select the best-fit from each synthetic dataset
@@ -270,6 +276,8 @@ if __name__=="__main__":
             raise
         best_age = ttab[f"Age_{model}"][best_loc]
 
+    print(args.init_type)
+        
     one_model(args.model, best_age, args.period_scale, args.init_type,
               args.max_q, args.include_blends, args.include_lit,
               args.output_filebase, id_str,
