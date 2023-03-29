@@ -34,6 +34,7 @@ def plot_all_models_yaml(config_file, multipanel=False):
                        period_scale="linear",
                        output_filebase=config["output_filebase"],
                        models_to_plot=config["models"],
+                       init_types=config["init_types"],
                        mass_limits=config["mass_limits"]
                        )
 
@@ -44,12 +45,14 @@ def plot_all_models_yaml(config_file, multipanel=False):
                        period_scale="linear",
                        output_filebase=config["output_filebase"],
                        models_to_plot=config["models"],
+                       init_types=config["init_types"],
                        mass_limits=config["mass_limits"]
                        )
 
 
 def plot_all_models(max_q=0,include_blends=True,include_lit=False,
-                    period_scale = "linear",models_to_plot=model_names,
+                    period_scale = "linear",models_to_plot=None,
+                    init_types=None,
                     output_filebase="tausq_ZAMS_Compare",mass_limits=None):
     pmd = PeriodMassDistribution(max_q,include_blends,include_lit,mass_limits)
 
@@ -69,19 +72,22 @@ def plot_all_models(max_q=0,include_blends=True,include_lit=False,
 
     plt.figure()
     for j,model in enumerate(models_to_plot):
-        print(model)
+        init_type = init_types[j]
+        print(model,init_type)
 
-        if "WideHat" in model:
-            init_type="kde"
+        age_col = f"Age_{model}_{init_type}"
+        colname = f"{model}_{init_type}"
+        if init_type=="kde":
+            ls = "--"
         else:
-            init_type="cluster"
+            ls = "-"
 
         models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
 
         model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
         # print(model_ages)
 
-        model_ages = model_ages[(model_ages<=150) & (model_ages>=0)]
+        model_ages = model_ages[(model_ages<=250) & (model_ages>=0)]
 
         for i, age in enumerate(model_ages):
             # if results["age_col"][i]!=age:
@@ -93,7 +99,7 @@ def plot_all_models(max_q=0,include_blends=True,include_lit=False,
             #     pmd.select_obs(sm)
 
             # Normalize the model and calculate tau-squared
-            if ("WideHat" in model)==False:
+            if init_type!="kde":
                 sm.normalize()
             sm.add_mask()
             # sm.calc_tau_sq(pmd)
@@ -117,13 +123,13 @@ def plot_all_models(max_q=0,include_blends=True,include_lit=False,
                                           alpha=1,color="w",zorder=10)
                     ax.add_patch(rect_high)
 
-            plt.savefig(os.path.join(_DIR,f"plots/model_frames/tausq_{output_filebase}_{model}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
+            plt.savefig(os.path.join(_DIR,f"plots/model_frames/tausq_{output_filebase}_{colname}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
             plt.close()
 
 
 def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
                     period_scale = "linear",output_filebase="tausq_panel_ZAMS_Compare",
-                    models_to_plot=model_names,
+                    models_to_plot=model_names,init_types=None,
                     mass_limits=None):
     """
     Create a two-panel plot showing the model/data and the point on the tau-squared vs. age plot
@@ -148,7 +154,9 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
 
 
     for j,model in enumerate(models_to_plot):
-        print(model)
+
+        init_type = init_types[j]
+        print(model,init_type)
 
         fig, axes = plt.subplots(ncols=2,figsize=(10,5))
         fig.patch.set_facecolor('w')
@@ -156,28 +164,32 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
         ax1 = axes[0]
         ax2 = axes[1]
 
-        if "WideHat" in model:
-            init_type="kde"
+
+        age_col = f"Age_{model}_{init_type}"
+        colname = f"{model}_{init_type}"
+        if init_type=="kde":
+            ls = "--"
         else:
-            init_type="cluster"
+            ls = "-"
+
 
         models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
 
         model_ages = np.sort([int(mod.split("_")[-1][:5]) for mod in models])
         # print(model_ages)
 
-        model_ages = model_ages[(model_ages<=150) & (model_ages>=0)]
-
-        age_col = f"Age_{model}"
+        max_age = 250
+        model_ages = model_ages[(model_ages<=max_age) & (model_ages>=0)]
 
         cj = np.where(model==model_names)[0][0]
         mcolor=mapper.to_rgba((cj % 3)+1)
 
 
-        ax1.plot(results[age_col],results[model],'-',color=mcolor,alpha=0.5)
+        ax1.plot(results[age_col],results[colname],'-',color=mcolor,alpha=0.5)
         ax1.set_xlabel("Model age (Myr)",fontsize=16)
         ax1.set_ylabel("tau squared",fontsize=16)
-        ax1.set_xticks(np.arange(0,300,25),minor=True)
+        ax1.set_xlim(0,max_age)
+        ax1.set_xticks(np.arange(0,max_age,25),minor=True)
 
 
         for i, age in enumerate(model_ages):
@@ -192,16 +204,16 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
                 pmd.select_obs(sm)
 
             # Normalize the model and calculate tau-squared
-            if ("WideHat" in model)==False:
+            if init_type!="kde":
                 sm.normalize()
             sm.add_mask()
-            sm.calc_tau_sq(pmd)
+            # sm.calc_tau_sq(pmd)
 
     #         print(model,age,np.max(sm.img))
     #         print(sm.img)
 
             # Add this age's dot to the tausquared histogram
-            ax1.plot(results[age_col][i],results[model][i],'.',color=mcolor,alpha=1)
+            ax1.plot(results[age_col][i],results[colname][i],'.',color=mcolor,alpha=1)
 
 
             # Plot
