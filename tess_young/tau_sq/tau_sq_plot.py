@@ -22,31 +22,18 @@ def plot_all_models_yaml(config_file, multipanel=False):
     config_file = os.path.abspath(os.path.expanduser(config_file))
     with open(config_file, 'r') as f:
         config = yaml.load(f.read())
-        config['config_file'] = config_file
+        # config['config_file'] = config_file
 
     print(config)
     print(multipanel)
+    name = config.pop("name")
 
     if multipanel:
-        plot_multipanel(max_q=config["max_q"],
-                       include_blends=config["include_blends"],
-                       include_lit=config["include_lit"],
-                       period_scale="linear",
-                       output_filebase=config["output_filebase"],
-                       models_to_plot=config["models"],
-                       init_types=config["init_types"],
-                       mass_limits=config["mass_limits"]
+        plot_multipanel(**config
                        )
 
     else:
-        plot_all_models(max_q=config["max_q"],
-                       include_blends=config["include_blends"],
-                       include_lit=config["include_lit"],
-                       period_scale="linear",
-                       output_filebase=config["output_filebase"],
-                       models_to_plot=config["models"],
-                       init_types=config["init_types"],
-                       mass_limits=config["mass_limits"]
+        plot_all_models(**config
                        )
 
 
