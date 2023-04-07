@@ -69,6 +69,7 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
         run_all_models(pmd=pmd,output_filebase=f"{outf}{i:04d}",
                        models_to_plot=model_names[3:],to_plot=False,
                        init_types=[init_type,init_type,init_type])
+#        break
 
 
 def count_bins(pmd,sm):

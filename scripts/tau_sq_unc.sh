@@ -7,9 +7,9 @@
 #
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=0:30:00
+#SBATCH --time=02:00:00
 #SBATCH --mem-per-cpu=8gb
-#SBATCH --array=30-59
+#SBATCH --array=0-2
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=douglste@lafayette.edu
 
@@ -27,14 +27,13 @@ mkdir -p plots
 mkdir -p tables
 
 cp ~/projects/TESS_young/tables/tausq_ZAMS_Compare*csv tables/
-cp ~/projects/TESS_young/*py .
 cp ~/projects/TESS_young/tab_*csv .
 
 ulimit -n 8192
 
 source activate lightkurve2
 
-srun python tau_sq_synthetic_obs.py
+srun python ~/projects/TESS_young/tess_young/tau_sq/tau_sq_synthetic_obs.py WideHat8Myr_Mattea2022 kde -l False -o wide22_kde_SYN -a 66
 
 mv tables/*SYN* ~/projects/TESS_young/tables/
 
