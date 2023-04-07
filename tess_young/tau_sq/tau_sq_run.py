@@ -56,22 +56,11 @@ def run_all_models_yaml(config_file):
     config_file = os.path.abspath(os.path.expanduser(config_file))
     with open(config_file, 'r') as f:
         config = yaml.load(f.read())
-        config['config_file'] = config_file
 
     print(config)
+    name = config.pop("name")
 
-    run_all_models(max_q=config["max_q"],
-                   include_blends=config["include_blends"],
-                   include_lit=config["include_lit"],
-                   period_scale="linear",
-                   output_filebase=config["output_filebase"],
-                   models_to_plot=config["models"],
-                   zoom_ymax=config["zoom_ymax"],
-                   mass_limits=config["mass_limits"],
-                   pmd=None,
-                   to_plot=True,
-                   overwrite=config["overwrite"],
-                   init_types=config["init_types"])
+    run_all_models(pmd=None,**config)
 
 
 def run_all_models(max_q=0,include_blends=True,include_lit=False,
@@ -445,7 +434,7 @@ if __name__=="__main__":
             run_model_binned(model_name,max_q=config["max_q"],
                            include_blends=config["include_blends"],
                            include_lit=config["include_lit"],
-                           period_scale="linear",
+                           period_scale=config["period_scale"],
                            init_type=init_type,
                            output_filebase=config["output_filebase"]
                            )
