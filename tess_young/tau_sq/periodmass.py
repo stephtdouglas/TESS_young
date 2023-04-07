@@ -13,7 +13,7 @@ from tess_young.get_const import *
 class PeriodMassDistribution:
 
     def __init__(self,max_q=0,include_blends=True,include_lit=False,
-                 mass_limits=None):
+                 mass_limits=None,cluster="all"):
         """
         max_q: integer, maximum quality flag to include (should be 0 or 1)
         include_blends: boolean, whether or not to include potentially blended targets
@@ -22,6 +22,11 @@ class PeriodMassDistribution:
         """
         # My crossmatched catalog
         per = at.read("tab_all_stars.csv")
+        if cluster !="all":
+            per = per[per["Cluster"]==cluster]
+        if len(per)==0:
+            print("Error: no matching stars found")
+            sys.exit(42)
         # per.dtype
         self.cat = Table(per, masked=True, copy=False)
         if mass_limits is not None:

@@ -1,6 +1,6 @@
 name: "tausq_log_masslow"
 max_q: 0
-models: ["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque","WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
+models_to_plot: ["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque","WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
 output_filebase: "tausq_log_masslow"
 mass_limits: [0.05,0.65]
 zoom_ymax: null
