@@ -1,7 +1,7 @@
 name: "tausq_log_massall"
 max_q: 0
-models: ["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque","WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
-output_filebase: "tausq_linear_massall"
+models_to_plot: ["WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque","WideHat8Myr_Mattea2015","WideHat8Myr_Mattea2022","WideHat8Myr_ZeroTorque"]
+output_filebase: "tausq_log_massall"
 mass_limits: [0.05,1.35]
 zoom_ymax: null
 include_blends: !!bool true
