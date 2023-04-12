@@ -27,7 +27,10 @@ def plot_all_models_yaml(config_file, multipanel=False):
     print(config)
     print(multipanel)
     name = config.pop("name")
-
+    _ = config.pop("zoom_ymax")
+    _ = config.pop("to_plot")
+    _ = config.pop("overwrite")
+    
     if multipanel:
         plot_multipanel(**config
                        )
@@ -138,7 +141,9 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
     else:
         results = at.read(outfilepath)
 
-
+    plot_dir = os.path.join(_DIR,"plots/model_frames/")
+    if os.path.exists(plot_dir) is False:
+        os.mkdir(plot_dir)
 
     for j,model in enumerate(models_to_plot):
 
@@ -224,8 +229,12 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
                                           alpha=1,color="w",zorder=10)
                     ax2.add_patch(rect_high)
 
-            ax2.set_ylim(0,14)
-            plt.savefig(os.path.join(_DIR,f"plots/model_frames/tausq_panel_{model}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
+            if period_scale=="log":
+                ax2.set_ylim(0.1,20)
+            else:
+                ax2.set_ylim(0,14)
+            
+            plt.savefig(os.path.join(_DIR,f"plots/model_frames/tausq_panel_{model}_{init_type}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
             ax2.cla()
 
         #     if i>5:
