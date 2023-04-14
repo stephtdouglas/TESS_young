@@ -29,11 +29,12 @@ class SpinModel:
         self.age = model_age
         self.model_name = model
 
+        nbins = 30
+
         if period_scale=="log":
-#             self.period_bins = np.logspace(np.log10(0.08),np.log10(40),200)
-            self.period_bins = np.logspace(np.log10(0.08),np.log10(40),30)
+            self.period_bins = np.logspace(np.log10(0.08),np.log10(40),nbins)
         else:
-            self.period_bins = np.linspace(0,40,30)
+            self.period_bins = np.linspace(0,40,nbins)
 #             self.period_bins = np.linspace(0,40,10)
 
         if init_type in ["tophat","cluster","kde"]:
