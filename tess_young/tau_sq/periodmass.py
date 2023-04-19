@@ -1,4 +1,5 @@
 # import os
+import sys
 
 import numpy as np
 from numpy.random import default_rng
@@ -76,7 +77,11 @@ class PeriodMassDistribution:
 
         self.figsize=(9,9)
 
-        self.param_string = f"Qmax{max_q}_blends{include_blends}_lit{include_lit}"
+        if cluster=="all":
+            self.param_string = f"Qmax{max_q}_blends{include_blends}_lit{include_lit}"
+        else:
+            self.param_string = f"Qmax{max_q}_blends{include_blends}_lit{include_lit}_{cluster}"
+
 
     def select_obs(self, sm):
         use = ((self.mass_raw<max(sm.mass_bins)) &

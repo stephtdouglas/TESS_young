@@ -22,3 +22,4 @@ def test_NGC_2451A_pmd():
 def test_Collinder_135_pmd():
     pmd = PeriodMassDistribution(0,True,False,None,"Collinder_135")
     assert len(pmd.prot)>0
+
