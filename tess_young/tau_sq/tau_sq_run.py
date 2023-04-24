@@ -48,26 +48,11 @@ def run_one_model_binned(age,pmd,model,period_scale,init_type):
 
     return sm.tau_sq
 
-def run_all_models_yaml(config_file):
-    """
-
-    """
-    # parse config file
-    config_file = os.path.abspath(os.path.expanduser(config_file))
-    with open(config_file, 'r') as f:
-        config = yaml.load(f.read())
-
-    print(config)
-    name = config.pop("name")
-
-    run_all_models(pmd=None,**config)
-
-
 def run_all_models(max_q=0,include_blends=True,include_lit=False,
                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
                    models_to_plot=model_names,zoom_ymax=None,
                    mass_limits=None,pmd=None,to_plot=True,overwrite=False, 
-                   init_types=None):
+                   init_types=None,cluster="all"):
     """
     Compare a single period-mass distribution to multiple sets of models.
 
@@ -95,10 +80,10 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
 
     if pmd is None:
         pmd = PeriodMassDistribution(max_q,include_blends,include_lit,
-                                     mass_limits=mass_limits)
+                                     mass_limits=mass_limits,cluster=cluster)
     else:
         print("WARNING: Using input period-mass distribution.")
-        print("Ignoring input q, include_*, and scale match.")
+        print("Ignoring input q, include_*, scale, mass_limits, and cluster.")
 
  
     # output_filebase = f"{output_filebase}_{model_name}_{init_type}"
@@ -198,14 +183,20 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
     # If the comparison was already run, just re-plot
     else:
         for j,model in enumerate(models_to_plot):
+
             init_type = init_types[j]
+            if init_type.lower()!="kde":
+                continue
 
             print(model, init_type)
 
             age_colname = f"Age_{model}_{init_type}"
             colname = f"{model}_{init_type}"
-            if init_type=="kde":
-                ls = "--"
+            
+            if "Zero" in model:
+                ls = ":"
+            elif "2015" in model:
+                ls = "-."
             else:
                 ls = "-"
 
@@ -229,9 +220,11 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
         ax.set_xlim(0,300)
         ylims = ax.get_ylim()
         # colname = f"{models_to_plot[-1]}_{init_types[-1]}"
-        if zoom_ymax is not None:
+        if zoom_ymax is None:
+            ymax = ylims[1]*0.8
+        else:
             ymax = zoom_ymax
-            ax.set_ylim(ylims[0],ymax)
+        ax.set_ylim(ylims[0],ymax)
         ax.set_title(outfilename)
         fig.savefig(outplotpath.replace(".png","_zoom.png"),bbox_inches="tight",dpi=600)
 
@@ -411,15 +404,25 @@ if __name__=="__main__":
     # parser.add_argument("-m", "--style", dest="style_file", required=False,
     #                     type=str, help="Path to matplotlib style file")
 
+    parser.add_argument("-g", dest="cluster", default="all", required=False,
+                        help="Which group/cluster to fit (default is all)")
+
     args = parser.parse_args()
 
-    # if os.path.exists(args.style_file):
-    #     plt.style.use(args.style_file)
-
     if args.config_file is not None:
-        run_all_models_yaml(args.config_file)
+        # Run a regular fit
+        config_file = os.path.abspath(os.path.expanduser(args.config_file))
+        with open(config_file, 'r') as f:
+            config = yaml.load(f.read())
+
+        print(config)
+        name = config.pop("name")
+
+        _ = config.setdefault("cluster",args.cluster)
+
+        run_all_models(pmd=None,**config)
     else:
-        # parse config file
+        # Run a fit divided up by mass bins
         config_file = os.path.abspath(os.path.expanduser(args.binned_config))
         with open(config_file, 'r') as f:
             config = yaml.load(f.read())
