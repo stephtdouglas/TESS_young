@@ -139,7 +139,8 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
 
         for j,model in enumerate(models_to_plot):
             init_type = init_types[j]
-
+            if init_type.lower()!="kde":
+                continue
             print(model, init_type)
 
             models = glob.glob(os.path.join(MODEL_DIR,f"{model}/{model}*Myr.txt"))
@@ -166,8 +167,10 @@ def run_all_models(max_q=0,include_blends=True,include_lit=False,
             all_tau_sq = pool.starmap(run_one_model,tau_sq_args,
                                           chunksize=chunksize)
 
-            if init_type=="kde":
-                ls = "--"
+            if "Zero" in model:
+                ls = ":"
+            elif "2015" in model:
+                ls = "-."
             else:
                 ls = "-"
 
@@ -420,7 +423,13 @@ if __name__=="__main__":
 
         _ = config.setdefault("cluster",args.cluster)
 
-        run_all_models(pmd=None,**config)
+        if args.cluster=="UpSco":
+            from upsco_periodmass import UpSco
+            pmd = UpSco(mass_limits=config["mass_limits"])
+        else:
+            pmd = None
+
+        run_all_models(pmd=pmd,**config)
     else:
         # Run a fit divided up by mass bins
         config_file = os.path.abspath(os.path.expanduser(args.binned_config))
