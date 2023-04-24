@@ -56,30 +56,3 @@ class UpSco(PeriodMassDistribution):
 
         self.param_string = f"UpSco_"
 
-# if __name__=="__main__":
-#     from tau_sq_run import run_all_models
-#     from argparse import ArgumentParser
-#     import yaml
-#     # import logging
-
-#     # Define parser object
-#     parser = ArgumentParser(description="")
-#     parser.add_argument("-c", "--config", dest="config_file", required=True,
-#                         type=str, help="Path to config file that specifies the "
-#                                        "parameters for this run.")
-
-#     args = parser.parse_args()
-
-#     if args.config_file is not None:
-#         # Run a regular fit
-#         config_file = os.path.abspath(os.path.expanduser(args.config_file))
-#         with open(config_file, 'r') as f:
-#             config = yaml.load(f.read())
-
-#         print(config)
-#         name = config.pop("name")
-
-#         _ = config.setdefault("cluster",args.cluster)
-
-#         run_all_models(pmd=None,**config)
-
