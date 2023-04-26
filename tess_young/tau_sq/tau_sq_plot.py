@@ -234,7 +234,7 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
             else:
                 ax2.set_ylim(0,14)
             
-            plt.savefig(os.path.join(_DIR,f"plots/model_frames/tausq_panel_{model}_{init_type}_{pmd.param_string}_{period_scale}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
+            plt.savefig(os.path.join(_DIR,f"plots/model_frames/panel_{outfilename}_{model}_{init_type}_{age:05d}Myr_ZAMS.png"),bbox_inches="tight",dpi=600)
             ax2.cla()
 
         #     if i>5:
