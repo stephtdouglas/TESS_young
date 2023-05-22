@@ -44,7 +44,7 @@ def plot_all_clusters(max_q=0,include_blends=True,include_lit=False,
     """
     
 
-    fig, axes = plt.subplots(nrows=len(clusters),figsize=(8,10), sharex=True)
+    fig, axes = plt.subplots(nrows=len(clusters),figsize=(5,9), sharex=True)
     fig.patch.set_facecolor('w')
     fig.patch.set_alpha(1.0)
 
@@ -115,11 +115,11 @@ def plot_all_clusters(max_q=0,include_blends=True,include_lit=False,
                 color=colors[cluster])
 
 
-    axes[0].legend(loc=1)
+    axes[0].legend(loc=1,fontsize=10)
     axes[0].set_xlim(0,150)
 
-    axes[0].set_xlabel("Model age (Myr)",fontsize=16)
-    axes[2].set_ylabel("tau squared",fontsize=16)
+    axes[-1].set_xlabel("Model age (Myr)",fontsize=16)
+    axes[2].set_ylabel(r"$\tau^2$",fontsize=20)
 
     axes[0].tick_params(labelsize=12)
     axes[0].set_xticks(np.arange(0,151,15),minor=True)
