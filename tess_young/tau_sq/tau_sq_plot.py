@@ -148,7 +148,9 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
     for j,model in enumerate(models_to_plot):
 
         init_type = init_types[j]
-        print(model,init_type)
+        if init_type.lower()!="kde":
+            continue
+        #print(model,init_type)
 
         fig, axes = plt.subplots(ncols=2,figsize=(10,5))
         fig.patch.set_facecolor('w')
@@ -159,8 +161,10 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
 
         age_col = f"Age_{model}_{init_type}"
         colname = f"{model}_{init_type}"
-        if init_type=="kde":
-            ls = "--"
+        if "Zero" in model:
+            ls = ":"
+        elif "2015" in model:
+            ls = "-."
         else:
             ls = "-"
 

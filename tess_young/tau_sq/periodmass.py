@@ -26,7 +26,7 @@ class PeriodMassDistribution:
         if cluster !="all":
             per = per[per["Cluster"]==cluster]
         if len(per)==0:
-            print("Error: no matching stars found")
+            print("Error: no matching stars found:",cluster)
             sys.exit(42)
         # per.dtype
         self.cat = Table(per, masked=True, copy=False)
