@@ -117,48 +117,8 @@ def plot_results_panel(lin_config_file,log_config_file):
 
 if __name__=="__main__":
 
-    # from argparse import ArgumentParser
-    # import yaml
-    # # import logging
-
-    # # Define parser object
-    # parser = ArgumentParser(description="")
-    # parser.add_argument("-c", "--config", dest="config_file", required=True,
-    #                     type=str, help="Path to config file that specifies the "
-    #                                    "parameters for this run.")
-    # parser.add_argument("-f", "--file", dest="output_file", required=True,
-    #                     type=str,help="Path to the output .csv file from this run.")
-    # # TODO: need to get two output files for this - linear and log fits
-
-    # args = parser.parse_args()
-
-
-    # config_file = os.path.abspath(os.path.expanduser(args.config_file))
-    # with open(config_file, 'r') as f:
-    #     config = yaml.load(f.read())
-
-    # max_q = config["max_q"]
-    # include_blends = config["include_blends"]
-    # include_lit = config["include_lit"]
-    # output_filebase = config["output_filebase"]
-
-    # param_string_wild = f"{output_filebase}*Qmax{max_q}_blends{include_blends}_lit{include_lit}*"
-
-    # filename = os.path.abspath(os.path.expanduser(args.output_file))
-
-    # dat = at.read(filename)
-    # ncol = len(config["models_to_plot"])
-    # colnames = dat.dtype.names[:ncol]
-    # for colname in colnames:
-    #     if "tophat" in colname:
-    #         continue
-    #     print("\t",colname,dat["Age_"+colname][np.argmin(dat[colname])])
-
-
+    # Plotting the results of the blendsFalse, litTrue fits
     lin_config_file = os.path.join(_DIR,"config/tau_sq4.yml")
     log_config_file = os.path.join(_DIR,"config/tau_sq4_log.yml")
-    # lin_filename = os.path.join(_DIR,"tables/")
-    # log_filename = os.path.join(_DIR,"tables/")
-
 
     plot_results_panel(lin_config_file,log_config_file)
