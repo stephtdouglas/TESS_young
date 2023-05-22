@@ -86,7 +86,7 @@ def count_bins(pmd,sm):
 def one_model(model,age,period_scale,init_type,
               max_q=0,include_blends=True,include_lit=False,
               output_filebase="tausq_SYN_binselect",id_str="SYN_binselect",
-              start_i=None,end_i=None):
+              start_i=None,end_i=None,mass_limits=None):
     """
     Configure and run one set of synthetic observations, including the number
     of stars and the baseline comparison with a synthetic dataset. 
@@ -127,7 +127,7 @@ def one_model(model,age,period_scale,init_type,
     n_select = count_bins(pmd_obs,sm)
 
     # Generate a fake dataset from the model
-    pmd = PeriodMassModel(sm,n_select=n_select,
+    pmd = PeriodMassModel(sm,n_select=n_select,mass_limits=mass_limits,
                       rng_seed=9302,id_str=id_str)
     pmd.select_obs(sm)
 
@@ -240,6 +240,12 @@ if __name__=="__main__":
 
     parser.add_argument("-o", dest="output_filebase", default="tausq_SYN", required=False,
                         help="identifier for this run")
+
+    parser.add_argument("--high", dest="mass_high", default=1.4, required=False,
+                        help="upper limit mass in solar masses")
+
+    parser.add_argument("--low", dest="mass_low", default=0.05, required=False,
+                        help="lower limit mass in solar masses")
 
     parser.add_argument("-s", dest="start_i", required=False)
 

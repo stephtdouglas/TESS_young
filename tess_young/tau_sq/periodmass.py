@@ -220,9 +220,9 @@ class PeriodMassModel(PeriodMassDistribution):
         self._generate_sample(n_select,rng_seed)
 
         # Apply mass limits if needed
-#         if mass_limits is not None:
-#             mass_select = (self.cat["Mass"]>=mass_limits[0]) & (self.cat["Mass"]<=mass_limits[1])
-#             self.cat = self.cat[mass_select]
+        if mass_limits is not None:
+            mass_select = (self.cat["Mass"]>=mass_limits[0]) & (self.cat["Mass"]<=mass_limits[1])
+            self.cat = self.cat[mass_select]
 
         # Assign the catalog values to attributes - these are fake here since we don't
         # need to exclude any of the modelled values
