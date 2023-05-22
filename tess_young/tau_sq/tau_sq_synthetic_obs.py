@@ -264,22 +264,23 @@ if __name__=="__main__":
         best_age = args.age
     else:
         try:
-            ttab = at.read(filename)
+            ttab = at.read(args.filename)
         except:
             print("File not found or not readable?")
             raise
 
+        colname = f"{model}_{init_type}"
 
         try:
-            best_loc = np.argmin(ttab[model])
+            best_loc = np.argmin(ttab[colname])
         except:
-            print("Model not found in input reference file?")
+            print("Model/init_type not found in input reference file?",colname)
             raise
         best_age = ttab[f"Age_{model}"][best_loc]
 
     print(args.init_type)
         
-    one_model(args.model, best_age, args.period_scale, args.init_type,
-              args.max_q, args.include_blends, args.include_lit,
-              args.output_filebase, id_str,
-              args.start_i, args.end_i)
+#    one_model(args.model, best_age, args.period_scale, args.init_type,
+#              args.max_q, args.include_blends, args.include_lit,
+#              args.output_filebase, id_str,
+#              args.start_i, args.end_i)
