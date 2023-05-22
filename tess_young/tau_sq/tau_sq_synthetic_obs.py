@@ -14,7 +14,7 @@ _DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
 def generate_synthetic_obs(model,age,period_scale,init_type,
                            n_sets=100,n_per_set=500,id_str=None,
-                           start_i=None,end_i=None):
+                           start_i=None,end_i=None,mass_limits=None):
     """
     Generate sets of synthetic observations based on an input spinmodel, 
     and compare to all the models
@@ -59,7 +59,7 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
         i_iter = range(n_sets)
         
     for i in i_iter:
-        pmd = PeriodMassModel(sm,n_select=n_per_set,rng_seed=i)
+        pmd = PeriodMassModel(sm,n_select=n_per_set,rng_seed=i,mass_limits=mass_limits)
         pmd.select_obs(sm)
 
         print(i)
@@ -122,7 +122,9 @@ def one_model(model,age,period_scale,init_type,
     sm.normalize()
 
     # Get the number of stars per bin from the observed data set
-    pmd_obs = PeriodMassDistribution(max_q=0)
+    pmd_obs = PeriodMassDistribution(max_q=max_q,include_blends=include_blends,
+                                     include_lit=include_lit,
+                                     mass_limits=mass_limits)
     pmd_obs.select_obs(sm)
     n_select = count_bins(pmd_obs,sm)
 
@@ -242,10 +244,10 @@ if __name__=="__main__":
                         help="identifier for this run")
 
     parser.add_argument("--high", dest="mass_high", default=1.4, required=False,
-                        help="upper limit mass in solar masses")
+                        help="upper limit mass in solar masses",type=float)
 
     parser.add_argument("--low", dest="mass_low", default=0.05, required=False,
-                        help="lower limit mass in solar masses")
+                        help="lower limit mass in solar masses",type=float)
 
     parser.add_argument("-s", dest="start_i", required=False)
 
@@ -284,9 +286,11 @@ if __name__=="__main__":
             raise
         best_age = ttab[f"Age_{colname}"][best_loc]
 
+    mass_limits = [args.mass_low, args.mass_high]
+        
     print(args.init_type)
         
     one_model(args.model, best_age, args.period_scale, args.init_type,
               args.max_q, args.include_blends, args.include_lit,
               args.output_filebase, id_str,
-              args.start_i, args.end_i)
+              args.start_i, args.end_i, mass_limits)
