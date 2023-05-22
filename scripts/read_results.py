@@ -42,7 +42,7 @@ if __name__=="__main__":
 
         search_string = os.path.join(table_dir,param_string_wild)
         # print(search_string)
-        output_files = glob.glob(search_string)
+        output_files = sorted(glob.glob(search_string))
 
         # print(output_files)
 

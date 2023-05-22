@@ -11,7 +11,7 @@ from tess_young.get_const import *
 _DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
-from periodmass import PeriodMassDistribution
+from .periodmass import PeriodMassDistribution
 
 class UpSco(PeriodMassDistribution):
     # Replacing: __init__
