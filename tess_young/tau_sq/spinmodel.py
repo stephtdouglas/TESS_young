@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import astropy.io.ascii as at
 
 from tess_young.get_const import *
@@ -129,7 +130,7 @@ class SpinModel:
         self.img = np.ma.masked_array(img_nomask,mask=mask)
         self.mask = mask
 
-    def plot_hist(self,ax=None,fig=None):
+    def plot_hist(self,ax=None,fig=None,vmin=None,vmax=None):
         if ax is None:
             if fig is None:
                 fig = plt.figure()
@@ -145,10 +146,21 @@ class SpinModel:
             fig.patch.set_alpha(1.0)
 
         X, Y = np.meshgrid(self.xedges, self.yedges)
-        if self.init_type=="kde":
-            ax.pcolormesh(X, Y, self.img,cmap="viridis_r",vmin=1e-4,vmax=0.5)
-        else:
-            ax.pcolormesh(X, Y, self.img,cmap="viridis_r")
+
+
+        # Determine the cell area
+        xdiff = np.diff(self.xedges) # mass
+        ydiff = np.diff(self.yedges) #period
+
+        Xdiff, Ydiff = np.meshgrid(xdiff,ydiff)
+        cell_area = Xdiff*Ydiff
+
+        # Now calculate the number density in each cell, for better visualization
+        plot_img = self.img * cell_area
+
+        norm = LogNorm(vmin=vmin,vmax=vmax)
+
+        ax.pcolormesh(X, Y, plot_img,cmap="Greens",norm=norm)
     #     ax.plot(mod["mass"],mod["prot"],'k.',alpha=0.25)
         ax.set_yscale(self.period_scale)
 
