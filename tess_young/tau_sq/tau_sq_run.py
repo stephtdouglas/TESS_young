@@ -173,6 +173,8 @@ def run_all_models(pmd=None,
             all_tau_sq = pool.starmap(run_one_model,tau_sq_args,
                                           chunksize=chunksize)
 
+            pool.close()
+            
             if "Zero" in model:
                 ls = ":"
             elif "2015" in model:
