@@ -15,7 +15,8 @@ _DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
 def generate_synthetic_obs(model,age,period_scale,init_type,
                            n_sets=100,n_per_set=500,id_str=None,
-                           start_i=None,end_i=None,mass_limits=None):
+                           start_i=None,end_i=None,mass_limits=None,
+                           cluster="all"):
     """
     Generate sets of synthetic observations based on an input spinmodel, 
     and compare to all the models
@@ -109,7 +110,7 @@ def count_bins(pmd,sm):
 def one_model(model,age,period_scale,init_type,
               max_q=0,include_blends=True,include_lit=False,
               output_filebase="tausq_SYN_binselect",id_str="SYN_binselect",
-              start_i=None,end_i=None,mass_limits=None):
+              start_i=None,end_i=None,mass_limits=None,cluster="all"):
     """
     Configure and run one set of synthetic observations, including the number
     of stars and the baseline comparison with a synthetic dataset. 
@@ -147,7 +148,7 @@ def one_model(model,age,period_scale,init_type,
     # Get the number of stars per bin from the observed data set
     pmd_obs = PeriodMassDistribution(max_q=max_q,include_blends=include_blends,
                                      include_lit=include_lit,
-                                     mass_limits=mass_limits)
+                                     mass_limits=mass_limits,cluster=cluster)
     pmd_obs.select_obs(sm)
     n_select = count_bins(pmd_obs,sm)
 
@@ -167,78 +168,6 @@ def one_model(model,age,period_scale,init_type,
     # Another script will analyze these results and select the best-fit from each synthetic dataset
     generate_synthetic_obs(model,age,period_scale,init_type,n_per_set=n_select,
                            id_str=id_str,start_i=start_i,end_i=end_i)
-
-
-def original_syn_runs():
-
-    array_id = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
-
-    model_id = array_id // 10
-    start_i = (array_id % 10) * 10
-    end_i = start_i + 10
-    
-    ### Overal params
-    period_scale="linear"
-
-    if model_id<=2:
-        ### Original run
-        max_q=0
-
-        # First, check each model for the best-fit
-        filename="../../tables/tausq_ZAMS_Compare_Widehat_Qmax0_blendsTrue_litFalse.csv"
-        ttab = at.read(filename)
-
-        #for model in model_names[3:]:
-
-        model = model_names[model_id+3]
-        best_loc = np.argmin(ttab[model])
-        best_age = ttab[f"Age_{model}"][best_loc]
-
-        print(filename)
-        print(f"best age: {best_age} Myr")
-
-        if "WideHat" in model:
-            init_type="kde"
-        else:
-            init_type="cluster"
-
-        one_model(model,best_age,period_scale,init_type,
-                  max_q=max_q,#include_blends=True,include_lit=False,
-                  output_filebase=f"tausq_SYN_bin_{model}",id_str=f"SYN_binselect_{model}",
-                  start_i=start_i,end_i=end_i)
-        
-    elif model_id<=5:
-        ### Replace blends with literature
-        max_q=0
-        include_blends=False
-        include_lit=True
-
-        # First, check each model for the best-fit
-        filename="../../tables/tausq_ZAMS_Compare_Widehat_Qmax0_blendsFalse_litTrue.csv"
-        ttab = at.read(filename)
-
-        #for model in model_names[3:]:
-        model = model_names[model_id]
-        best_loc = np.argmin(ttab[model])
-        best_age = ttab[f"Age_{model}"][best_loc]
-
-        print(filename)
-        print(f"best age: {best_age} Myr")
-
-        if "WideHat" in model:
-            init_type="kde"
-        else:
-            init_type="cluster"
-
-        one_model(model,best_age,period_scale,init_type,max_q=max_q,
-                  include_blends=include_blends,include_lit=include_lit,
-                  output_filebase=f"tausq_SYN2_bin_{model}",id_str=f"SYN2_binselect_{model}",
-                  start_i=start_i)
-    else:
-        print(f"array id {array_id} invalid!")
-        print(f"model {model_id}, start-end {start_i} {end_i}")
-        sys.exit(42)
-
 
 if __name__=="__main__":
     from argparse import ArgumentParser
@@ -275,6 +204,9 @@ if __name__=="__main__":
     parser.add_argument("-s", dest="start_i", required=False)
 
     parser.add_argument("-e", dest="end_i", required=False)
+
+    parser.add_argument("-g", dest="cluster", default="all", required=False,
+                        help="Which group/cluster to fit (default is all)")
 
     age_group = parser.add_mutually_exclusive_group(required=True)
     age_group.add_argument("-a","--age",dest="age", type=int)
@@ -316,4 +248,4 @@ if __name__=="__main__":
     one_model(args.model, best_age, args.period_scale, args.init_type,
               args.max_q, args.include_blends, args.include_lit,
               args.output_filebase, id_str,
-              args.start_i, args.end_i, mass_limits)
+              args.start_i, args.end_i, mass_limits, args.cluster)

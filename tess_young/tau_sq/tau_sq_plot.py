@@ -246,7 +246,7 @@ def plot_multipanel(max_q=0,include_blends=True,include_lit=False,
         # break
 
 
-def plot_tausq_tracks(ttab,models_to_plot=None,ax=None,
+def plot_tausq_tracks(ttab,models_to_plot=None,ax=None,init_types=None,
                       output_filebase="tausq_tracks"):
 
     outfilename = output_filebase
@@ -268,15 +268,19 @@ def plot_tausq_tracks(ttab,models_to_plot=None,ax=None,
     for j, model in enumerate(models_to_plot):
         # print(j,model)
         age_colname = f"Age_{model}"
-        if "UpSco" in model:
-            ls = "--"
+        if "Zero" in model:
+            ls = ":"
+        elif "2015" in model:
+            ls = "-."
         else:
             ls = "-"
 
-        cj = np.where(model==model_names)[0][0]
+        # cj = np.where(model==model_names)[0][0]
         ax.plot(ttab[age_colname],ttab[model],ls,
-                label=display_names[model],
-                color=mapper.to_rgba((cj % 3)+1),alpha=0.75)
+                # label=display_names[model],
+                # color=mapper.to_rgba((cj % 3)+1),
+                color="C0",
+                alpha=0.75)
 
     if new_fig:
         ax.legend(loc=2)
