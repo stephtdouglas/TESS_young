@@ -48,11 +48,17 @@ def run_one_model_binned(age,pmd,model,period_scale,init_type):
 
     return sm.tau_sq
 
-def run_all_models(max_q=0,include_blends=True,include_lit=False,
+def run_all_models(pmd=None,
                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
                    models_to_plot=model_names,zoom_ymax=None,
-                   mass_limits=None,pmd=None,to_plot=True,overwrite=False, 
-                   init_types=None,cluster="all"):
+                   mass_limits=None,to_plot=True,overwrite=False, 
+                   init_types=None,cluster="all",
+                   max_q=0,include_blends=True,include_lit=False):
+# def run_all_models(max_q=0,include_blends=True,include_lit=False,
+#                    period_scale="linear",output_filebase="tausq_ZAMS_Compare",
+#                    models_to_plot=model_names,zoom_ymax=None,
+#                    mass_limits=None,pmd=None,to_plot=True,overwrite=False, 
+#                    init_types=None,cluster="all"):
     """
     Compare a single period-mass distribution to multiple sets of models.
 
