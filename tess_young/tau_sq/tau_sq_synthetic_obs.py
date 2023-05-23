@@ -1,5 +1,5 @@
-import os, sys, time, pathlib, datetime
-import multiprocessing as mp
+import os, sys, time, pathlib#, datetime
+#import multiprocessing as mp
 
 import numpy as np
 import astropy.io.ascii as at
@@ -60,38 +60,39 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
         i_iter = range(n_sets)
         
 
-    all_params = []
+    # all_params = []
 
 
     for i in i_iter:
         pmd = PeriodMassModel(sm,n_select=n_per_set,rng_seed=i,mass_limits=mass_limits)
         pmd.select_obs(sm)
 
-        params = [pmd,period_scale,f"{outf}{i:04d}",model_names[3:],
-                  None,mass_limits,False,False,
-                  [init_type,init_type,init_type]]
-        all_params.append(params)
+        # params = [pmd,period_scale,f"{outf}{i:04d}",model_names[3:],
+        #           None,mass_limits,False,False,
+        #           [init_type,init_type,init_type]]
+        # all_params.append(params)
 
-        # print(i)
-        # t = time.localtime()
-        # current_time = time.strftime("%H:%M:%S", t)
-        # print(current_time)
-        # run_all_models(pmd=pmd,output_filebase=f"{outf}{i:04d}",
-        #                models_to_plot=model_names[3:],to_plot=False,
-        #                init_types=[init_type,init_type,init_type])
+        print(i)
+        t = time.localtime()
+        current_time = time.strftime("%H:%M:%S", t)
+        print(current_time)
+        run_all_models(pmd=pmd,output_filebase=f"{outf}{i:04d}",
+                       models_to_plot=model_names[3:],to_plot=False,
+                       init_types=[init_type,init_type,init_type],
+                       mass_limits=mass_limits)
 #        break
 
-    try:
-        cpu_ct = len(os.sched_getaffinity(0))-1
-        print(f"Current time: {datetime.datetime.now()} -- AO cpu_count HPC:", cpu_ct)
-    except AttributeError:
-        cpu_ct = mp.cpu_count()-1
-        print(f"Current time: {datetime.datetime.now()} -- AO cpu_count PC:", cpu_ct)
+    # try:
+    #     cpu_ct = len(os.sched_getaffinity(0))-1
+    #     print(f"Current time: {datetime.datetime.now()} -- AO cpu_count HPC:", cpu_ct)
+    # except AttributeError:
+    #     cpu_ct = mp.cpu_count()-1
+    #     print(f"Current time: {datetime.datetime.now()} -- AO cpu_count PC:", cpu_ct)
 
-    chunksize = n_sets // cpu_ct
+    # chunksize = n_sets // cpu_ct
 
-    with mp.Pool(cpu_ct) as pool:
-        _ = pool.starmap(run_all_models, all_params, chunksize=chunksize)
+    # with mp.Pool(cpu_ct) as pool:
+    #     _ = pool.starmap(run_all_models, all_params, chunksize=chunksize)
        
 
 def count_bins(pmd,sm):
