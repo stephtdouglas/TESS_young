@@ -132,8 +132,7 @@ def one_model(model,age,period_scale,init_type,
     n_sets: (integer) the number of synthetic datasets to create (default 100)
     n_per_set: (integer) the number of stars to include in each synthetic 
                observation (default 500)
-    output_filebase: (string) identifier for the baseline comparison
-    id_str: (string) run identifier, will be included in output filenames w/ an index
+    output_filebase: (string) identifier for the run
     start_i: (integer) index within n_sets to start at. 
              If None or 0, will start at 0
     end_i: (integer) index within n_sets to end at. If None, will end at n_sets.
@@ -160,14 +159,14 @@ def one_model(model,age,period_scale,init_type,
     if (start_i is None) or (start_i==0): 
         # Compare the first synthetic set to all models
         # This produces a baseline tausq vs. age curve
-        run_all_models(pmd=pmd,output_filebase=output_filebase,
+        run_all_models(pmd=pmd,output_filebase=output_filebase+"_baseline",
                        models_to_plot=model_names[3:],
                        init_types=[init_type,init_type,init_type])
 
     # Generate multiple fake model sets and compare to all models
     # Another script will analyze these results and select the best-fit from each synthetic dataset
     generate_synthetic_obs(model,age,period_scale,init_type,n_per_set=n_select,
-                           id_str=id_str,start_i=start_i,end_i=end_i)
+                           id_str=output_filebase,start_i=start_i,end_i=end_i)
 
 if __name__=="__main__":
     from argparse import ArgumentParser
@@ -216,12 +215,10 @@ if __name__=="__main__":
     # parse the input
     args = parser.parse_args()
 
-
     print(args)
     # print(model)
     # print(age)
 
-    id_str = args.output_filebase+"_baseline"
 
     if args.age is not None:
         best_age = args.age
@@ -247,5 +244,5 @@ if __name__=="__main__":
         
     one_model(args.model, best_age, args.period_scale, args.init_type,
               args.max_q, args.include_blends, args.include_lit,
-              args.output_filebase, id_str,
+              args.output_filebase, 
               args.start_i, args.end_i, mass_limits, args.cluster)

@@ -30,8 +30,18 @@ def analyze_synthetic_obs(outfilebase,compare_model,compare_init):
     best_age = np.zeros(n_sets)*np.nan
 
     for i,filename in enumerate(files_sorted):
+
+        # These lines are because I failed to make the "all clusters" fit 
+        # have a filename distinct from the individual cluster fits
+        # is_cluster = False
+        # for cluster in clusters:
+        #     if cluster in filename:
+        #         is_cluster = True
+        # if is_cluster:
+        #     continue
+
+        # The ones with "baseline" at the end were the initial comparison run
         if filename.endswith("baseline.csv"):
-            # This is the reference run
             syn1_file = filename
             del_i = i
         else:
@@ -69,10 +79,13 @@ def analyze_synthetic_obs(outfilebase,compare_model,compare_init):
 
     ax.set_title(f"Baseline {compare_colname}")
 
-    best_tausq = np.zeros(n_sets-1)*np.nan
+    best_age = best_age[np.isfinite(best_age)]
+
+    n_sets = len(best_age)
+    best_tausq = np.zeros(n_sets)*np.nan
 
     # j = np.where(model_names==compare_model)[0][0]
-    for i in range(n_sets-1):
+    for i in range(n_sets):
         syn_loc = np.where(syn1[f"Age_{compare_colname}"]==best_age[i])[0]
         best_tausq[i] = syn1[compare_colname][syn_loc]
     point_color = "C0" #mapper.to_rgba((j % 3)+1)
@@ -107,6 +120,14 @@ def analyze_synthetic_obs(outfilebase,compare_model,compare_init):
     print(syn1[compare_colname][good])
     print(len(np.where(best_tausq<=ts67)[0]))
 
+
+    outfilename = os.path.join(_DIR,f"tables/best_ages_{outfilebase}_{compare_colname}.csv")
+    with open(outfilename,"w") as f:
+        f.write(f"Age_{compare_colname}\n")
+        for row in syn1[f"Age_{compare_colname}"][good]:
+            f.write(f"{row}\n")
+            # f.write("\n")
+    # at.write(syn1[f"Age_{compare_colname}"][good],outfilename)
 
 
 if __name__=="__main__":
