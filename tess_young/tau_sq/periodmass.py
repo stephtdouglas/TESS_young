@@ -1,5 +1,4 @@
-# import os
-import sys
+import os, sys, pathlib
 
 import numpy as np
 from numpy.random import default_rng
@@ -7,9 +6,9 @@ import matplotlib.pyplot as plt
 import astropy.io.ascii as at
 from astropy.table import Table
 
+import tess_young
 from tess_young.get_const import *
-# plt.style.use('../../paper.mplstyle')
-
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
 class PeriodMassDistribution:
 
@@ -22,7 +21,7 @@ class PeriodMassDistribution:
         mass_limits: tuple or list, minimum and maximum masses to include
         """
         # My crossmatched catalog
-        per = at.read("tab_all_stars.csv")
+        per = at.read(os.path.join(_DIR,"tab_all_stars.csv"))
         if cluster !="all":
             per = per[per["Cluster"]==cluster]
         if len(per)==0:
