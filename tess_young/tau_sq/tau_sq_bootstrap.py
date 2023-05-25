@@ -6,15 +6,14 @@ import astropy.io.ascii as at
 
 from tau_sq_run import run_all_models
 
-from periodmass import PeriodMassDistribution, PeriodMassModel
-from spinmodel import SpinModel
+from periodmass import PeriodMassDistribution, PeriodMassBootstrap
 
 from tess_young.get_const import *
 import tess_young
 _DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
-def generate_synthetic_obs(model,age,period_scale,init_type,
-                           n_sets=100,n_per_set=500,id_str=None,
+def generate_bootstrap_obs(pmd,period_scale,init_type="kde",
+                           id_str=None,
                            start_i=None,end_i=None,mass_limits=None,
                            cluster="all"):
     """
@@ -44,12 +43,8 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
     (As part of run_all_models)
     """
 
-    sm = SpinModel(model,age,period_scale,init_type=init_type)
-    if init_type!="kde":
-        sm.normalize()
-
     if id_str is None:
-        outf = "tausq_syn_"
+        outf = "tausq_bs_"
     else:
         outf = id_str
 
@@ -62,8 +57,7 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
         
 
     for i in i_iter:
-        pmd = PeriodMassModel(sm,n_select=n_per_set,rng_seed=i,mass_limits=mass_limits)
-        pmd.select_obs(sm)
+        pmd = PeriodMassBootstrap(pmd,rng_seed=i,mass_limits=mass_limits)
 
         print(i)
         t = time.localtime()
@@ -74,24 +68,13 @@ def generate_synthetic_obs(model,age,period_scale,init_type,
                        init_types=[init_type,init_type,init_type],
                        mass_limits=mass_limits)
 
-def count_bins(pmd,sm):
-    """
-    Count the number of observed stars in each mass bin of the model. 
-    """
-    nmass = len(sm.mass_bins)-1
-    n_select = np.zeros(nmass,"int")
-    for i in range(nmass):
-        subset = (pmd.mass>=sm.mass_bins[i]) & (pmd.mass<sm.mass_bins[i+1])
-        n_select[i] = len(np.where(subset)[0])
-    return n_select
-
-def one_model(model,age,period_scale,init_type,
+def one_bootstrap_set(period_scale,init_type="kde",
               max_q=0,include_blends=True,include_lit=False,
               output_filebase="tausq_SYN_binselect",id_str="SYN_binselect",
               start_i=None,end_i=None,mass_limits=None,cluster="all"):
     """
-    Configure and run one set of synthetic observations, including the number
-    of stars and the baseline comparison with a synthetic dataset. 
+    Configure and run one set of bootstrapped observations, 
+    including the baseline comparison with a single bootstrapped dataset. 
 
     Inputs
     ------
@@ -117,25 +100,17 @@ def one_model(model,age,period_scale,init_type,
 
     """
 
-    # Set up the model to draw fake observations from
-    print(model,age,period_scale,init_type)
-    sm = SpinModel(model,age,period_scale,init_type=init_type)
-    sm.normalize()
-
-    # Get the number of stars per bin from the observed data set
+    # Set up the observed data to resample fake observations from
     pmd_obs = PeriodMassDistribution(max_q=max_q,include_blends=include_blends,
                                      include_lit=include_lit,
                                      mass_limits=mass_limits,cluster=cluster)
-    pmd_obs.select_obs(sm)
-    n_select = count_bins(pmd_obs,sm)
 
     # Generate a fake dataset from the model
-    pmd = PeriodMassModel(sm,n_select=n_select,mass_limits=mass_limits,
+    pmd = PeriodMassBootstrap(pmd,mass_limits=mass_limits,
                       rng_seed=9302,id_str=id_str)
-    pmd.select_obs(sm)
 
     if (start_i is None) or (start_i==0): 
-        # Compare the first synthetic set to all models
+        # Compare the first bootstrapped set to all models
         # This produces a baseline tausq vs. age curve
         run_all_models(pmd=pmd,output_filebase=output_filebase+"_baseline",
                        models_to_plot=model_names[3:],
@@ -143,8 +118,9 @@ def one_model(model,age,period_scale,init_type,
 
     # Generate multiple fake model sets and compare to all models
     # Another script will analyze these results and select the best-fit from each synthetic dataset
-    generate_synthetic_obs(model,age,period_scale,init_type,n_per_set=n_select,
-                           id_str=output_filebase,start_i=start_i,end_i=end_i)
+    generate_bootstrap_obs(pmd,period_scale,id_str=output_filebase,
+                           start_i=start_i,end_i=end_i,
+                           mass_limits=mass_limits,cluster=cluster)
 
 if __name__=="__main__":
     from argparse import ArgumentParser
@@ -154,9 +130,6 @@ if __name__=="__main__":
     parser = ArgumentParser(description="")
 
     # Define all the necessary arguments
-    parser.add_argument("model",help="model to draw synthetic observations from")
-
-    parser.add_argument("init_type", help="init type (tophat, cluster, or kde)")
 
     parser.add_argument("-p", dest="period_scale", default="linear", required=False,
                         help="linear or log")
@@ -185,10 +158,6 @@ if __name__=="__main__":
     parser.add_argument("-g", dest="cluster", default="all", required=False,
                         help="Which group/cluster to fit (default is all)")
 
-    age_group = parser.add_mutually_exclusive_group(required=True)
-    age_group.add_argument("-a","--age",dest="age", type=int)
-    age_group.add_argument("-f", "--filename", dest="filename")
-
 
     # parse the input
     args = parser.parse_args()
@@ -197,30 +166,11 @@ if __name__=="__main__":
     # print(model)
     # print(age)
 
-
-    if args.age is not None:
-        best_age = args.age
-    else:
-        try:
-            ttab = at.read(args.filename)
-        except:
-            print("File not found or not readable?")
-            raise
-
-        colname = f"{args.model}_{args.init_type}"
-
-        try:
-            best_loc = np.argmin(ttab[colname])
-        except:
-            print("Model/init_type not found in input reference file?",colname)
-            raise
-        best_age = ttab[f"Age_{colname}"][best_loc]
-
     mass_limits = [args.mass_low, args.mass_high]
         
     print(args.init_type)
         
-    one_model(args.model, best_age, args.period_scale, args.init_type,
+    one_model(args.period_scale, "kde",
               args.max_q, args.include_blends, args.include_lit,
               args.output_filebase, args.output_filebase,
               args.start_i, args.end_i, mass_limits, args.cluster)

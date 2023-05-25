@@ -310,3 +310,56 @@ class PeriodMassModel(PeriodMassDistribution):
 
         self.period_perc = period_perc
         self.perc_mass_bins = mass_bins
+
+
+
+class PeriodMassBootstrap(PeriodMassDistribution):
+    # Replacing: __init__
+    # Inheriting: select_obs, plot_obs, plot_period_perc, calc_mass_percentiles 
+
+    def __init__(self,pmd,mass_limits=None,rng_seed=37,
+                 id_str=None):
+        """
+        Inputs
+        ------
+        pmd: another PeriodMassDistribution object to resample from
+        mass_limits: tuple or list, minimum and maximum masses to include
+        """
+
+        # Generate the synthetic observation set
+        self.prot_raw = pmd.prot_raw[pmd.qmask]
+        self.mass_raw = pmd.mass_raw[pmd.qmask]
+        self.mass_err_raw = pmd.mass_err_raw[pmd.qmask]
+
+        # Apply mass limits if needed
+        if mass_limits is not None:
+            mass_select = (self.mass_raw>=mass_limits[0]) & (self.mass_raw<=mass_limits[1])
+            self.mass_raw = self.mass_raw[mass_select]
+            self.mass_err_raw = self.mass_err_raw[mass_select]
+            self.prot_raw = self.prot_raw[mass_select]
+
+        # Assign the catalog values to attributes - these are fake here since we don't
+        # need to exclude any of the modelled values
+        n_actual = len(self.prot_raw)
+        self.prot_mask = np.zeros(n_actual,bool)
+        self.mass_mask = np.zeros(n_actual,bool)
+
+        # Assign masks for quality and presence of necessary values
+        self.qmask = np.ones(n_actual,bool)
+
+        self.figsize=(9,9)
+
+        # TODO: include model parameters here
+        self.param_string = f"SYN_{pmd.param_string}"
+        if id_str is not None:
+            self.param_string = self.param_string+id_str
+
+    def _generate_sample(self,rng_seed):
+
+        rng = np.random.default_rng(rng_seed)
+        new_masses = rng.normal(loc=self.mass_raw[self.qmask],
+                                scale=self.mass_errs_raw[self.qmask])
+
+        self.mass_raw = new_masses
+        
+
