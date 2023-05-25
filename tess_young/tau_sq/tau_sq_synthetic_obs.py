@@ -244,5 +244,5 @@ if __name__=="__main__":
         
     one_model(args.model, best_age, args.period_scale, args.init_type,
               args.max_q, args.include_blends, args.include_lit,
-              args.output_filebase, 
+              args.output_filebase, args.output_filebase,
               args.start_i, args.end_i, mass_limits, args.cluster)

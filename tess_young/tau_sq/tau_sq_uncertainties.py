@@ -41,7 +41,7 @@ def analyze_synthetic_obs(outfilebase,compare_model,compare_init):
         #     continue
 
         # The ones with "baseline" at the end were the initial comparison run
-        if filename.endswith("baseline.csv"):
+        if "baseline" in filename:
             syn1_file = filename
             del_i = i
         else:
