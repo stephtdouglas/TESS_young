@@ -354,6 +354,8 @@ class PeriodMassBootstrap(PeriodMassDistribution):
         if id_str is not None:
             self.param_string = self.param_string+id_str
 
+        self._generate_sample(rng_seed)
+
     def _generate_sample(self,rng_seed):
 
         rng = np.random.default_rng(rng_seed)

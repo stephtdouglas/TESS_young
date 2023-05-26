@@ -12,8 +12,8 @@ from tess_young.get_const import *
 import tess_young
 _DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
-def generate_bootstrap_obs(pmd,period_scale,init_type="kde",
-                           id_str=None,
+def generate_bootstrap_obs(pmd_obs,period_scale,init_type="kde",
+                           n_sets=100,id_str=None,
                            start_i=None,end_i=None,mass_limits=None,
                            cluster="all"):
     """
@@ -57,7 +57,7 @@ def generate_bootstrap_obs(pmd,period_scale,init_type="kde",
         
 
     for i in i_iter:
-        pmd = PeriodMassBootstrap(pmd,rng_seed=i,mass_limits=mass_limits)
+        pmd = PeriodMassBootstrap(pmd_obs,rng_seed=i,mass_limits=mass_limits)
 
         print(i)
         t = time.localtime()
@@ -106,7 +106,7 @@ def one_bootstrap_set(period_scale,init_type="kde",
                                      mass_limits=mass_limits,cluster=cluster)
 
     # Generate a fake dataset from the model
-    pmd = PeriodMassBootstrap(pmd,mass_limits=mass_limits,
+    pmd = PeriodMassBootstrap(pmd_obs,mass_limits=mass_limits,
                       rng_seed=9302,id_str=id_str)
 
     if (start_i is None) or (start_i==0): 
@@ -118,7 +118,7 @@ def one_bootstrap_set(period_scale,init_type="kde",
 
     # Generate multiple fake model sets and compare to all models
     # Another script will analyze these results and select the best-fit from each synthetic dataset
-    generate_bootstrap_obs(pmd,period_scale,id_str=output_filebase,
+    generate_bootstrap_obs(pmd_obs,period_scale,id_str=output_filebase,
                            start_i=start_i,end_i=end_i,
                            mass_limits=mass_limits,cluster=cluster)
 
@@ -167,10 +167,9 @@ if __name__=="__main__":
     # print(age)
 
     mass_limits = [args.mass_low, args.mass_high]
+    
         
-    print(args.init_type)
-        
-    one_model(args.period_scale, "kde",
+    one_bootstrap_set(args.period_scale, "kde",
               args.max_q, args.include_blends, args.include_lit,
               args.output_filebase, args.output_filebase,
               args.start_i, args.end_i, mass_limits, args.cluster)
