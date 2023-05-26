@@ -360,7 +360,7 @@ class PeriodMassBootstrap(PeriodMassDistribution):
 
         rng = np.random.default_rng(rng_seed)
         new_masses = rng.normal(loc=self.mass_raw[self.qmask],
-                                scale=self.mass_errs_raw[self.qmask])
+                                scale=self.mass_err_raw[self.qmask])
 
         self.mass_raw = new_masses
         
