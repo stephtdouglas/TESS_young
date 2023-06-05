@@ -215,6 +215,7 @@ if __name__=="__main__":
             print("Model/init_type not found in input reference file?",colname)
             raise
         best_age = ttab[f"Age_{colname}"][best_loc]
+        print(colname,f"{best_age:.0f} Myr")
 
     mass_limits = [args.mass_low, args.mass_high]
         
