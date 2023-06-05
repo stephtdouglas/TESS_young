@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.cm as cm
+from matplotlib.patches import Rectangle
 import astropy.io.ascii as at
 from astropy.table import Table
 
@@ -16,13 +17,11 @@ plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 from periodmass import PeriodMassDistribution
 from spinmodel import SpinModel
 
-
-
 def plot_all_clusters(max_q=0,include_blends=True,include_lit=False,
                        period_scale="linear",output_filebase="tausq_ZAMS_Compare",
                        models_to_plot=model_names,zoom_ymax=None,
                        mass_limits=None,pmd=None,to_plot=True, 
-                       init_types=None):
+                       init_types=None,config_num=None):
     """
     Compare a single period-mass distribution to multiple sets of models.
 
@@ -115,6 +114,36 @@ def plot_all_clusters(max_q=0,include_blends=True,include_lit=False,
                 color=colors[cluster])
 
 
+        search_string = f"tables/best*bootstrap{config_num}{period_scale}_{cluster}*.csv"
+        age_files = glob.glob(os.path.join(_DIR,search_string))
+        print(config_num,age_files)
+
+        for filename in age_files:
+            dat = at.read(filename)
+            colname = dat.dtype.names[0]
+            if len(dat)==0:
+                continue
+
+            if "Zero" in colname:
+                j=2
+            elif "2015" in colname:
+                j=0
+            else:
+                j=1
+
+
+            min_age = min(dat[colname])
+            age_diff = max(dat[colname])-min_age
+            ylims = ax.get_ylim()
+            ydiff = ylims[1]-ylims[0]
+            print(min_age,age_diff,ylims)
+            rect = Rectangle([min_age,ylims[0]],width=age_diff,height=ydiff,
+                             color=mapper.to_rgba((j % 3)+1),alpha=0.75,
+                             zorder=-1*j)
+
+            ax.add_patch(rect)
+
+
     axes[0].legend(loc=1,fontsize=10)
     axes[0].set_xlim(0,150)
 
@@ -156,5 +185,8 @@ if __name__=="__main__":
         # print(config)
         for argkey in ["name","overwrite","to_plot"]:
             _ = config.pop(argkey)
+
+        cfilename = config_file.split("/")[-1]
+        config["config_num"] = int(cfilename[6])
 
         plot_all_clusters(pmd=None,**config)
