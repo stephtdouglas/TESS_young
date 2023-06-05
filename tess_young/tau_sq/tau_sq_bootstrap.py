@@ -110,9 +110,11 @@ def one_bootstrap_set(period_scale,init_type="kde",
                       rng_seed=9302,id_str=id_str)
 
     if (start_i is None) or (start_i==0): 
-        # Compare the first bootstrapped set to all models
+        # Compare the actual observed distribution to all models
         # This produces a baseline tausq vs. age curve
-        run_all_models(pmd=pmd,output_filebase=output_filebase+"_baseline",
+        # Yes, this is re-doing existing work but it means I don't have to
+        # fix the plotting code
+        run_all_models(pmd=pmd_obs,output_filebase=output_filebase+"_baseline",
                        models_to_plot=model_names[3:],
                        init_types=[init_type,init_type,init_type])
 
