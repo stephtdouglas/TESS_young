@@ -202,6 +202,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["Prot2"][i] = -9999
             allcat["Pw2"][i] = -9999
 
+        # If both are -9999, then no need to do anything
+        elif ((allcat["final_period_1"][i]<0) and (allcat["final_period_2"][i]<0)):
+            continue
+
         # If the period is (almost) the same (and Q=1 or Q=0):
         # elif allcat["final_period_1"][i]==allcat["final_period_2"][i]:
         elif diff_frac<0.05:
@@ -211,7 +215,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             # higher_peak = np.argmax(allcat["final_"])
 
             # If I assigned different Q values, assign the lower Q value
-            allcat["Q1"][i] = min(allcat["final_Q_1","final_Q_2"][i])
+            allcat["Q1"][i] = min(allcat["final_Q_1","final_Q_2"][i])+20
             allcat["Prot1"][i] = allcat["final_period_1"][i]
             allcat["Pw1"][i] = allcat["final_power_1"][i]
             allcat["provenance_name"][i] = allcat["provenance_name_1"][i]
@@ -222,7 +226,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
         # If they're harmonics and the second period is longer, choose the 2nd
         elif (abs(half_dbl-0.5)<0.02):
-            allcat["Q1"][i] = allcat["final_Q_2"][i]
+            allcat["Q1"][i] = allcat["final_Q_2"][i]+30
             allcat["Prot1"][i] = allcat["final_period_2"][i]
             allcat["Pw1"][i] = allcat["final_power_2"][i]
             allcat["provenance_name"][i] = allcat["provenance_name_2"][i]
@@ -233,7 +237,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
         # If they're harmonics and the first period is longer, choose the 1st
         elif (abs(half_dbl-2)<0.08):
-            allcat["Q1"][i] = allcat["final_Q_1"][i]
+            allcat["Q1"][i] = allcat["final_Q_1"][i]+40
             allcat["Prot1"][i] = allcat["final_period_1"][i]
             allcat["Pw1"][i] = allcat["final_power_1"][i]
             allcat["provenance_name"][i] = allcat["provenance_name_1"][i]
@@ -274,6 +278,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["Prot2"][i] = -9999
             allcat["Pw2"][i] = -9999
 
+        # If both are -9999, then no need to do anything
+        elif ((allcat["second_period_1"][i]<0) and (allcat["second_period_2"][i]<0)):
+            continue
+
         # If the period is (almost) the same (and Q=1 or Q=0):
         elif diff_frac<0.05:
 
@@ -284,19 +292,19 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             # TODO: Could this be where the random 0/1 values are being included? If the issue is two -9999 values?
 
             # If I assigned different Q values, assign the lower Q value
-            allcat["Q2"][i] = min(allcat["second_Q_1","second_Q_2"][i])
+            allcat["Q2"][i] = min(allcat["second_Q_1","second_Q_2"][i])+20
             allcat["Prot2"][i] = allcat["second_period_1"][i]
             allcat["Pw2"][i] = allcat["second_power_1"][i]
 
         # If they're harmonics and the second period is longer, choose the 2nd
         elif (abs(half_dbl-0.5)<0.02):
-            allcat["Q2"][i] = allcat["second_Q_2"][i]
+            allcat["Q2"][i] = allcat["second_Q_2"][i]+30
             allcat["Prot2"][i] = allcat["second_period_2"][i]
             allcat["Pw2"][i] = allcat["second_power_2"][i]
 
         # If they're harmonics and the first period is longer, choose the 1st
         elif (abs(half_dbl-2)<0.08):
-            allcat["Q2"][i] = allcat["second_Q_1"][i]
+            allcat["Q2"][i] = allcat["second_Q_1"][i]+40
             allcat["Prot2"][i] = allcat["second_period_1"][i]
             allcat["Pw2"][i] = allcat["second_power_1"][i]
 
@@ -361,17 +369,18 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     for colname in ["Prot1",  "Prot2"]:
         periods[colname].info.format = ".2f"
 
-    bad_prot = periods["Q1"]>=2
-    periods["Prot1"][bad_prot] = -9999
-    periods["Pw1"][bad_prot] = -9999
-    periods["Prot2"][bad_prot] = -9999
-    periods["Pw2"][bad_prot] = -9999
-    replace_Q2 = bad_prot & (periods["Q2"]<2)
-    periods["Q2"][replace_Q2] = 2
+    ### TODO: Removed to do error tracing - remember to re-add
+    # bad_prot = periods["Q1"]>=2
+    # periods["Prot1"][bad_prot] = -9999
+    # periods["Pw1"][bad_prot] = -9999
+    # periods["Prot2"][bad_prot] = -9999
+    # periods["Pw2"][bad_prot] = -9999
+    # replace_Q2 = bad_prot & (periods["Q2"]<2)
+    # periods["Q2"][replace_Q2] = 2
 
-    bad_prot2 = periods["Q2"]>=2
-    periods["Prot2"][bad_prot2] = -9999
-    periods["Pw2"][bad_prot2] = -9999
+    # bad_prot2 = periods["Q2"]>=2
+    # periods["Prot2"][bad_prot2] = -9999
+    # periods["Pw2"][bad_prot2] = -9999
 
     # # Write out the table. I'm not going to write a tex table - I'll just put
     # # the colnames in the manuscript proper
@@ -576,7 +585,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     print(len(has_periods),"periods and membership: actual periods")
     print(np.unique(pmcat["Q1"]))
     unmask = pmcat["Q1"].mask==True
-    pmcat["Q1"][unmask] = 9
+    pmcat["Q1"][unmask] = 7
     pmcat["Q1"].mask[unmask] = False
 
     ##########################################################################
