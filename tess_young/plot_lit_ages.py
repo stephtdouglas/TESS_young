@@ -1,5 +1,5 @@
 
-import os, sys
+import os, sys, pathlib
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -8,18 +8,21 @@ import numpy as np
 import astropy.io.ascii as at
 from astropy.table import join, Table, vstack
 
-import get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
-plt.style.use('./paper.mplstyle')
-PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
+
+from tess_young.get_const import *
+import tess_young
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
+plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
 
 if __name__=="__main__":
 
-    filename = "tables/TESS_Cluster_parameters_Comparison_Ages.csv"
+    filename = os.path.join(_DIR,"tables/TESS_Cluster_parameters_Comparison_Ages.csv")
     dat = at.read(filename,delimiter=",")
     print(dat.dtype)
+
+    dat.remove_row(np.where(dat["Source"]=="Brutus")[0][0])
 
     # Add year, then sort by year and author name
     dat["year"] = np.ones(len(dat),int)*9999
@@ -73,7 +76,7 @@ if __name__=="__main__":
     ax.set_yticks([])
     
     ax.set_xlabel("Age [Myr]")
-    plt.savefig(f"plots/literature_ages.png",
+    plt.savefig(os.path.join(_DIR,"plots/literature_ages.png"),
                 bbox_inches="tight")
     plt.savefig(os.path.join(PAPER_DIR,"fig_literature_ages.pdf"),
                 bbox_inches="tight")
