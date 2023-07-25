@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, pathlib
 import glob
 import itertools
 
@@ -8,18 +8,14 @@ import astropy.io.fits as fits
 import astropy.io.ascii as at
 
 
-# import warnings
-# with warnings.catch_warnings():
-#     from astropy.table import VerifyWarning
-#     warnings.filterwarnings("ignore", category=VerifyWarning)
-#     import astropy.io.ascii as at
-#     import astropy.io.fits as fits
-#     from astropy.table import join,vstack,Table
+from tess_young.get_const import *
+import tess_young
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
 
 def check_inputs_outputs(cluster,date,allcat):
-    matched_file = f"tables/{cluster}_crossmatch.csv"
-    tic_file = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    matched_file = os.path.join(_DIR,f"tables/{cluster}_crossmatch.csv")
+    tic_file = os.path.join(_DIR,f"{cluster}_crossmatch_xmatch_TIC.csv")
     cat_init_file2 = os.path.expanduser(f"~/Dropbox/data/MINESweeper/catalog_{cluster}_v0.fits")
 
     mcat = at.read(matched_file)
@@ -56,21 +52,23 @@ if __name__=="__main__":
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
-    final_file = "tab_all_stars.csv"
+    final_file = os.path.join(_DIR,"tab_all_stars.csv")
     allcat = at.read(final_file)
 
     ntot, ptot = 0, 0
     for i in range(5):
-        print("\n\n",clusters[i])
+        print("\n----------------------------------------\n",clusters[i])
         ncat, nper = check_inputs_outputs(clusters[i],dates[i],allcat)
         ntot += ncat
         ptot += nper
 
-    print("\n\nALL")
+    print("\n----------------------------------------\nALL")
     print(ntot, "in catalog", ptot, "with periods")
 
     print(len(allcat),"in catalog",
           len(np.where(allcat["Q1"]<=1)[0]), "with periods")
+    print(len(np.where(allcat["Q1"]<7)[0]), "with TESS data")
+    print(len(np.where((allcat["Q1"]<7)&(allcat["to_plot"]==1))[0]), "with TESS data and good membership")
     print(len(np.where(allcat["to_plot"]==1)[0]),"good membership",
           len(np.where((allcat["Q1"]<=1) & (allcat["to_plot"]==1))[0]), "with periods")
 
@@ -81,3 +79,20 @@ if __name__=="__main__":
     print(len(np.where((allcat["to_plot"]==1) & solar)[0]),"good membership solar",
           len(np.where((allcat["Q1"]<=1) & (allcat["to_plot"]==1) & solar)[0]), "solar with periods")
     print(len(np.where((allcat["to_plot"]==1) & (allcat["LitPeriod"]>0) & solar)[0]), "solar with lit periods")
+    print(len(np.where((allcat["to_plot"]==1) & (allcat["Q1"]<=1) & (allcat["LitPeriod"]<=0) & solar)[0]), "solar new periods")
+
+    print("\n")
+    print(len(np.where((allcat["to_plot"]==1) & (allcat["Q1"]<=1) & (allcat["LitPeriod"]<=0))[0]), "total new periods, good membership")
+    print(len(np.where((allcat["to_plot"]==1) & (allcat["Q1"]<=1) & (allcat["LitPeriod"]>0))[0]), "lit overlap periods, good membership")
+    print(len(np.where((allcat["Q1"]<=1) & (allcat["LitPeriod"]<=0))[0]), "total new periods")
+    print(len(np.where((allcat["Q1"]<=1) & (allcat["LitPeriod"]>0))[0]), "lit overlap periods")
+
+
+    print("\n")
+    print(len(np.where((allcat["Q1"]<=1) & (allcat["Bl?"]=="y"))[0]), "TESS periods, yes blended")
+    print(len(np.where((allcat["Q1"]<=1) & (allcat["Bl?"]=="m"))[0]), "TESS periods, maybe blended")
+    print(len(np.where((allcat["Q1"]<=1) & (allcat["Bl?"]=="n"))[0]), "TESS periods, not blended")
+
+    print(len(np.where((allcat["Q1"]<=6) & (allcat["Bl?"]=="y"))[0]), "TESS targets, yes blended")
+    print(len(np.where((allcat["Q1"]<=6) & (allcat["Bl?"]=="m"))[0]), "TESS targets, maybe blended")
+    print(len(np.where((allcat["Q1"]<=6) & (allcat["Bl?"]=="n"))[0]), "TESS targets, not blended")

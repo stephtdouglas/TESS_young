@@ -6,6 +6,7 @@ import astropy.io.ascii as at
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.table import join,vstack,Table
+from astropy import table
 from astroquery.mast import Catalogs
 
 
@@ -17,6 +18,7 @@ def read_validation_results(cluster, date, which=None):
         vis_file = f"tables/{cluster}_{date}_results_comments{which}.csv"
     vis = at.read(vis_file,delimiter=",")
     good = np.where(vis["Select"].mask==False)[0]
+
     # print(len(good))
 
     # Read in all the peaks, for ID'ing third periods
@@ -35,13 +37,27 @@ def read_validation_results(cluster, date, which=None):
     vis["second_power"] = np.ones_like(vis["final_power"])*-9999
     vis["second_Q"] = np.ones_like(vis["final_Q"])*9
 
+    # If I flagged something as Q=3, assign that value
+    no_peaks1 = (vis["Q"]==3) & (vis["Q"].mask==False)
+    vis["final_Q"][no_peaks1] = vis["Q"][no_peaks1]
+    # no_peaks2 = (vis["Q2"]==3) & (vis["Q2"].mask==False)
+    # vis["second_Q"][no_peaks2] = vis["Q2"][no_peaks2]
+
+    all2 = (vis["Q2"]<=3) & (vis["Q2"].mask==False)
+    vis["second_Q"][all2] = vis["Q2"][all2]
+    vis["second_period"][all2] = vis["sec_periods"][all2]
+    vis["second_power"][all2] = vis["sec_powers"][all2]
+
     # If I flaggged the highest peak as bad, but selected another peak,
     # Select that one instead
     replace2 = (vis["Q"]==2) & ((vis["Q2"]==1) | (vis["Q2"]==0))
     replace3 = (vis["Q"]==2) & ((vis["Q3"]==1) | (vis["Q3"]==0))
     vis["final_period"][replace2] = vis["sec_periods"][replace2]
-    vis["final_Q"][replace2]==vis["Q2"][replace2]
+    vis["final_Q"][replace2] = vis["Q2"][replace2]
     vis["final_power"][replace2] = vis["sec_powers"][replace2]
+    vis["second_period"][replace2] = -9999
+    vis["second_Q"][replace2] = 4
+    vis["second_power"][replace2] = -9999
 
     ploc0 = np.ones(len(peaks),bool)
     for i in np.where(replace3)[0]:
@@ -61,7 +77,6 @@ def read_validation_results(cluster, date, which=None):
             print(vis["TIC","provenance_name","sequence_number","flux_cols",
                       "Q","Q2","Q3","Notes"][i])
             print(peaks[ploc])
-
 
     # The MultiProt column didn't necessarily mean that two good periods
     # were detected, so use the Q values to find multiperiodic stars
@@ -176,6 +191,11 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     for i in range(ncols2):
         allcat[output_cols2[i]][good2] = allcat[init_cols2[i]][good2]
 
+    n8 = np.where(allcat["Q2"]==8)[0]
+    print("1",len(n8))
+    if len(n8)<5:
+        print(allcat[n8]["TIC","Prot2","Pw2","Q2"])
+
     ## Cycle through all the stars with differing results
     diff_idx = np.where(diff_results)[0]
     print(len(diff_idx))
@@ -188,6 +208,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         half_dbl = allcat["final_period_1"][i]/allcat["final_period_2"][i]
 
         # If one was flagged as Q=2, flag both as Q=2
+        # Ditto if both are flagged as Q=3
         # AND remove any secondary period
         if (allcat["final_Q_1"][i]==2) or (allcat["final_Q_2"][i]==2):
             allcat["Q1"][i] = 2
@@ -199,6 +220,19 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["obs_id"][i] = allcat["obs_id_1"][i]
             allcat["Sig"][i] = allcat["thresholds_1"][i]
             allcat["Q2"][i] = 2
+            allcat["Prot2"][i] = -9999
+            allcat["Pw2"][i] = -9999
+
+        elif (allcat["final_Q_1"][i]==3) and (allcat["final_Q_2"][i]==3):
+            allcat["Q1"][i] = 3
+            allcat["Prot1"][i] = -9999
+            allcat["Pw1"][i] = -9999
+            allcat["provenance_name"][i] = allcat["provenance_name_1"][i]
+            allcat["flux_cols"][i] = allcat["flux_cols_1"][i]
+            allcat["sequence_number"][i] = allcat["sequence_number_1"][i]
+            allcat["obs_id"][i] = allcat["obs_id_1"][i]
+            allcat["Sig"][i] = allcat["thresholds_1"][i]
+            allcat["Q2"][i] = 3
             allcat["Prot2"][i] = -9999
             allcat["Pw2"][i] = -9999
 
@@ -215,7 +249,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             # higher_peak = np.argmax(allcat["final_"])
 
             # If I assigned different Q values, assign the lower Q value
-            allcat["Q1"][i] = min(allcat["final_Q_1","final_Q_2"][i])+20
+            allcat["Q1"][i] = min(allcat["final_Q_1","final_Q_2"][i])
             allcat["Prot1"][i] = allcat["final_period_1"][i]
             allcat["Pw1"][i] = allcat["final_power_1"][i]
             allcat["provenance_name"][i] = allcat["provenance_name_1"][i]
@@ -226,7 +260,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
         # If they're harmonics and the second period is longer, choose the 2nd
         elif (abs(half_dbl-0.5)<0.02):
-            allcat["Q1"][i] = allcat["final_Q_2"][i]+30
+            allcat["Q1"][i] = allcat["final_Q_2"][i]
             allcat["Prot1"][i] = allcat["final_period_2"][i]
             allcat["Pw1"][i] = allcat["final_power_2"][i]
             allcat["provenance_name"][i] = allcat["provenance_name_2"][i]
@@ -237,7 +271,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
 
         # If they're harmonics and the first period is longer, choose the 1st
         elif (abs(half_dbl-2)<0.08):
-            allcat["Q1"][i] = allcat["final_Q_1"][i]+40
+            allcat["Q1"][i] = allcat["final_Q_1"][i]
             allcat["Prot1"][i] = allcat["final_period_1"][i]
             allcat["Pw1"][i] = allcat["final_power_1"][i]
             allcat["provenance_name"][i] = allcat["provenance_name_1"][i]
@@ -260,6 +294,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          # "Notes_2"][i])
             primary_still_bad.append(i)
 
+    n8 = np.where(allcat["Q2"]==8)[0]
+    print("2",len(n8))
+    if len(n8)<5:
+        print(allcat[n8]["TIC","Prot2","Pw2","Q2"])
 
     ## Cycle through all the stars with differing secondary results
     diff_idx2 = np.where(diff_results2)[0]
@@ -279,7 +317,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["Pw2"][i] = -9999
 
         # If both are -9999, then no need to do anything
+        # Except if they still have Q2=8 for some reason
         elif ((allcat["second_period_1"][i]<0) and (allcat["second_period_2"][i]<0)):
+            if allcat["Q2"][i]==8:
+                secondary_still_bad.append(i)
             continue
 
         # If the period is (almost) the same (and Q=1 or Q=0):
@@ -292,19 +333,19 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             # TODO: Could this be where the random 0/1 values are being included? If the issue is two -9999 values?
 
             # If I assigned different Q values, assign the lower Q value
-            allcat["Q2"][i] = min(allcat["second_Q_1","second_Q_2"][i])+20
+            allcat["Q2"][i] = min(allcat["second_Q_1","second_Q_2"][i])
             allcat["Prot2"][i] = allcat["second_period_1"][i]
             allcat["Pw2"][i] = allcat["second_power_1"][i]
 
         # If they're harmonics and the second period is longer, choose the 2nd
         elif (abs(half_dbl-0.5)<0.02):
-            allcat["Q2"][i] = allcat["second_Q_2"][i]+30
+            allcat["Q2"][i] = allcat["second_Q_2"][i]
             allcat["Prot2"][i] = allcat["second_period_2"][i]
             allcat["Pw2"][i] = allcat["second_power_2"][i]
 
         # If they're harmonics and the first period is longer, choose the 1st
         elif (abs(half_dbl-2)<0.08):
-            allcat["Q2"][i] = allcat["second_Q_1"][i]+40
+            allcat["Q2"][i] = allcat["second_Q_1"][i]
             allcat["Prot2"][i] = allcat["second_period_1"][i]
             allcat["Pw2"][i] = allcat["second_power_1"][i]
 
@@ -324,12 +365,22 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     secondary_still_bad = np.array(secondary_still_bad)
     still_bad = np.asarray(np.union1d(primary_still_bad,secondary_still_bad),int)
 
+    n8 = np.where(allcat["Q2"]==8)[0]
+    print("3",len(n8))
+    if len(n8)<5:
+        print(allcat[n8]["TIC","Prot2","Pw2","Q2"])
+
     if len(still_bad)>0:
         resolved = at.read("resolved_discrepant_validations.dat")
         for i in still_bad:
             loc = np.where(allcat["TIC"][i]==resolved["TIC"])[0]
             if len(loc)!=1:
-                print("uh oh!",i,allcat["TIC"][i])
+                print("\nuh oh! Need to resolve:",i,allcat["TIC"][i])
+                print(allcat["TIC","final_period_1","final_Q_1",
+                      "provenance_name_1","flux_cols_1","second_period_1"][i])
+                print(allcat["TIC","final_period_2","final_Q_2",
+                      "provenance_name_2","flux_cols_2","second_period_2"][i]) 
+                continue
             which = resolved["Which"][loc][0]
             allcat["Q1"][i] = resolved["final_Q"][loc]
             allcat["Prot1"][i] = resolved["final_period"][loc]
@@ -337,11 +388,14 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             allcat["provenance_name"][i] = resolved["provenance_name"][loc][0]
             allcat["flux_cols"][i] = resolved["flux_cols"][loc][0]
             allcat["sequence_number"][i] = resolved["sequence_number"][loc][0]
-            if resolved["second_Q"][loc]<=4:
+            if resolved["second_Q"][loc]<=3:
                 allcat["Q2"][i] = resolved["second_Q"][loc]
             if np.isfinite(resolved["second_period"][loc]):
                 allcat["Prot2"][i] = resolved["second_period"][loc]
                 allcat["Pw2"][i] = allcat[f"second_power{which}"][i]
+            else:
+                allcat["Prot2"][i] = -9999
+                allcat["Pw2"][i] = -9999
 
             allcat["obs_id"][i] = allcat[f"obs_id{which}"][i]
             allcat["Sig"][i] = allcat[f"thresholds{which}"][i]
@@ -364,31 +418,35 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                    "obs_id","Prot1", "Q1", "Pw1","Prot2", "Q2", "Pw2", "Sig",
                    "MP?","SE?"]
 
+
+    n8 = np.where(allcat["Q2"]==8)[0]
+    print("4",len(n8))
+    if len(n8)<5:
+        print(allcat[n8]["TIC","Prot2","Pw2","Q2"])
+
+    n8 = np.where(periods["Q2"]==8)[0]
+    print("5",len(n8))
+    if len(n8)<5:
+        print(periods[n8]["TIC","Prot2","Pw2","Q2"])
+
     for colname in ["Sig","Pw1","Pw2"]:
         periods[colname].info.format = ".3f"
     for colname in ["Prot1",  "Prot2"]:
         periods[colname].info.format = ".2f"
 
-    ### TODO: Removed to do error tracing - remember to re-add
-    # bad_prot = periods["Q1"]>=2
-    # periods["Prot1"][bad_prot] = -9999
-    # periods["Pw1"][bad_prot] = -9999
-    # periods["Prot2"][bad_prot] = -9999
-    # periods["Pw2"][bad_prot] = -9999
-    # replace_Q2 = bad_prot & (periods["Q2"]<2)
-    # periods["Q2"][replace_Q2] = 2
+    # Make sure no periods are saved for anything with Q>=2 (bad periods)
+    bad_prot = periods["Q1"]>=2
+    periods["Prot1"][bad_prot] = -9999
+    periods["Pw1"][bad_prot] = -9999
+    periods["Prot2"][bad_prot] = -9999
+    periods["Pw2"][bad_prot] = -9999
+    replace_Q2 = bad_prot & (periods["Q2"]<2)
+    periods["Q2"][replace_Q2] = 2
 
-    # bad_prot2 = periods["Q2"]>=2
-    # periods["Prot2"][bad_prot2] = -9999
-    # periods["Pw2"][bad_prot2] = -9999
+    bad_prot2 = periods["Q2"]>=2
+    periods["Prot2"][bad_prot2] = -9999
+    periods["Pw2"][bad_prot2] = -9999
 
-    # # Write out the table. I'm not going to write a tex table - I'll just put
-    # # the colnames in the manuscript proper
-    # if os.path.exists(f"tables/tab_{cluster}_tess_periods.csv"):
-    #     print("WARNING: Period table already exists; not re-recreating it")
-    # else:
-    #     at.write(periods,f"tables/tab_{cluster}_tess_periods.csv",delimiter=",",
-    #              formats=formats)
 
     ##### Crossmatch to the Gaia catalogs, save relevant columns
 
@@ -449,6 +507,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     xmatch = join(cat_init,tic_match,keys="GAIAEDR3_ID",join_type="left")
     print(len(xmatch),"input crossmatch with TIC")
 
+    xmatch_raw = xmatch.copy()
+
     # What to do when two Gaia targets match the same TIC ID?
     unique_gaia, gct = np.unique(xmatch["GAIAEDR3_ID"], return_counts=True)
     dbl_gaia = unique_gaia[gct>1]
@@ -475,24 +535,18 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         # For now, I am just saving the first GES line in the table, and
         # deleting the rest.
         if len(np.unique(xmatch["TIC"][loc]))==1:
-            # # print(xmatch["TIC","GAIAEDR3_ID","GAIAEDR3_G_CORRECTED","TIC_angDist",
-            # #              "TIC_GAIADR2_ID","TIC_Gmag","TIC_Tmag"][loc])
+            # print(xmatch["TIC","GAIAEDR3_ID","GAIAEDR3_G_CORRECTED","TIC_angDist",
+            #              "TIC_GAIADR2_ID","TIC_Gmag","TIC_Tmag"][loc])
             # print("multi-match for another reason")
-            # # print(table.unique(xmatch[loc]))
-            # # ucols = ["angDist_GES","target","filter","prob_p",
-            # #          "angDist_Cantat-Gaudin","proba","GaiaDR2"]
+            # print(table.unique(xmatch[loc]))
+            # ucols = ["angDist_GES","target","filter","prob_p",
+            #          "angDist_Cantat-Gaudin","proba","GaiaDR2"]
             # ucols = ["angDist_GES","target","filter","prob_p","cluster",
             #          "S/N","RV_1","panstarrs1_GES","sdssdr13_GES","skymapper2_GES",
             #          "RV_2","p_filter","GAIADR2_ID","TIC"]
             #          # "",""]
             # tu = table.unique(xmatch[loc],keys=ucols)
-            # print(tu[ucols])
-            # ucols = ["angDist_GES","target","filter","prob_p","cluster",
-            #          "S/N","RV_1","panstarrs1_GES","sdssdr13_GES","skymapper2_GES",
-            #          "RV_2","p_filter"]
-            #          # "",""]
-            # tu = table.unique(xmatch[loc],keys=ucols)
-            # print(tu[ucols])
+            # print(tu["angDist_GES","target","GAIAEDR3_ID","TIC"])
 
             to_delete.append(loc[1:])
 
@@ -504,6 +558,8 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     to_delete = np.concatenate(to_delete)
     xmatch.remove_rows(to_delete)
     print("deleted",len(to_delete))
+
+
 
     # Now re-do the repetition checks, and see if we fixed them
     unique_gaia, gct = np.unique(xmatch["GAIAEDR3_ID"], return_counts=True)
@@ -530,10 +586,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         dbl_tic_idx = np.sort(np.concatenate(dbl_tic_idx))
         # print(dbl_tic_idx)
 
-
     dbl_tic = unique_tic[tct>1]
     to_delete = []
     for tic in dbl_tic:
+        print("\n",tic)
         loc = np.where((xmatch["TIC"]==tic) & (xmatch["TIC"].mask==False))[0]
         if len(loc)==0:
             print("'duplicates' due to missing TIC matches")
@@ -545,12 +601,14 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             gdiff = abs(xmatch["GAIAEDR3_G_CORRECTED"][loc]-xmatch["TIC_Gmag"][loc])
             gsort_idx = np.argsort(gdiff)
             to_delete.append(loc[gsort_idx[1:]])
+            print("deleting: ",xmatch["TIC"][loc[gsort_idx[1:]]])
 
         # If the TIC doesn't have a G mag (only NGC 2547), just take the closer
         # match
         else:
             sort_by_dist = np.argsort(xmatch["TIC_angDist"][loc])
             to_delete.append(loc[sort_by_dist[1:]])
+            print("deleting: ",xmatch["TIC"][loc[sort_by_dist[1:]]])
 
     if len(to_delete)>0:
         to_delete = np.concatenate(to_delete)
@@ -572,6 +630,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                 print("There are still duplicate TIC IDs")
                 print(dbl_tic_idx)
 
+
     # If there's a star without a TIC ID, introduce a placeholder
     no_tic = xmatch["TIC"].mask==True
     xmatch["TIC"][no_tic] = -9999
@@ -584,9 +643,19 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     has_periods = np.where((pmcat["Prot1"]>0) & (pmcat["Prot1"].mask==False))[0]
     print(len(has_periods),"periods and membership: actual periods")
     print(np.unique(pmcat["Q1"]))
+
     unmask = pmcat["Q1"].mask==True
     pmcat["Q1"][unmask] = 7
     pmcat["Q1"].mask[unmask] = False
+    pmcat["Q2"][unmask] = 7
+    pmcat["Q2"].mask[unmask] = False
+
+    n8 = np.where(pmcat["Q2"]==8)[0]
+    print("10",len(n8))
+    if len(n8)<5:
+        print(pmcat[n8]["TIC","Prot2","Pw2","Q2"])
+
+
 
     ##########################################################################
     ##########################################################################
@@ -690,6 +759,14 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     print(neighbor_ct," stars with neighbors")
     print(removed_ct," blended stars removed")
 
+
+    n8 = np.where(pmcat["Q2"]==8)[0]
+    print("11",len(n8))
+    if len(n8)<5:
+        print(pmcat[n8]["TIC","Prot2","Pw2","Q2"])
+
+
+
     ##########################################################################
     ##########################################################################
     ##########################################################################
@@ -756,6 +833,12 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                 pmcat["Bl?"][i] = "y"
             elif ncbt>0:
                 pmcat["Bl?"][i] = "m"
+
+    n8 = np.where(pmcat["Q2"]==8)[0]
+    print("12",len(n8))
+    if len(n8)<5:
+        print(pmcat[n8]["TIC","Prot2","Pw2","Q2"])
+
 
 
     ##########################################################################
@@ -905,6 +988,8 @@ if __name__=="__main__":
     out_cats = []
     for i in range(5):
         print("\n\n",clusters[i])
+        # if clusters[i]!="NGC_2451A":
+        #     continue
         periods, out_cat = make_final_period_catalog(clusters[i],dates[i])
         period_cats.append(periods)
         out_cats.append(out_cat)
