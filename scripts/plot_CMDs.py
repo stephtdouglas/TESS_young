@@ -45,15 +45,32 @@ def calc_gaia_reddening(bp_rp0,A0):
     return E_BP_RP
 
 def plot_gaia_cmd(ax,cluster,gdr="EDR3",**kwargs):
-    cat = at.read(os.path.join(_DIR,f"{cluster}_crossmatch_xmatch_TIC.csv"),delimiter=",")
-
     cat = at.read(os.path.join(_DIR,"tab_all_stars.csv"),delimiter=",")
     cat = cat[cat["Cluster"]==cluster]
 
     bp_rp = cat[f"GAIA{gdr}_BP"] - cat[f"GAIA{gdr}_RP"]
     dist = 1000/cat["GAIAEDR3_PARALLAX_CORRECTED"]
     abs_G = cat[f"GAIA{gdr}_G"] - 5*np.log10(dist) + 5
-    ax.plot(bp_rp,abs_G,shapes[cluster],color=colors[cluster],label=cluster,**kwargs)
+
+    good_memb = cat["to_plot"]==1
+
+    ax.plot(bp_rp[good_memb],abs_G[good_memb],shapes[cluster],color=colors[cluster],label=cluster,**kwargs)
+
+
+def plot_membership_cmd(ax,cluster,gdr="EDR3",**kwargs):
+    cat = at.read(os.path.join(_DIR,"tab_all_stars.csv"),delimiter=",")
+    cat = cat[cat["Cluster"]==cluster]
+
+    bp_rp = cat[f"GAIA{gdr}_BP"] - cat[f"GAIA{gdr}_RP"]
+    dist = 1000/cat["GAIAEDR3_PARALLAX_CORRECTED"]
+    abs_G = cat[f"GAIA{gdr}_G"] - 5*np.log10(dist) + 5
+
+    good_memb = cat["to_plot"]==1
+
+    ax.plot(bp_rp,abs_G,"*",color="grey",label=cluster,ms=2,alpha=0.6)
+
+    ax.plot(bp_rp[good_memb],abs_G[good_memb],shapes[cluster],color=colors[cluster],label=cluster,**kwargs)
+
 
 
 def plot_all_cmd():
@@ -64,8 +81,8 @@ def plot_all_cmd():
         plot_gaia_cmd(ax1,cluster,alpha=0.75,ms=4)
         plot_gaia_cmd(ax2,cluster,alpha=0.95,ms=4)
     plt.legend(loc=3)
-    ax1.set_xlabel(r"G$_{BP}$ - G$_{RP}$ (EDR3)")
-    ax1.set_ylabel(f"M$_G$ (EDR3)")
+    ax1.set_xlabel(r"G$_{BP}$ - G$_{RP}$ (DR3)")
+    ax1.set_ylabel(f"M$_G$ (DR3)")
 
     ax1.set_ylim(13,-5)
     ax1.set_xlim(-0.6,4)
@@ -76,6 +93,56 @@ def plot_all_cmd():
     plt.savefig(os.path.join(PAPER_DIR,"fig_CMD_all.pdf"),bbox_inches="tight")
 
 
+def plot_panel_cmd():
+
+
+    # Set up axes: 2 rows 3 cols 
+    fig, axes = plt.subplots(nrows=2,ncols=3,sharex=True,sharey=True,
+                             figsize=(7.5,7.5))
+    fig.subplots_adjust(hspace=0,wspace=0)
+
+    # # Colorbar
+    # # left bottom width height
+    # fig.subplots_adjust(left=0.1,right=0.9,hspace=0,wspace=0)
+    # cbar_ax = fig.add_axes([0.9, 0.11, 0.02, 0.77])
+
+    # Set limits and add labels
+    axes[0,0].set_ylim(14,-4)
+    axes[0,0].set_xlim(-0.6,4)
+    axes[0,0].set_ylabel(f"M$_G$ (DR3)")#, fontsize=16)
+
+    axes[1,0].set_ylabel(f"M$_G$ (DR3)")#, fontsize=16)
+    axes[1,0].set_xlabel(r"G$_{BP}$ - G$_{RP}$ (DR3)")#, fontsize=16)
+    axes[1,1].set_xlabel(r"G$_{BP}$ - G$_{RP}$ (DR3)")#, fontsize=16)
+    axes[1,2].set_xlabel(r"G$_{BP}$ - G$_{RP}$ (DR3)")#, fontsize=16)
+
+    axes[0,0].set_xticks(np.arange(5))
+    axes[0,0].set_xticks(np.arange(0,4,0.5),minor=True)
+
+    all_axes = axes.flatten()
+
+    ax_in = all_axes[-1].inset_axes([0.5, 0.53, 0.47, 0.45])
+
+
+    for i,cluster in enumerate(clusters):
+        plot_membership_cmd(all_axes[i],cluster,alpha=0.95,ms=2)
+        # all_axes[i].legend(loc=1)
+        all_axes[i].text(-0.25,13,cluster,color=colors[cluster])
+
+        plot_gaia_cmd(all_axes[-1],cluster,alpha=0.75,ms=2)
+        plot_gaia_cmd(ax_in,cluster,alpha=0.95,ms=2)
+
+    ax_in.set_xlim(-0.3,0.45)
+    ax_in.set_ylim(2.5,-3)
+    ax_in.set_xticks(np.arange(-0.2,0.6,0.2))
+    ax_in.tick_params(labelsize=8)
+
+    plt.savefig(os.path.join(_DIR,"plots/CMD_panel.png"),bbox_inches="tight")
+    plt.savefig(os.path.join(PAPER_DIR,"fig_CMD_panel.pdf"),bbox_inches="tight")
+
+
+
 if __name__=="__main__":
 
-    plot_all_cmd()
+    # plot_all_cmd()
+    plot_panel_cmd()
