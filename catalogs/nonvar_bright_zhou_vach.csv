@@ -1,4 +1,4 @@
-tic,ra,dec,assoc,vetted,variable,Vmag,Kmag,plx,Vmag_unred,Kmag_unred
+TIC,ra,dec,assoc,vetted,variable,Vmag,Kmag,plx,Vmag_unred,Kmag_unred
 249695573,337.5714436,48.6863442,Theia507,1,0,14.68,9.107,9.41159,14.68,9.107
 286683067,150.1776573,-37.52331721,Theia443,1,0,13.536,9.14,8.91163,13.20152381,9.102207151
 110113516,114.0297723,-24.01135841,Theia449,1,0,13.504,9.209,9.25063,13.504,9.209
