@@ -4,6 +4,7 @@ import multiprocessing as mp
 import numpy as np
 import astropy.io.ascii as at
 from astropy.table import Table
+from astropy.time import Time
 import astropy.units as u
 from lightkurve import search_lightcurve
 import matplotlib.pyplot as plt
@@ -32,19 +33,32 @@ def test_one_tic(tic,pipeline="CDIPS",check_input=False):
         return None
         
     if len(search)>0:
-        lc = search.download(download_dir="/data2/douglaslab/.lightkurve-cache/")
+        lc = search.download()#download_dir="/data2/douglaslab/.lightkurve-cache/")
     else:
         print("Search failed")
         return None
 
-    t = lc["time"]
+    # print(type(lc))
+    # print(lc)
+    # print(lc.dtype)
+
+    t_raw = lc["time"]
     flat_lc = lc["flux"]
+    t = t_raw.btjd
+
+    # CDIPS has everything in magnitudes while QLP is normalized fluxes
+    if pipeline=="CDIPS":
+        flat_lc_term = 10**(-0.4*flat_lc.to(u.mag).value)
+
     npts = len(t)
+
+    # print(t)
+    # print(flat_lc)
 
     if check_input:
         # Check the input light curve for signals
         # Run the lomb-scargle periodogram on the light curve
-        ls_out = prot.run_ls(t.btjd,flat_lc,np.ones_like(flat_lc),0.1,prot_lims=[0.1,70],
+        ls_out = prot.run_ls(t,flat_lc,np.ones_like(flat_lc),0.1,prot_lims=[0.1,70],
                              run_bootstrap=True)
         # unpack lomb-scargle results
         fund_period, fund_power, periods_to_test, periodogram, aliases, sigmas = ls_out
@@ -55,16 +69,11 @@ def test_one_tic(tic,pipeline="CDIPS",check_input=False):
             tmed = np.nanmedian(flat_lc)
             f.write(f"{tmed:.2f}\n")
 
-
-    # mid = flat_lc + 3*u.mag
-
-    flat_lc_term = 10**(-0.4*flat_lc.to(u.mag).value)
-
-    rng = np.random.default_rng(seed=3738449329237479)
+    rng = np.random.default_rng(seed=3738449329237479+arrayid)
 
     min_amp, max_amp = 1e-2, 2e-1
 
-    ntests = 100
+    ntests = 2#100
     inj_res = Table({"Pin":rng.uniform(0.1,20,ntests),
                      "Pout":np.zeros(ntests)*np.nan,
                      "deltaM":rng.uniform(1,4,ntests),
@@ -75,23 +84,36 @@ def test_one_tic(tic,pipeline="CDIPS",check_input=False):
     for i in range(ntests):
         print(i)
 
-        mid = flat_lc + inj_res[i]["deltaM"]*u.mag
-
         per = inj_res[i]["Pin"]*u.day
-        amp = inj_res[i]["Amp"]*u.mag
-
         freq = 2*np.pi/per
         # print(per,freq)
-        sin_term = t.btjd * freq.to(1/u.day).value
-        faint_lc = mid + amp*np.sin(sin_term)#+rng.normal(size=npts,scale=1e-2)*u.mag
+        sin_term = t * freq.to(1/u.day).value
 
-        # # https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
-        add_lc = -2.5*np.log10(flat_lc_term + 
-                               10**(-0.4*faint_lc.to(u.mag).value))
-        test_lc = add_lc * u.mag
+        if pipeline=="CDIPS":
+            mid = flat_lc + inj_res[i]["deltaM"]*u.mag
+            amp = inj_res[i]["Amp"]*u.mag
+
+            faint_lc = mid + amp*np.sin(sin_term)#+rng.normal(size=npts,scale=1e-2)*u.mag
+
+            # # https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
+            add_lc = -2.5*np.log10(flat_lc_term + 
+                                   10**(-0.4*faint_lc.to(u.mag).value))
+            test_lc = add_lc * u.mag
+            # print(test_lc)
+        else:
+            flux_ratio = 10**(-0.4*inj_res[i]["deltaM"])
+
+            mid = flat_lc * flux_ratio
+            amp = 10**(-0.4*inj_res[i]["Amp"])
+
+            faint_lc = mid + amp*np.sin(sin_term)#+rng.normal(size=npts,scale=1e-2)*u.mag
+
+            add_lc = flat_lc + faint_lc
+            test_lc = add_lc
+            # print(test_lc)
 
         # Run the lomb-scargle periodogram on the light curve
-        ls_out = prot.run_ls(t.btjd,test_lc,np.ones_like(test_lc),0.1,prot_lims=[0.1,70],
+        ls_out = prot.run_ls(t,test_lc,np.ones_like(test_lc),0.1,prot_lims=[0.1,70],
                              run_bootstrap=True)
         # unpack lomb-scargle results
         fund_period, fund_power, periods_to_test, periodogram, aliases, sigmas = ls_out
@@ -119,21 +141,14 @@ def test_one_tic(tic,pipeline="CDIPS",check_input=False):
 if __name__=="__main__":
 
     infile = os.path.join(_DIR,"catalogs/nonvar_bright_zhou_vach.csv")
+    # infile = os.path.join(_DIR,"catalogs/nonvar_faint_douglas.csv")
     nonvar = at.read(infile,delimiter=",")
 
-#    array_step = 1
-#    mini = arrayid * array_step
-#    maxi = min(mini + array_step, len(nonvar))
     if arrayid==9999:
         i = 0
-#        mini = 0
-#        maxi = array_step
     else:
         i = arrayid
 
-#    steps = np.arange(mini,maxi)
-
-#    for i in steps:
     tic = nonvar["TIC"][i]
 
     test_one_tic(tic,pipeline="QLP",check_input=True)
