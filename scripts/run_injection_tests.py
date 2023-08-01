@@ -6,9 +6,7 @@ import astropy.io.ascii as at
 from astropy.table import Table
 from astropy.time import Time
 import astropy.units as u
-print("imported to here")
-from lightkurve import search_lightcurve
-#from lightkurve import LightCurve
+from lightkurve import LightCurve
 import matplotlib.pyplot as plt
 
 import k2spin
@@ -23,7 +21,7 @@ arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
 jobid = int(os.getenv("SLURM_JOB_ID",9999))
 print(arrayid,jobid)
 
-def test_one_tic(tic,pipeline="CDIPS",which="faint",check_input=False):
+def test_one_tic(tic,pipeline="CDIPS",which="faint"):
 
     ticname = f"TIC {tic}"
     wname = f"TIC_{tic}"
@@ -31,32 +29,28 @@ def test_one_tic(tic,pipeline="CDIPS",which="faint",check_input=False):
 
     print(ticname)
     
-    try:
-        search = search_lightcurve(ticname, author=pipeline)
-    except HTTPError:
-        print(ticname, pipeline, sectors, "MAST server error")
-        return None
 
-    print(search)
-    
-    if len(search)>0:
-        lc = search.download(download_dir="/data2/douglaslab/.lightkurve-cache/")
-    else:
-        print("Search failed")
-        return None
+    basefile = os.path.join(_DIR,f"tables/injection_input_{pipeline}_{which}_{wname}.csv")
 
-    print(lc.meta["FILENAME"])
+    if os.path.exists(basefile)==False:
+        print("Baseline file not found. Run setup_injection_tests.py first.")
+        sys.exit(42)
+
+    with open(basefile,"r") as f:
+        fline = f.readline()
+        lc_file = fline[2:]
+
+    if os.path.exists(lc_file)==False:
+        print("Light curve file not found!")
+        print(fline)
+        print(lc_file)
+        sys.exit(42)
+
+    lc = LightCurve(lc_file[0])
     
-    #cache_dir= "/data2/douglaslab/.lightkurve-cache/mastDownload/HLSP/"
-    #sel = glob.glob(os.path.join(cache_dir,f"hlsp_{pipeline.lower()}*{tic}*"))
-    #print(sel)
-    #lc_file = glob.glob(os.path.join(sel[0],"*.fits"))
-    #print(lc_file)
-    #lc = LightCurve(lc_file[0])
-    
-    # print(type(lc))
-    # print(lc)
-    # print(lc.dtype)
+    print(type(lc))
+    print(lc)
+    print(lc.dtype)
 
     t_raw = lc["time"]
     flat_lc = lc["flux"]
@@ -68,28 +62,7 @@ def test_one_tic(tic,pipeline="CDIPS",which="faint",check_input=False):
 
     npts = len(t)
 
-    # print(t)
-    # print(flat_lc)
-
-    if check_input:
-        print("Check the input light curve for signals")
-        # Run the lomb-scargle periodogram on the light curve
-        ls_out = prot.run_ls(t,flat_lc,np.ones_like(flat_lc),0.1,prot_lims=[0.1,70],
-                             run_bootstrap=True)
-        # unpack lomb-scargle results
-        fund_period, fund_power, periods_to_test, periodogram, aliases, sigmas = ls_out
-        with open(os.path.join(_DIR,f"tables/injection_input_{pipeline}_{which}_{wname}.csv"),"w") as f:
-            f.write("# "+lc.meta["FILENAME"])
-            f.write("TIC,Prot,Pow,threshold,Tmed\n")
-            f.write(f"{wname2},{fund_period:.4f},{fund_power:.4f},")
-            f.write(f"{sigmas[0]:.4f},")
-            tmed = np.nanmedian(flat_lc)
-            f.write(f"{tmed:.2f}\n")
-
-    if arrayid==9999:
-        return None
-
-    seed_add = int(arrayid*1e6 + jobid*1e9)
+    seed_add = int(tic*1e9)
     print(seed_add)
     rng = np.random.default_rng(seed=3738449329237479+seed_add)
 
@@ -150,16 +123,6 @@ def test_one_tic(tic,pipeline="CDIPS",which="faint",check_input=False):
         if (per_diff<0.05):
             inj_res["Corr"][i] = 1
 
-    # good = inj_res["Sig"]==1
-
-    # plt.figure()
-    # sc = plt.scatter(inj_res["Pin"],inj_res["Pout"],c=inj_res["Amp"],
-    #                  zorder=10,vmin=min_amp,vmax=max_amp)
-    # plt.plot(inj_res["Pin"][~good],inj_res["Pout"][~good],'kx',zorder=20)
-    # plt.xlabel("Injected period (d)")
-    # plt.ylabel("Detected period (d)")
-    # plt.savefig(os.path.join(_DIR,"plots/test_injection.png"))
-
     at.write(inj_res,os.path.join(_DIR,f"tables/injection_results_{pipeline}_{which}_{wname}.csv"),
              delimiter=",",overwrite=True)
 
@@ -191,13 +154,11 @@ if __name__=="__main__":
     nonvar = at.read(infile,delimiter=",")
 
     if arrayid==9999:
-        for i, tic in enumerate(nonvar["TIC"]):
-            print(i,tic)
-            test_one_tic(tic,pipeline=pipeline,which=which,check_input=True)
+        i = 0
     else:
         i = arrayid
 
-        tic = nonvar["TIC"][i]
-        print(i,tic)
+    tic = nonvar["TIC"][i]
+    print(i,tic)
     
-        test_one_tic(tic,pipeline=pipeline,which=which,check_input=True)
+    test_one_tic(tic,pipeline=pipeline,which=which)
