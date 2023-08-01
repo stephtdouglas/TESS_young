@@ -6,7 +6,9 @@ import astropy.io.ascii as at
 from astropy.table import Table
 from astropy.time import Time
 import astropy.units as u
+print("imported to here")
 from lightkurve import search_lightcurve
+#from lightkurve import LightCurve
 import matplotlib.pyplot as plt
 
 import k2spin
@@ -19,25 +21,39 @@ plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
 jobid = int(os.getenv("SLURM_JOB_ID",9999))
+print(arrayid,jobid)
 
-def test_one_tic(tic,pipeline="CDIPS",check_input=False):
+def test_one_tic(tic,pipeline="CDIPS",which="faint",check_input=False):
 
     ticname = f"TIC {tic}"
     wname = f"TIC_{tic}"
     wname2 = str(tic)
 
+    print(ticname)
+    
     try:
         search = search_lightcurve(ticname, author=pipeline)
     except HTTPError:
         print(ticname, pipeline, sectors, "MAST server error")
         return None
-        
+
+    print(search)
+    
     if len(search)>0:
-        lc = search.download()#download_dir="/data2/douglaslab/.lightkurve-cache/")
+        lc = search.download(download_dir="/data2/douglaslab/.lightkurve-cache/")
     else:
         print("Search failed")
         return None
 
+    print(lc.meta["FILENAME"])
+    
+    #cache_dir= "/data2/douglaslab/.lightkurve-cache/mastDownload/HLSP/"
+    #sel = glob.glob(os.path.join(cache_dir,f"hlsp_{pipeline.lower()}*{tic}*"))
+    #print(sel)
+    #lc_file = glob.glob(os.path.join(sel[0],"*.fits"))
+    #print(lc_file)
+    #lc = LightCurve(lc_file[0])
+    
     # print(type(lc))
     # print(lc)
     # print(lc.dtype)
@@ -56,29 +72,36 @@ def test_one_tic(tic,pipeline="CDIPS",check_input=False):
     # print(flat_lc)
 
     if check_input:
-        # Check the input light curve for signals
+        print("Check the input light curve for signals")
         # Run the lomb-scargle periodogram on the light curve
         ls_out = prot.run_ls(t,flat_lc,np.ones_like(flat_lc),0.1,prot_lims=[0.1,70],
                              run_bootstrap=True)
         # unpack lomb-scargle results
         fund_period, fund_power, periods_to_test, periodogram, aliases, sigmas = ls_out
-        with open(os.path.join(_DIR,f"tables/injection_input_{pipeline}_{wname}.csv"),"w") as f:
+        with open(os.path.join(_DIR,f"tables/injection_input_{pipeline}_{which}_{wname}.csv"),"w") as f:
+            f.write("# "+lc.meta["FILENAME"])
             f.write("TIC,Prot,Pow,threshold,Tmed\n")
             f.write(f"{wname2},{fund_period:.4f},{fund_power:.4f},")
-            f.write(f"{sigmas[0]:.4f}")
+            f.write(f"{sigmas[0]:.4f},")
             tmed = np.nanmedian(flat_lc)
             f.write(f"{tmed:.2f}\n")
 
-    rng = np.random.default_rng(seed=3738449329237479+arrayid)
+    if arrayid==9999:
+        return None
+
+    seed_add = int(arrayid*1e6 + jobid*1e9)
+    print(seed_add)
+    rng = np.random.default_rng(seed=3738449329237479+seed_add)
 
     min_amp, max_amp = 1e-2, 2e-1
 
-    ntests = 2#100
+    ntests = 5
     inj_res = Table({"Pin":rng.uniform(0.1,20,ntests),
                      "Pout":np.zeros(ntests)*np.nan,
                      "deltaM":rng.uniform(1,4,ntests),
                      "Amp":rng.uniform(min_amp,max_amp,ntests),
-                     "Sig":np.zeros(ntests)
+                     "Sig":np.zeros(ntests),
+                     "Corr":np.zeros(ntests)
                      })
 
     for i in range(ntests):
@@ -122,8 +145,10 @@ def test_one_tic(tic,pipeline="CDIPS",check_input=False):
 
         per_diff = abs(inj_res["Pout"][i]-inj_res["Pin"][i])/inj_res["Pin"][i]
         # A good detection is significant AND matches the input within 5%
-        if (fund_power > sigmas[0]) & (per_diff<0.05):
+        if (fund_power > sigmas[0]):
             inj_res["Sig"][i] = 1
+        if (per_diff<0.05):
+            inj_res["Corr"][i] = 1
 
     # good = inj_res["Sig"]==1
 
@@ -135,20 +160,44 @@ def test_one_tic(tic,pipeline="CDIPS",check_input=False):
     # plt.ylabel("Detected period (d)")
     # plt.savefig(os.path.join(_DIR,"plots/test_injection.png"))
 
-    at.write(inj_res,os.path.join(_DIR,f"tables/injection_results_{pipeline}_{wname}.csv"),
+    at.write(inj_res,os.path.join(_DIR,f"tables/injection_results_{pipeline}_{which}_{wname}.csv"),
              delimiter=",",overwrite=True)
 
 if __name__=="__main__":
 
-    infile = os.path.join(_DIR,"catalogs/nonvar_bright_zhou_vach.csv")
-    # infile = os.path.join(_DIR,"catalogs/nonvar_faint_douglas.csv")
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(description="")
+    parser.add_argument("-w", "--which", dest="which", required=True,
+                        type=str, help="bright or faint")
+    parser.add_argument("-p", "--pipeline", dest="pipeline", required=False,
+                        type=str, help="QLP or CDIPS", default="CDIPS")
+
+    args = parser.parse_args()
+    print(args)
+
+    which = args.which
+    pipeline = args.pipeline
+
+    print(pipeline, which)
+    
+    if which=="bright":
+        infile = os.path.join(_DIR,"catalogs/nonvar_bright_zhou_vach.csv")
+    elif which=="faint":
+        infile = os.path.join(_DIR,"catalogs/nonvar_faint_douglas.csv")
+    else:
+        print("selection not found", which)
+        sys.exit(42)
     nonvar = at.read(infile,delimiter=",")
 
     if arrayid==9999:
-        i = 0
+        for i, tic in enumerate(nonvar["TIC"]):
+            print(i,tic)
+            test_one_tic(tic,pipeline=pipeline,which=which,check_input=True)
     else:
         i = arrayid
 
-    tic = nonvar["TIC"][i]
-
-    test_one_tic(tic,pipeline="QLP",check_input=True)
+        tic = nonvar["TIC"][i]
+        print(i,tic)
+    
+        test_one_tic(tic,pipeline=pipeline,which=which,check_input=True)
