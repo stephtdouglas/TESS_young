@@ -67,7 +67,7 @@ def setup_one_tic(tic,pipeline="CDIPS",which="faint",check_input=False):
         fund_period, fund_power, periods_to_test, periodogram, aliases, sigmas = ls_out
         with open(os.path.join(_DIR,f"tables/injection_input_{pipeline}_{which}_{wname}.csv"),"w") as f:
             f.write("# "+lc.meta["FILENAME"])
-            f.write("TIC,Prot,Pow,threshold,Tmed\n")
+            f.write("\nTIC,Prot,Pow,threshold,Tmed\n")
             f.write(f"{wname2},{fund_period:.4f},{fund_power:.4f},")
             f.write(f"{sigmas[0]:.4f},")
             tmed = np.nanmedian(flat_lc)

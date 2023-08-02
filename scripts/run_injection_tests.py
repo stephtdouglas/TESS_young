@@ -1,12 +1,10 @@
-import os, glob, pathlib
-import multiprocessing as mp
+import os, glob, pathlib, sys
 
 import numpy as np
 import astropy.io.ascii as at
 from astropy.table import Table
-from astropy.time import Time
 import astropy.units as u
-from lightkurve import LightCurve
+import lightkurve
 import matplotlib.pyplot as plt
 
 import k2spin
@@ -16,6 +14,7 @@ import tess_young
 from tess_young.get_const import *
 _DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
+print(_DIR)
 
 arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
 jobid = int(os.getenv("SLURM_JOB_ID",9999))
@@ -38,7 +37,7 @@ def test_one_tic(tic,pipeline="CDIPS",which="faint"):
 
     with open(basefile,"r") as f:
         fline = f.readline()
-        lc_file = fline[2:]
+        lc_file = fline[2:].split("TIC,")[0]
 
     if os.path.exists(lc_file)==False:
         print("Light curve file not found!")
@@ -46,10 +45,10 @@ def test_one_tic(tic,pipeline="CDIPS",which="faint"):
         print(lc_file)
         sys.exit(42)
 
-    lc = LightCurve(lc_file[0])
+    lc = lightkurve.io.read(lc_file)
     
     print(type(lc))
-    print(lc)
+    #print(lc)
     print(lc.dtype)
 
     t_raw = lc["time"]
@@ -68,7 +67,8 @@ def test_one_tic(tic,pipeline="CDIPS",which="faint"):
 
     min_amp, max_amp = 1e-2, 2e-1
 
-    ntests = 5
+    ntests = 500
+    stepsize = 50
     inj_res = Table({"Pin":rng.uniform(0.1,20,ntests),
                      "Pout":np.zeros(ntests)*np.nan,
                      "deltaM":rng.uniform(1,4,ntests),
@@ -122,6 +122,11 @@ def test_one_tic(tic,pipeline="CDIPS",which="faint"):
             inj_res["Sig"][i] = 1
         if (per_diff<0.05):
             inj_res["Corr"][i] = 1
+
+        if (i % stepsize) == 0:
+            at.write(inj_res,os.path.join(_DIR,f"tables/injection_results_{pipeline}_{which}_{wname}.{i:04}.csv"),
+             delimiter=",",overwrite=True)
+
 
     at.write(inj_res,os.path.join(_DIR,f"tables/injection_results_{pipeline}_{which}_{wname}.csv"),
              delimiter=",",overwrite=True)
