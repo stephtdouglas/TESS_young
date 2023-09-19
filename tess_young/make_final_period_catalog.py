@@ -788,7 +788,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
     pmcat["Bl?"] = np.empty(len(pmcat),"U1")
     pmcat["Bl?"][:] = "n"
 
-    pmcat["ClosestNeighbor"] = np.zeros(len(pmcat))
+    pmcat["ClosestNeighborSep"] = np.zeros(len(pmcat))
+    pmcat["ClosestNeighborMagDiff"] = np.zeros(len(pmcat))
+    pmcat["BrightestNeighborSep"] = np.zeros(len(pmcat))
+    pmcat["BrightestNeighborMagDiff"] = np.zeros(len(pmcat))
     for i,row in enumerate(pmcat):
 
         sep = ppos[i].separation(gpos)
@@ -801,7 +804,10 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         if (len(closep)==1) and (len(closeb)==1):
             self_i = np.where(cat0["GAIAEDR3_ID"]==pmcat["GAIAEDR3_ID"][i])[0]
             sep = np.delete(sep,self_i)
-            pmcat["ClosestNeighbor"][i] = np.min(sep).to(u.arcsec).value
+            pmcat["ClosestNeighborSep"][i] = np.min(sep).to(u.arcsec).value
+            pmcat["ClosestNeighborMagDiff"][i] = np.nan
+            pmcat["BrightestNeighborSep"][i] = np.nan
+            pmcat["BrightestNeighborMagDiff"][i] = np.nan
             continue
 
         else:
@@ -819,7 +825,14 @@ def make_final_period_catalog(cluster, date, to_plot=False):
             # Is the target itself always the first line? It seems to be.
             self_i = np.argmin(tic_data["dstArcSec"])
             tic2 = np.delete(tic_data,self_i)
-            pmcat["ClosestNeighbor"][i] = np.min(tic2["dstArcSec"])
+            cl_i = np.argmin(tic2["dstArcSec"])
+            pmcat["ClosestNeighborSep"][i] = tic2["dstArcSec"][cl_i]
+            pmcat["ClosestNeighborMagDiff"][i] = tic_data["Tmag"][0]-tic2["Tmag"][cl_i]
+
+            br_i = np.argmin(tic2["Tmag"])
+            pmcat["BrightestNeighborSep"][i] = tic2["dstArcSec"][br_i]
+            pmcat["BrightestNeighborMagDiff"][i] = tic_data["Tmag"][0]-tic2["Tmag"][br_i]
+
             neighbors_faint[self_i] = False
             neighbors_bright[self_i] = False
 
@@ -871,6 +884,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
                          "TMASS_ID","TMASS_J","TMASS_J_ERR",
                          "TMASS_H","TMASS_H_ERR","TMASS_K","TMASS_K_ERR",
+                         "TIC_Tmag",
                          "HDBscan_MemProb","HDBscan_Cluster","HDBscan_Stability",
                          "MemBool",
                          "angDist_GES","target","cluster","prob_p",
@@ -879,7 +893,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "log(Age)_err","Mass","Mass_err","log(Teff)",
                          "log(Teff)_err",
                          "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
-                         "Q2", "MP?", "SE?","Bl?","ClosestNeighbor",
+                         "Q2", "MP?", "SE?","Bl?",
+                         "ClosestNeighborSep","ClosestNeighborMagDiff",
+                         "BrightestNeighborSep","BrightestNeighborMagDiff",
                          # blend??
                          "LitPeriod","LitSource"
                          ]
@@ -903,6 +919,7 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
                          "TMASS_ID","TMASS_J","TMASS_J_ERR",
                          "TMASS_H","TMASS_H_ERR","TMASS_K","TMASS_K_ERR",
+                         "TIC_Tmag",
                          "HDBscan_MemProb","HDBscan_Cluster","HDBscan_Stability",
                          "MemBool",
                          "angDist_GES","GES_MemProb","GES_Target","GES_Cluster",
@@ -911,7 +928,9 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                          "log(Age)_err","Mass","Mass_err","log(Teff)",
                          "log(Teff)_err",
                          "Prot1", "Pw1", "Q1", "Sig", "Prot2", "Pw2",
-                         "Q2", "MP?", "SE?","Bl?","ClosestNeighbor",
+                         "Q2", "MP?", "SE?","Bl?",
+                         "ClosestNeighborSep","ClosestNeighborMagDiff",
+                         "BrightestNeighborSep","BrightestNeighborMagDiff",
                          # blend??
                          "LitPeriod","LitSource"
                          ]
@@ -971,10 +990,12 @@ def make_final_period_catalog(cluster, date, to_plot=False):
                      "GAIAEDR3_RP","GAIAEDR3_RP_ERR",
                      "TMASS_ID","TMASS_J","TMASS_J_ERR",
                      "TMASS_H","TMASS_H_ERR","TMASS_K","TMASS_K_ERR",
+                     "TIC_Tmag",
                      "Sig","Pw1","Pw2"]:
         out_cat[colname].info.format = ".3f"
 
-    for colname in ["Prot1",  "Prot2", "LitPeriod","ClosestNeighbor"]:
+    for colname in ["Prot1",  "Prot2", "LitPeriod","ClosestNeighborSep", "ClosestNeighborMagDiff",
+                    "BrightestNeighborSep","BrightestNeighborMagDiff"]:
         out_cat[colname].info.format = ".2f"
 
     return periods, out_cat
