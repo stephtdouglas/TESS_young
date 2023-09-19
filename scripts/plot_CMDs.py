@@ -54,7 +54,8 @@ def plot_gaia_cmd(ax,cluster,gdr="EDR3",**kwargs):
 
     good_memb = cat["to_plot"]==1
 
-    ax.plot(bp_rp[good_memb],abs_G[good_memb],shapes[cluster],color=colors[cluster],label=cluster,**kwargs)
+    ax.plot(bp_rp[good_memb],abs_G[good_memb],shapes[cluster],
+            color=colors[cluster],label=cluster.replace("_"," "),**kwargs)
 
 
 def plot_membership_cmd(ax,cluster,gdr="EDR3",**kwargs):
@@ -69,7 +70,8 @@ def plot_membership_cmd(ax,cluster,gdr="EDR3",**kwargs):
 
     ax.plot(bp_rp,abs_G,"*",color="grey",label=cluster,ms=2,alpha=0.6)
 
-    ax.plot(bp_rp[good_memb],abs_G[good_memb],shapes[cluster],color=colors[cluster],label=cluster,**kwargs)
+    ax.plot(bp_rp[good_memb],abs_G[good_memb],shapes[cluster],color=colors[cluster],
+            label=cluster.replace("_"," "),**kwargs)
 
 
 
@@ -127,7 +129,7 @@ def plot_panel_cmd():
     for i,cluster in enumerate(clusters):
         plot_membership_cmd(all_axes[i],cluster,alpha=0.95,ms=2)
         # all_axes[i].legend(loc=1)
-        all_axes[i].text(-0.25,13,cluster,color=colors[cluster])
+        all_axes[i].text(-0.25,13,cluster.replace("_"," "),color=colors[cluster])
 
         plot_gaia_cmd(all_axes[-1],cluster,alpha=0.75,ms=2)
         plot_gaia_cmd(ax_in,cluster,alpha=0.95,ms=2)

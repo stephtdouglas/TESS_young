@@ -50,7 +50,7 @@ if __name__=="__main__":
 
         ax.errorbar(age,yvals,xerr=asym_err,marker=shapes[cluster],
                     color=colors[cluster],linewidth=0,elinewidth=1.5,
-                    label=cluster)
+                    label=cluster.replace("_"," "))
 
     ax.legend(loc=2,ncol=2)
 
@@ -61,9 +61,10 @@ if __name__=="__main__":
     left_line = 25
     for j, source in enumerate(dat["Source"]):
         if "cummings" in source:
-            ax.text(right_line*1.1,j,source,fontsize=10,ha="left")
+            ax.text(right_line*1.1,j,dat["Source_formatted"][j].replace("; ",";\n"),
+                    fontsize=8,ha="left",verticalalignment="center")
         else:
-            ax.text(textx,j,source,fontsize=10)
+            ax.text(textx,j,dat["Source_formatted"][j],fontsize=10)
     ax.axvline(left_line,color="Gray",linestyle="--",zorder=-10)
     ax.axvline(right_line,color="Gray",linestyle="--",zorder=-10)
 
