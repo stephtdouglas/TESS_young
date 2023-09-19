@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, pathlib
 import glob
 import itertools
 
@@ -11,13 +11,12 @@ from astropy.table import join,vstack,Table
 from scipy import stats
 from scipy.interpolate import interp1d
 
-from analyze_cluster_output import read_cluster_visual
-from model_data_percentiles import zams_percentiles
-import get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+# from tess_young.model_data_percentiles import zams_percentiles
 
-plt.style.use('./paper.mplstyle')
-PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
+import tess_young
+from tess_young.get_const import *
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
+plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 def plot_periodmass(dat, clusters):
 
@@ -166,7 +165,7 @@ def plot_periodcolor(dat, clusters, single_figure=False):
     for i, cluster in enumerate(clusters):
 
         if single_figure is False:
-            plt.figure()
+            plt.figure(figsize=(8,6))
             ax = plt.subplot()
         else:
             ax = fl_axes[i]
@@ -214,7 +213,7 @@ def plot_periodcolor(dat, clusters, single_figure=False):
 
 
     if single_figure is False:
-        plt.figure()
+        plt.figure(figsize=(8,6))
         ax = plt.subplot()
         ax.set_ylim(0.1,50)
         ax.set_xlim(0.5,3.5)
@@ -306,108 +305,12 @@ def plot_periodcolor_membership(dat):
     plt.close()
 
 
-
-def plot_periodcolor_ruwe(clean_limit=0,to_plot_indiv=False):
-    cat_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv,return_periodcolor=False)
-    cat_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv,return_periodcolor=False)
-    cat_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv,return_periodcolor=False)
-    cat_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv,return_periodcolor=False)
-    cat_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=to_plot_indiv,return_periodcolor=False)
-    clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
-    cats = [cat_IC_2391, cat_Collinder_135, cat_NGC_2451A, cat_NGC_2547, cat_IC_2602]
-
-    fig1 = plt.figure()
-    ax = plt.subplot(111)
-
-
-    for i, match in enumerate(cats):
-        # print(match.dtype)
-        bp_rp = match["GAIAEDR3_BP"] - match["GAIAEDR3_RP"]
-
-        fig2 = plt.figure()
-        ax2 = plt.subplot(111)
-
-
-        if clean_limit is not None:
-            if clean_limit==0:
-                all_possible = (match["final_Q"]==0)
-            else:
-                all_possible = (match["final_Q"]==0) | (match["final_Q"]==1)
-        else:
-            all_possible = (match["final_Q"]==0) | (match["final_Q"]==1)
-
-        sc = ax.scatter(bp_rp[all_possible],match["final_period"][all_possible],
-                    c=match["GAIAEDR3_RUWE"][all_possible],vmin=0.6,vmax=2,alpha=0.75)
-        sc = ax2.scatter(bp_rp[all_possible],match["final_period"][all_possible],
-                    c=match["GAIAEDR3_RUWE"][all_possible],vmin=0.6,vmax=2,alpha=0.75)
-        plt.colorbar(sc,label="Gaia RUWE - EDR3",ax=ax2)
-
-        ax2.set_ylim(0.1,50)
-        ax2.set_xlim(0.5,3.5)
-        ax2.set_yscale("log")
-
-        ax2.set_xlabel(r"G$_{BP}$ - G$_{RP}$")
-        ax2.set_ylabel("Period (d)")
-        ax2.axhline(12,linestyle="--",color="tab:grey")
-
-        ax2.set_title(clusters[i])
-        fig2.savefig(f"plots/periodcolor_{clusters[i]}_ruwe.png",bbox_inches="tight",dpi=300)
-        plt.close(fig2)
-
-
-    # TODO: add gemini observations and detections
-
-    plt.colorbar(sc,label="Gaia RUWE - EDR3",ax=ax)
-
-    ax.set_ylim(0.1,50)
-    ax.set_xlim(0.5,3.5)
-    ax.set_yscale("log")
-
-    ax.set_xlabel(r"G$_{BP}$ - G$_{RP}$")
-    ax.set_ylabel("Period (d)")
-
-    ax.axhline(12,linestyle="--",color="tab:grey")
-
-    return ax
-
-def plot_periodcolor_histogram(clean_limit=10,to_plot_indiv=False,ax=None):
-    bp_rp_IC_2391, prot_IC_2391 = read_cluster_visual("IC_2391","2021-06-22",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_Collinder_135, prot_Collinder_135 = read_cluster_visual("Collinder_135","2021-06-18",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_NGC_2451A, prot_NGC_2451A = read_cluster_visual("NGC_2451A","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_NGC_2547, prot_NGC_2547 = read_cluster_visual("NGC_2547","2021-06-21",clean_limit,to_plot=to_plot_indiv)
-    bp_rp_IC_2602, prot_IC_2602 = read_cluster_visual("IC_2602","2021-07-02",clean_limit,to_plot=to_plot_indiv)
-
-    bp_rp = np.concatenate([bp_rp_IC_2391,bp_rp_Collinder_135,bp_rp_NGC_2451A,bp_rp_NGC_2547,bp_rp_IC_2602])
-    prot = np.concatenate([prot_IC_2391,prot_Collinder_135,prot_NGC_2451A,prot_NGC_2547,prot_IC_2602])
-
-    if ax is None:
-        plt.figure()
-        ax = plt.subplot(111)
-    counts, xedges, yedges, image = ax.hist2d(bp_rp,prot,bins=[np.linspace(0.5,3.5,22),
-                                          np.logspace(-1,np.log10(50),20)],cmap="Greys")
-    xx = xedges[:-1] + (xedges[1:] - xedges[:-1])/2
-    yy = yedges[:-1] + (yedges[1:] - yedges[:-1])/2
-    cs = ax.contour(xx,yy,counts.transpose(),linewidths=2,levels=[1,3,10,13,20],colors="k",antialiased=True)
-    # plt.clabel(cs,fmt="%1.0f",inline=False)
-
-    ax.set_ylim(0.1,50)
-    ax.set_xlim(0.5,3.5)
-    ax.set_yscale("log")
-
-    ax.set_xlabel(r"G$_{BP}$ - G$_{RP}$")
-    ax.set_ylabel("Period (d)")
-
-    ax.axhline(12,linestyle="--",color="tab:grey")
-
-    return ax
-
-
-
 if __name__=="__main__":
 
     clusters = ["Collinder_135","NGC_2451A","NGC_2547","IC_2391","IC_2602"]
     dat = at.read("tab_all_stars.csv")
 
     plot_periodcolor(dat, clusters, single_figure=True)
+    plot_periodcolor(dat, clusters, single_figure=False)
     plot_periodcolor_membership(dat)
     # plot_periodmass(dat, clusters)
