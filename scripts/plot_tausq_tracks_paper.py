@@ -204,6 +204,9 @@ def make_paper_plots():
     axes[0].set_xlim(0,300)
     axes[0].set_ylim(1325,1650)
 
+    axes[0].text(5,1625,"Linear fit",fontsize="large")
+    axes[1].text(5,1625,"Log fit",fontsize="large")
+
     for j, config_file in enumerate([lin_config_file,log_config_file]):
         with open(config_file, 'r') as f:
             config = yaml.load(f.read())
