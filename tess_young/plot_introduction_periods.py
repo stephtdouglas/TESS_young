@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, pathlib
 import glob
 import itertools
 
@@ -11,9 +11,11 @@ from astropy.table import join,vstack,Table
 from scipy import stats
 from scipy.interpolate import interp1d
 
-import get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
-
+from tess_young.get_const import *
+from tess_young import plot_spt_axis
+import tess_young
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
+plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 mamajek_file = os.path.expanduser("~/Dropbox/Models/mamajek_colors.dat")
 mamajek = at.read(mamajek_file,fill_values=[("...","NaN")])
@@ -62,19 +64,27 @@ if __name__=="__main__":
     files = {"patten1996":"IC2391_rotation_patten1996_simbad.csv",
              "barnes1999":"IC2602_rotation_barnes1999_simbad.csv",
              "prosser":"IC2602_rotation_prosserstauffer_simbad.csv",
-             "irwin2008":"NGC2547_rotation_irwin2008_simbad.csv"}
+             "irwin2008":"NGC2547_rotation_irwin2008_simbad.csv",
+             "messina2011":"IC2391_rotation_messina2011_simbad.csv"}
+
     labels = {"patten1996":"IC 2391 (Patten & Simon 1996)",
               "barnes1999":"IC 2602 (Barnes+ 1999)",
               "prosser":"IC 2602 (Patten+ 1996)",
-              "irwin2008":"NGC 2547 (Irwin+ 2008)"}
+              "irwin2008":"NGC 2547 (Irwin+ 2008)",
+             "messina2011":"IC 2391 (Messina+ 2011)"}
     clusters = {"patten1996":"IC_2391",
               "barnes1999":"IC_2602",
               "prosser":"IC_2602",
-              "irwin2008":"NGC_2547"}
+              "irwin2008":"NGC_2547",
+             "messina2011":"IC_2391"}
 
     plt.figure()
     ax = plt.subplot(111)
     setup_axes(ax)
+
+    for cluster in ["IC_2391","NGC_2547","IC_2602"]:
+        ax.plot([],[],shapes[cluster],color=colors[cluster],label=cluster.replace("_"," "))
+    ax.legend(loc=2)
 
     for i,source in enumerate(labels.keys()):
         fname = files[source]
@@ -93,18 +103,21 @@ if __name__=="__main__":
             use = dat["REF"]==1
             mass = mamajek_vmi_to_mass(dat["V-Ic"][use])
             period = dat["P(days)"][use]
+        elif source=="messina2011":
+            mass = mamajek_vmi_to_mass(dat["(V-I)"])
+            period = dat["Per"]
         else:
             mass = dat["Mass"]
             period = dat["Per"]
 
-        if source=="prosser":
-            ax.plot(mass,period,'D',
-                     mec="#174f34",mfc="none",mew=1.5,zorder=zorder,
-                     label=labels[source])
-        else:
-            ax.plot(mass,period,shapes[cluster],
-                      color=colors[cluster],label=labels[source],zorder=zorder)
-    ax.legend(loc=2)
+        # if source=="prosser":
+        #     ax.plot(mass,period,'D',
+        #              mec="#174f34",mfc="none",mew=1.5,zorder=zorder,
+        #              label=labels[source])
+        # else:
+        ax.plot(mass,period,shapes[cluster],
+                  color=colors[cluster],label=labels[source],zorder=zorder)
+    # ax.legend(loc=2)
     plt.savefig("plots/periodmass_intro_zams.png",bbox_inches="tight",dpi=600)
     plt.close()
 

@@ -60,6 +60,49 @@ def vizier_tic_skycoord(simbad_name,gaia_dr2,ra,dec):
 
     return tic
 
+def xmatch_messina():
+
+    # Crossmatch Messina+2011 periods for IC 2391
+    print("IC2391 Messina+(2011)")
+    mesfile = os.path.expanduser("~/Dropbox/data/catalogs/rotation_young_messina2011.tsv")
+    mes = at.read(mesfile,delimiter="|",data_start=3)
+    mes = mes[(mes["Assoc"]=="IC 2391") & (mes["Per"].mask==False)]
+
+    mes["TIC"] = np.zeros(len(mes),"U20")
+    mes["GaiaDR2"] = np.zeros(len(mes),"U50")
+    mes["SimbadName"] = np.zeros(len(mes),"U20")
+
+    for i,name in enumerate(mes["Target"]):
+
+        simbad_name = "Cl* IC 2391 "+name
+
+        print(name,simbad_name)
+        # result_table = Simbad.query_object(simbad_name)
+        result_table = Simbad.query_objectids(simbad_name)
+        # print(result_table)
+
+        mes["SimbadName"][i] = simbad_name
+
+        if result_table is None:
+            print(name,simbad_name,"Not Found")
+            continue
+
+        for id in result_table["ID"]:
+            if "TIC" in id:
+                mes["TIC"][i] = id[4:]
+            elif "DR2" in id:
+                mes["GaiaDR2"][i] = id[9:]
+
+        if (mes["TIC"][i] == "0") or (mes["TIC"][i] == ""):
+            tic = vizier_tic(simbad_name,mes["GaiaDR2"][i])
+            print(simbad_name,tic)
+            mes["TIC"][i] = tic
+
+    mes.meta = {}
+    mes.rename_column("Target","Name")
+    at.write(mes,"IC2391_rotation_messina2011_simbad.csv",delimiter=",",
+            overwrite=True)
+
 
 def xmatch_ic2391_ic2602():
 
@@ -340,6 +383,41 @@ def catalog_numbers():
         print(len(unames),"out of",
               len(simbad),"from Patten & Simon have TESS data")
 
+    pat_tic = np.asarray(match["TIC"])
+
+    #### Messina+2011
+    simbadfile = "IC2391_rotation_messina2011_simbad.csv"
+    simbad = at.read(simbadfile, delimiter=",")
+    simbad = Table(simbad, masked=True, copy=False)
+
+    catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    cat = at.read(catfile,delimiter=",")
+    cat = Table(cat, masked=True, copy=False)
+
+    match = join(simbad,cat,join_type="left",keys=["TIC"],
+                 table_names=["lit","new"])
+    match = Table(match, masked=True, copy=False)
+    # print(match.dtype)
+    unames = np.unique(match["SimbadName"][match["GAIAEDR3_RA"].mask==False])
+    uid = np.unique(match["GAIAEDR3_ID"][match["GAIAEDR3_RA"].mask==False])
+
+    print(len(unames), len(uid),"out of",
+          len(simbad),"from Messina in updated catalog")
+    # print(match["Name"],"\n")
+
+    # Check on the TESS data now
+    if check_tess:
+        match = join(simbad,alldat,join_type="left",keys=["TIC"],
+                     table_names=["lit","new"])
+        match = Table(match, masked=True, copy=False)
+        unames = np.unique(match["SimbadName"][(match["Q1"]<9) & (match["Q1"].mask==False)])
+        print(len(unames),"out of",
+              len(simbad),"from Messina have TESS data")
+
+    # See how many messina stars overlap with Patten & Simon
+    mes_tic = np.asarray(match["TIC"])
+    print(len(np.intersect1d(pat_tic,mes_tic))," TESS targets in both P&S and Messina")
+
 
     #### IC 2602 ############
     #########################
@@ -502,9 +580,8 @@ def catalog_numbers():
 
 
 if __name__=="__main__":
-
-    xmatch_ic2391_ic2602()
-    xmatch_ngc2547()
+    xmatch_messina()
+    # xmatch_ic2391_ic2602()
+    # xmatch_ngc2547()
 
     catalog_numbers()
-    plt.close("all")

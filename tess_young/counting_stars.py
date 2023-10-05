@@ -52,7 +52,7 @@ if __name__=="__main__":
     clusters = ["IC_2391","Collinder_135","NGC_2451A","NGC_2547","IC_2602"]
     dates = ["2021-06-22","2021-06-18","2021-06-21","2021-06-21","2021-07-02"]
 
-    final_file = os.path.join(_DIR,"tab_all_stars.csv")
+    final_file = os.path.join(_DIR,"tab_all_stars_orig.csv")
     allcat = at.read(final_file)
 
     ntot, ptot = 0, 0

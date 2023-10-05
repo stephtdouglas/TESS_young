@@ -2,7 +2,7 @@
 Script to plot literature periods for motivation
 """
 
-import os, sys
+import os, sys, pathlib
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -13,9 +13,11 @@ from astropy.table import join, Table, vstack
 from astropy import units as u
 
 
-import plot_spt_axis
-import get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
+from tess_young.get_const import *
+from tess_young import plot_spt_axis
+import tess_young
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
+plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 plt.style.use('./paper.mplstyle')
 
 lit_clusters = ["IC_2391","NGC_2547","IC_2602"]
