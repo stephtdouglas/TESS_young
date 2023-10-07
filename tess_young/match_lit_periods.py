@@ -2,7 +2,7 @@
 Script to crossmatch literature periods with Gaia/TESS
 """
 
-import os, sys
+import os, sys, pathlib
 from datetime import date
 
 import numpy as np
@@ -11,12 +11,13 @@ import astropy.io.fits as fits
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 from astroquery.vizier import Vizier
-# from astroquery.gaia import Gaia
 from astropy.table import join, Table, vstack
-# from astroquery.xmatch import XMatch
 from astropy import units as u
 
-from analyze_cluster_output import process_cluster, read_cluster_visual
+
+import tess_young
+from tess_young.get_const import *
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
 
 
 def vizier_tic(simbad_name,gaia_dr2):
@@ -64,7 +65,7 @@ def xmatch_messina():
 
     # Crossmatch Messina+2011 periods for IC 2391
     print("IC2391 Messina+(2011)")
-    mesfile = os.path.expanduser("~/Dropbox/data/catalogs/rotation_young_messina2011.tsv")
+    mesfile = os.path.join(_DIR,"catalogs/rotation_young_messina2011.tsv")
     mes = at.read(mesfile,delimiter="|",data_start=3)
     mes = mes[(mes["Assoc"]=="IC 2391") & (mes["Per"].mask==False)]
 
@@ -100,7 +101,7 @@ def xmatch_messina():
 
     mes.meta = {}
     mes.rename_column("Target","Name")
-    at.write(mes,"IC2391_rotation_messina2011_simbad.csv",delimiter=",",
+    at.write(mes,os.path.join(_DIR,"IC2391_rotation_messina2011_simbad.csv"),delimiter=",",
             overwrite=True)
 
 
@@ -108,7 +109,7 @@ def xmatch_ic2391_ic2602():
 
     # Crossmatch Barnes+1999 periods for IC2602
     print("IC2602 Barnes (1999)")
-    barnesfile = os.path.expanduser("~/Dropbox/data/catalogs/IC2602_rotation_barnes1999.csv")
+    barnesfile = os.path.join(_DIR,"catalogs/IC2602_rotation_barnes1999.csv")
     barnes = at.read(barnesfile)
 
     barnes["TIC"] = np.zeros(len(barnes),"U20")
@@ -151,13 +152,13 @@ def xmatch_ic2391_ic2602():
             print(simbad_name,tic)
             barnes["TIC"][i] = tic
 
-    at.write(barnes,"IC2602_rotation_barnes1999_simbad.csv",delimiter=",",
+    at.write(barnes,os.path.join(_DIR,"IC2602_rotation_barnes1999_simbad.csv"),delimiter=",",
             overwrite=True)
 
 
     # Crossmatch Tschape & Rudiger 2001 periods for IC2602
     print("\n\nIC2602 Tschape & Rudiger (2001)")
-    trfile = os.path.expanduser("~/Dropbox/data/catalogs/IC2602_rotation_tschape2001.csv")
+    trfile = os.path.join(_DIR,"catalogs/IC2602_rotation_tschape2001.csv")
     tr = at.read(trfile)
 
     tr["TIC"] = np.zeros(len(tr),"U20")
@@ -194,13 +195,13 @@ def xmatch_ic2391_ic2602():
             print(simbad_name,tic)
             tr["TIC"][i] = tic
 
-    at.write(tr,"IC2602_rotation_tschape2001_simbad.csv",delimiter=",",
+    at.write(tr,os.path.join(_DIR,"IC2602_rotation_tschape2001_simbad.csv"),delimiter=",",
             overwrite=True)
 
 
     # Crossmatch Prosser-Stauffer archival periods for IC2602
     print("\n\nIC2602 Prosser-Stauffer archive (1998)")
-    trfile = os.path.expanduser("~/Dropbox/data/prosser_stauffer_archive/2602.spots.csv")
+    trfile = os.path.join("catalogs/prosser_stauffer_archive/2602.spots.csv")
     tr = at.read(trfile)
 
     tr["TIC"] = np.zeros(len(tr),"U20")
@@ -248,14 +249,14 @@ def xmatch_ic2391_ic2602():
             print(simbad_name,tic)
             tr["TIC"][i] = tic
 
-    at.write(tr,"IC2602_rotation_prosserstauffer_simbad.csv",delimiter=",",
+    at.write(tr,os.path.join(_DIR,"IC2602_rotation_prosserstauffer_simbad.csv"),delimiter=",",
             overwrite=True)
 
 
 
     # Crossmatch Patten & Simon 1996 periods for IC2391
     print("\n\nIC2391 Patten & Simon (1996)")
-    psfile = os.path.expanduser("~/Dropbox/data/catalogs/IC2391_rotation_patten1996.csv")
+    psfile = os.path.join(_DIR,"catalogs/IC2391_rotation_patten1996.csv")
     ps = at.read(psfile)
     print(ps.dtype)
 
@@ -296,12 +297,12 @@ def xmatch_ic2391_ic2602():
             print(simbad_name,tic)
             ps["TIC"][i] = tic
 
-    at.write(ps,"IC2391_rotation_patten1996_simbad.csv",delimiter=",",
+    at.write(ps,os.path.join(_DIR,"IC2391_rotation_patten1996_simbad.csv"),delimiter=",",
             overwrite=True)
 
 def xmatch_ngc2547():
 
-    irwinfile = os.path.expanduser("~/Dropbox/data/catalogs/ngc2547_rotation_irwin2008b.tsv")
+    irwinfile = os.path.join(_DIR,"catalogs/ngc2547_rotation_irwin2008b.tsv")
     ir = at.read(irwinfile,delimiter="|",data_start=3)
 
     ir["TIC"] = np.zeros(len(ir),"U20")
@@ -341,13 +342,13 @@ def xmatch_ngc2547():
     print(len(np.where(ir["TIC"]=="0")[0])," without TIC matches")
 
     ir.meta = {}
-    at.write(ir,"NGC2547_rotation_irwin2008_simbad.csv",delimiter=",",
+    at.write(ir,os.path.join(_DIR,"NGC2547_rotation_irwin2008_simbad.csv"),delimiter=",",
             overwrite=True)
 
 def catalog_numbers():
 
-    if os.path.exists("tab_all_stars.csv"):
-        alldat = at.read("tab_all_stars.csv")
+    if os.path.exists(os.path.join(_DIR,"tab_all_stars.csv")):
+        alldat = at.read(os.path.join(_DIR,"tab_all_stars.csv"))
         check_tess = True
     else:
         alldata = None
@@ -359,10 +360,10 @@ def catalog_numbers():
     print(cluster,"\n-------")
 
     #### Patten+1996
-    simbadfile = "IC2391_rotation_patten1996_simbad.csv"
+    simbadfile = os.path.join(_DIR,"IC2391_rotation_patten1996_simbad.csv")
     simbad = at.read(simbadfile, delimiter=",")
 
-    catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    catfile = os.path.join(_DIR,f"{cluster}_crossmatch_xmatch_TIC.csv")
     cat = at.read(catfile,delimiter=",")
 
     match = join(simbad,cat,join_type="left",keys=["TIC"],
@@ -386,11 +387,11 @@ def catalog_numbers():
     pat_tic = np.asarray(match["TIC"])
 
     #### Messina+2011
-    simbadfile = "IC2391_rotation_messina2011_simbad.csv"
+    simbadfile = os.path.join(_DIR,"IC2391_rotation_messina2011_simbad.csv")
     simbad = at.read(simbadfile, delimiter=",")
     simbad = Table(simbad, masked=True, copy=False)
 
-    catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    catfile = os.path.join(_DIR,f"{cluster}_crossmatch_xmatch_TIC.csv")
     cat = at.read(catfile,delimiter=",")
     cat = Table(cat, masked=True, copy=False)
 
@@ -425,10 +426,10 @@ def catalog_numbers():
     print("\n",cluster,"\n-------")
 
     #### Barnes+1999
-    simbadfile = "IC2602_rotation_barnes1999_simbad.csv"
+    simbadfile = os.path.join(_DIR,"IC2602_rotation_barnes1999_simbad.csv")
     simbad = at.read(simbadfile, delimiter=",")
 
-    catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    catfile = os.path.join(_DIR,f"{cluster}_crossmatch_xmatch_TIC.csv")
     cat = at.read(catfile,delimiter=",")
 
     match = join(simbad,cat,join_type="left",keys=["TIC"],
@@ -458,7 +459,7 @@ def catalog_numbers():
 
     #### Tschape & Rudiger 2001
     print("\n")
-    simbadfile = "IC2602_rotation_tschape2001_simbad.csv"
+    simbadfile = os.path.join(_DIR,"IC2602_rotation_tschape2001_simbad.csv")
     simbad = at.read(simbadfile, delimiter=",")
 
     match = join(simbad,cat,join_type="left",keys=["TIC"],
@@ -482,7 +483,7 @@ def catalog_numbers():
 
     #### Prosser & Stauffer Archive
     print("\n")
-    simbadfile = "IC2602_rotation_prosserstauffer_simbad.csv"
+    simbadfile = os.path.join(_DIR,"IC2602_rotation_prosserstauffer_simbad.csv")
     simbad = at.read(simbadfile, delimiter=",")
 
     match = join(simbad,cat,join_type="left",keys=["TIC"],
@@ -534,10 +535,10 @@ def catalog_numbers():
     # NGC 2547
     cluster = "NGC_2547"
     print("\n",cluster,"\n-------")
-    simbadfile = "NGC2547_rotation_irwin2008_simbad.csv"
+    simbadfile = os.path.join(_DIR,"NGC2547_rotation_irwin2008_simbad.csv")
     simbad = at.read(simbadfile, delimiter=",")
 
-    catfile = f"{cluster}_crossmatch_xmatch_TIC.csv"
+    catfile = os.path.join(_DIR,f"{cluster}_crossmatch_xmatch_TIC.csv")
     cat = at.read(catfile,delimiter=",")
 
     spos = SkyCoord(simbad["_RAJ2000"],simbad["_DEJ2000"],unit=u.degree)
@@ -581,7 +582,7 @@ def catalog_numbers():
 
 if __name__=="__main__":
     xmatch_messina()
-    # xmatch_ic2391_ic2602()
-    # xmatch_ngc2547()
+    xmatch_ic2391_ic2602()
+    xmatch_ngc2547()
 
     catalog_numbers()
