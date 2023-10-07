@@ -57,7 +57,7 @@ def generate_bootstrap_obs(pmd_obs,period_scale,init_type="kde",
         
 
     for i in i_iter:
-        pmd = PeriodMassBootstrap(pmd_obs,rng_seed=i*1e6,mass_limits=mass_limits)
+        pmd = PeriodMassBootstrap(pmd_obs,rng_seed=i*int(1e6),mass_limits=mass_limits)
 
         print(i)
         t = time.localtime()
