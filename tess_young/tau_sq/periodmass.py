@@ -327,19 +327,19 @@ class PeriodMassBootstrap(PeriodMassDistribution):
         """
 
         # Generate the synthetic observation set
-        self.prot_raw = pmd.prot_raw[pmd.qmask]
-        self.mass_raw = pmd.mass_raw[pmd.qmask]
-        self.mass_err_raw = pmd.mass_err_raw[pmd.qmask]
+        self.prot_raw = pmd.prot_raw#[pmd.qmask]
+        self.mass_raw = pmd.mass_raw#[pmd.qmask]
+        self.mass_err_raw = pmd.mass_err_raw#[pmd.qmask]
         # Ultimately the analysis should use the original mask, 
         # but we can calculate new masses for everything
         self.qmask = pmd.qmask
 
-        # Apply mass limits if needed
-        if mass_limits is not None:
-            mass_select = (self.mass_raw>=mass_limits[0]) & (self.mass_raw<=mass_limits[1])
-            self.mass_raw = self.mass_raw[mass_select]
-            self.mass_err_raw = self.mass_err_raw[mass_select]
-            self.prot_raw = self.prot_raw[mass_select]
+        # # Apply mass limits if needed
+        # if mass_limits is not None:
+        #     mass_select = (self.mass_raw>=mass_limits[0]) & (self.mass_raw<=mass_limits[1])
+        #     self.mass_raw = self.mass_raw[mass_select]
+        #     self.mass_err_raw = self.mass_err_raw[mass_select]
+        #     self.prot_raw = self.prot_raw[mass_select]
 
         # Assign the catalog values to attributes - these are fake here since we don't
         # need to exclude any of the modelled values
