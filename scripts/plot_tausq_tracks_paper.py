@@ -61,8 +61,8 @@ def plot_all_tracks(pmd=None,
 
     # Check for the matching output csv and skip straight to plotting if found
     outfilename = f"{output_filebase}_{pmd.param_string}"
-    outfilepath = os.path.join(_DIR,f"tables/{outfilename}.csv")
-    outplotpath = os.path.join(_DIR,f"plots/{outfilename}.png")
+    outfilepath = os.path.join(_DIR,f"tables/MINESweeper_v7/{outfilename}.csv")
+    outplotpath = os.path.join(_DIR,f"plots/MINESweeper_v7/{outfilename}.png")
 
     if (init_types is None):
         init_types = np.zeros(nmod_l,"U8")
@@ -132,17 +132,16 @@ def plot_all_tracks(pmd=None,
     if new_plot:
         ax.legend(loc=2)
 
-
         ylims = ax.get_ylim()
         # colname = f"{models_to_plot[-1]}_{init_types[-1]}"
         if zoom_ymax is None:
             ymax = ylims[1]*0.75
         else:
             ymax = zoom_ymax
-        ax.set_ylim(ylims[0],ymax)
+        ax.set_ylim(ymin,ymax)
         ax.set_title(outfilename)
 
-    search_string = f"tables/best_ages_*SYN{config_num}{period_scale}_{cluster}*kde.csv"
+    search_string = f"tables/MINESweeper_v7/best_ages_*SYN{config_num}{period_scale}_{cluster}*kde.csv"
     age_files = glob.glob(os.path.join(_DIR,search_string))
 
     ylims = ax.get_ylim()
@@ -202,7 +201,7 @@ def make_paper_plots():
     axes[0].set_ylabel(r"$\tau^2$",fontsize=20)
     axes[0].set_xticks(np.arange(0,300,25),minor=True)
     axes[0].set_xlim(0,300)
-    axes[0].set_ylim(1325,1650)
+    axes[0].set_ylim(1275,1650)
 
     axes[0].text(5,1625,"Linear fit",fontsize="large")
     axes[1].text(5,1625,"Log fit",fontsize="large")
@@ -224,8 +223,8 @@ def make_paper_plots():
     axes[0].legend(loc=4)
 
     # plt.show()
-    fig.savefig(os.path.join(PAPER_DIR,"fig_tausq_tracks.pdf"),bbox_inches="tight")
-    fig.savefig(os.path.join(_DIR,"plots/fig_tausq_tracks.png"),bbox_inches="tight",dpi=600)
+    # fig.savefig(os.path.join(PAPER_DIR,"fig_tausq_tracks.pdf"),bbox_inches="tight")
+    fig.savefig(os.path.join(_DIR,"plots/MINESweeper_v7/fig_tausq_tracks.png"),bbox_inches="tight",dpi=600)
 
 if __name__=="__main__":
 

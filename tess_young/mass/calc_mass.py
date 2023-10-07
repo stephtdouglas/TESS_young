@@ -36,7 +36,7 @@ def get_parsec():
 
     return isochrones, iso_labels
 
-def calc_masses(bp_rp0, isochrones=None, iso_labels=None):
+def calc_mass(bp_rp0, isochrones=None, iso_labels=None):
     if isochrones is None:
         isochrones, iso_labels = get_parsec()
 
@@ -70,4 +70,4 @@ if __name__=="__main__":
     bp_rp = dat["GAIAEDR3_BP"]-dat["GAIAEDR3_RP"]
     bp_rp0 = calc_BP_RP0(bp_rp,dat["E_BV"])
 
-    calc_masses(bp_rp0)
+    calc_mass(bp_rp0)

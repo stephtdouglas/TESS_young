@@ -479,11 +479,27 @@ def make_final_period_catalog(cluster, date, to_plot=False):
         cat_init1 = Table(hdu[1].data)
         # print(cat_init1.dtype)
 
-    cat_init_file2 = os.path.expanduser(f"~/Dropbox/data/MINESweeper/catalog_{cluster}_v0.fits")
+    cat_init_file2 = os.path.expanduser(f"~/Dropbox/data/MINESweeper_UMS/{cluster}_UMS_v7.fits")
     with fits.open(cat_init_file2) as hdu:
         cat_init2 = Table(hdu[1].data)
         # print(cat_init.dtype)
-        cat_init2.rename_column("GaiaEDR3_ID","GAIAEDR3_ID")
+        try:
+            cat_init2.rename_column("GaiaDR3_ID","GAIAEDR3_ID")
+        except:
+            print(cluster,"ID1")
+        try:
+            cat_init2.rename_column("GaiaEDR3_ID","GAIAEDR3_ID")
+        except:
+            print(cluster,"ID2")
+        try:
+            cat_init2.rename_column("GAIADER3_ID","GAIAEDR3_ID")
+        except:
+            print(cluster,"ID3")
+        try:
+            cat_init2.rename_column("Av","av")
+            cat_init2.rename_column("Av_err","av_err")
+        except:
+            print(cluster,"av")
 
     cat_init = join(cat_init1,cat_init2,keys="GAIAEDR3_ID")
     print(len(cat_init1),len(cat_init2),"minesweeper inputs")
