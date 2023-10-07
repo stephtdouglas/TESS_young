@@ -1,7 +1,7 @@
 """
 Script to compare literature periods to TESS periods
 """
-import os, sys
+import os, sys, pathlib
 from datetime import date
 
 import matplotlib.pyplot as plt
@@ -10,14 +10,15 @@ import matplotlib.cm as cm
 import numpy as np
 import astropy.io.ascii as at
 
-import plot_spt_axis
-import get_colors
-norm, mapper, cmap2, colors, shapes = get_colors.get_colors()
-plt.style.use('./paper.mplstyle')
-PAPER_DIR = os.path.expanduser("~/my_papers/TESS_young/")
+import tess_young
+from tess_young.get_const import *
+from tess_young import plot_spt_axis
+_DIR = pathlib.Path(tess_young.__file__).resolve().parent.parent
+plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
+
 lit_clusters = ["IC_2391","IC_2602","NGC_2547"]
 
-lit_papers = {"IC_2391":"Patten & Simon (1996)",
+lit_papers = {"IC_2391":"Patten & Simon (1996), Messina+ (2011)",
               "IC_2602":"Patten+ (1996), Barnes+ (1999)",
               "NGC_2547":"Irwin+ (2008)"
               }

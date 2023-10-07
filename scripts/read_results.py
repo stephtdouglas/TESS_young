@@ -37,7 +37,7 @@ if __name__=="__main__":
 
         param_string_wild = f"{output_filebase}*Qmax{max_q}_blends{include_blends}_lit{include_lit}*"
 
-        table_dir = os.path.join(_DIR,"tables/")
+        table_dir = os.path.join(_DIR,"tables/MINESweeper_v7/")
         # print(os.path.exists(table_dir))
 
         search_string = os.path.join(table_dir,param_string_wild)

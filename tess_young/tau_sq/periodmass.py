@@ -41,7 +41,7 @@ class PeriodMassDistribution:
         self.mass_mask = self.cat["Mass"].mask
 
         # Assign masks for quality and presence of necessary values
-        qmask = (self.cat["Q1"]<=max_q)
+        qmask = (self.cat["Q1"]<=max_q) & (self.cat["to_plot"]==1)
         pmask = ((self.prot_mask==False) & (self.prot_raw>0))
         pmask = pmask.filled(fill_value=False)
         mmask = (self.mass_mask==False)
@@ -330,6 +330,9 @@ class PeriodMassBootstrap(PeriodMassDistribution):
         self.prot_raw = pmd.prot_raw[pmd.qmask]
         self.mass_raw = pmd.mass_raw[pmd.qmask]
         self.mass_err_raw = pmd.mass_err_raw[pmd.qmask]
+        # Ultimately the analysis should use the original mask, 
+        # but we can calculate new masses for everything
+        self.qmask = pmd.qmask
 
         # Apply mass limits if needed
         if mass_limits is not None:
@@ -344,13 +347,10 @@ class PeriodMassBootstrap(PeriodMassDistribution):
         self.prot_mask = np.zeros(n_actual,bool)
         self.mass_mask = np.zeros(n_actual,bool)
 
-        # Assign masks for quality and presence of necessary values
-        self.qmask = np.ones(n_actual,bool)
-
         self.figsize=(9,9)
 
         # TODO: include model parameters here
-        self.param_string = f"SYN_{pmd.param_string}"
+        self.param_string = f"bootstrap_{pmd.param_string}"
         if id_str is not None:
             self.param_string = self.param_string+id_str
 
@@ -359,8 +359,8 @@ class PeriodMassBootstrap(PeriodMassDistribution):
     def _generate_sample(self,rng_seed):
 
         rng = np.random.default_rng(rng_seed)
-        new_masses = rng.normal(loc=self.mass_raw[self.qmask],
-                                scale=self.mass_err_raw[self.qmask])
+        new_masses = rng.normal(loc=self.mass_raw,
+                                scale=self.mass_err_raw)
 
         self.mass_raw = new_masses
         

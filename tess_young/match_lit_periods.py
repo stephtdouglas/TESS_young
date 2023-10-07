@@ -581,8 +581,8 @@ def catalog_numbers():
 
 
 if __name__=="__main__":
-    xmatch_messina()
-    xmatch_ic2391_ic2602()
-    xmatch_ngc2547()
+    # xmatch_messina()
+    # xmatch_ic2391_ic2602()
+    # xmatch_ngc2547()
 
     catalog_numbers()

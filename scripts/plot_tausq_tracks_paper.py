@@ -201,10 +201,10 @@ def make_paper_plots():
     axes[0].set_ylabel(r"$\tau^2$",fontsize=20)
     axes[0].set_xticks(np.arange(0,300,25),minor=True)
     axes[0].set_xlim(0,300)
-    axes[0].set_ylim(1275,1650)
+    axes[0].set_ylim(1260,1600)
 
-    axes[0].text(5,1625,"Linear fit",fontsize="large")
-    axes[1].text(5,1625,"Log fit",fontsize="large")
+    axes[0].text(5,1575,"Linear fit",fontsize="large")
+    axes[1].text(5,1575,"Log fit",fontsize="large")
 
     for j, config_file in enumerate([lin_config_file,log_config_file]):
         with open(config_file, 'r') as f:
@@ -223,7 +223,7 @@ def make_paper_plots():
     axes[0].legend(loc=4)
 
     # plt.show()
-    # fig.savefig(os.path.join(PAPER_DIR,"fig_tausq_tracks.pdf"),bbox_inches="tight")
+    fig.savefig(os.path.join(PAPER_DIR,"fig_tausq_tracks.pdf"),bbox_inches="tight")
     fig.savefig(os.path.join(_DIR,"plots/MINESweeper_v7/fig_tausq_tracks.png"),bbox_inches="tight",dpi=600)
 
 if __name__=="__main__":
