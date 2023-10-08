@@ -27,6 +27,35 @@ def test_bs_pmd(max_q,include_blends,include_lit,mass_limits):
 
     assert np.all(obs_mass!=pytest.approx(mass))
 
+def test_bs_pmd2(max_q,include_blends,include_lit,mass_limits):
+    """
+    Ensure that the masses produced by the bootstrap resampling
+    do NOT equal the original masses
+    """
+    pmd_obs = PeriodMassDistribution(max_q,include_blends,include_lit,mass_limits)
+
+    pmd = PeriodMassBootstrap(pmd_obs,mass_limits)
+
+    obs_mass = pmd_obs.mass_raw[pmd_obs.qmask]
+    mass = pmd.mass_raw[pmd.qmask]
+
+    assert np.all(obs_mass!=pytest.approx(mass))
+
+
+def test_bs_pmd3(max_q,include_blends,include_lit,mass_limits):
+    """
+    Ensure that the bootstrap resampling produces the same number of stars
+    """
+    pmd_obs = PeriodMassDistribution(max_q,include_blends,include_lit,mass_limits)
+
+    pmd = PeriodMassBootstrap(pmd_obs,mass_limits)
+
+    obs_mass = pmd_obs.mass_raw[pmd_obs.qmask]
+    mass = pmd.mass_raw[pmd.qmask]
+
+    assert len(obs_mass)==len(mass)
+
+
 def test_select_obs(max_q,include_blends,include_lit,mass_limits):
     """
     Ensure that the masses produced by the bootstrap resampling

@@ -356,6 +356,10 @@ class PeriodMassBootstrap(PeriodMassDistribution):
 
         self._generate_sample(rng_seed)
 
+        self.prot = self.prot_raw[self.qmask]
+        self.mass = self.mass_raw[self.qmask]
+        self.mass_err = self.mass_err_raw[self.qmask]
+
     def _generate_sample(self,rng_seed):
 
         rng = np.random.default_rng(rng_seed)

@@ -3,9 +3,11 @@ import os, sys, time, pathlib#, datetime
 
 import numpy as np
 import astropy.io.ascii as at
+# import matplotlib.pyplot as plt
 
 from tau_sq_run import run_all_models
 
+# from spinmodel import SpinModel
 from periodmass import PeriodMassDistribution, PeriodMassBootstrap
 
 from tess_young.get_const import *
@@ -68,6 +70,24 @@ def generate_bootstrap_obs(pmd_obs,period_scale,init_type="kde",
                        init_types=[init_type,init_type,init_type],
                        mass_limits=mass_limits)
 
+        # output_filebase=f"{outf}{i:04d}"
+        # outfilename = f"{output_filebase}_{pmd.param_string}"
+        # outfilepath = os.path.join(_DIR,f"tables/{outfilename}.csv")
+
+        # res = at.read(outfilepath)
+        # for model in model_names[3:]:
+        #     best_i = np.argmin(res[f"{model}_{init_type}"])
+        #     best_age = int(res[f"Age_{model}_{init_type}"][best_i])
+
+        #     sm = SpinModel(model,best_age,period_scale,init_type)
+
+        #     ax = sm.plot_hist()
+        #     _ = pmd.plot_obs(ax)
+        #     ax.set_title(f"{model} {best_age} Myr")
+        #     plt.savefig(os.path.join(_DIR,f"plots/MINESweeper_v7b/{output_filebase}_{pmd.param_string}_{model}_{i}"))
+        #     plt.close()
+
+
 def one_bootstrap_set(period_scale,init_type="kde",
               max_q=0,include_blends=True,include_lit=False,
               output_filebase="tausq_SYN_binselect",id_str="SYN_binselect",
@@ -118,6 +138,23 @@ def one_bootstrap_set(period_scale,init_type="kde",
                        models_to_plot=model_names[3:],
                        init_types=[init_type,init_type,init_type])
 
+        output_base2=output_filebase+"_baseline"
+        outfilename = f"{output_base2}_{pmd_obs.param_string}"
+        outfilepath = os.path.join(_DIR,f"tables/{outfilename}.csv")
+
+        res = at.read(outfilepath)
+        for model in model_names[3:]:
+            best_i = np.argmin(res[f"{model}_{init_type}"])
+            best_age = int(res[f"Age_{model}_{init_type}"][best_i])
+
+            sm = SpinModel(model,best_age,period_scale,init_type)
+
+            ax = sm.plot_hist()
+            _ = pmd_obs.plot_obs(ax)
+            ax.set_title(f"{model} {best_age} Myr")
+            plt.savefig(os.path.join(_DIR,f"plots/MINESweeper_v7b/{output_base2}_{pmd_obs.param_string}_{model}"))
+            plt.close()
+
     # Generate multiple fake model sets and compare to all models
     # Another script will analyze these results and select the best-fit from each synthetic dataset
     generate_bootstrap_obs(pmd_obs,period_scale,id_str=output_filebase,
@@ -138,10 +175,10 @@ if __name__=="__main__":
 
     parser.add_argument("-q", dest="max_q", default=0, required=False, help="maximum Q flag to include")
 
-    parser.add_argument("-b", dest="include_blends", default=True, required=False, type=bool,
+    parser.add_argument("-b", dest="include_blends", default=1, required=False, type=int, #type=bool,
                         help="whether or not to include potentially blended stars")
 
-    parser.add_argument("-l", dest="include_lit", default=True, required=False, type=bool,
+    parser.add_argument("-l", dest="include_lit", default=1, required=False, type=int, #type=bool,
                         help="whether or not to include literature periods")
 
     parser.add_argument("-o", dest="output_filebase", default="tausq_SYN", required=False,
@@ -172,6 +209,6 @@ if __name__=="__main__":
     
         
     one_bootstrap_set(args.period_scale, "kde",
-              args.max_q, args.include_blends, args.include_lit,
+              args.max_q, bool(args.include_blends), bool(args.include_lit),
               args.output_filebase, args.output_filebase,
               args.start_i, args.end_i, mass_limits, args.cluster)
