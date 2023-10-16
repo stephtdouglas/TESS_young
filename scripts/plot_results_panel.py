@@ -58,7 +58,7 @@ def plot_results_panel(lin_config_file,log_config_file):
 
         output_filebase = config["output_filebase"]
         outfilename = f"{output_filebase}_{pmd.param_string}"
-        outfilepath = os.path.join(_DIR,f"tables/MINESweeper_v7/{outfilename}.csv")
+        outfilepath = os.path.join(_DIR,f"tables/MINESweeper_v7c/{outfilename}.csv")
         dat = at.read(outfilepath)
 
         model = "WideHat8Myr_Mattea2022"

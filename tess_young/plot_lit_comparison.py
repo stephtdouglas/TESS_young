@@ -18,7 +18,7 @@ plt.style.use(os.path.join(_DIR,'paper.mplstyle'))
 
 lit_clusters = ["IC_2391","IC_2602","NGC_2547"]
 
-lit_papers = {"IC_2391":"Patten & Simon (1996), Messina+ (2011)",
+lit_papers = {"IC_2391":"Patten & Simon (1996),\nMessina+ (2011)",
               "IC_2602":"Patten+ (1996), Barnes+ (1999)",
               "NGC_2547":"Irwin+ (2008)"
               }

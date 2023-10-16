@@ -61,8 +61,8 @@ def plot_all_tracks(pmd=None,
 
     # Check for the matching output csv and skip straight to plotting if found
     outfilename = f"{output_filebase}_{pmd.param_string}"
-    outfilepath = os.path.join(_DIR,f"tables/MINESweeper_v7/{outfilename}.csv")
-    outplotpath = os.path.join(_DIR,f"plots/MINESweeper_v7/{outfilename}.png")
+    outfilepath = os.path.join(_DIR,f"tables/MINESweeper_v7c/{outfilename}.csv")
+    outplotpath = os.path.join(_DIR,f"plots/MINESweeper_v7c/{outfilename}.png")
 
     if (init_types is None):
         init_types = np.zeros(nmod_l,"U8")
@@ -141,7 +141,7 @@ def plot_all_tracks(pmd=None,
         ax.set_ylim(ymin,ymax)
         ax.set_title(outfilename)
 
-    search_string = f"tables/MINESweeper_v7/best_ages_*SYN{config_num}{period_scale}_{cluster}*kde.csv"
+    search_string = f"tables/MINESweeper_v7c/best_ages_*SYN{config_num}{period_scale}_{cluster}*kde.csv"
     age_files = glob.glob(os.path.join(_DIR,search_string))
 
     ylims = ax.get_ylim()
@@ -201,10 +201,10 @@ def make_paper_plots():
     axes[0].set_ylabel(r"$\tau^2$",fontsize=20)
     axes[0].set_xticks(np.arange(0,300,25),minor=True)
     axes[0].set_xlim(0,300)
-    axes[0].set_ylim(1260,1600)
+    axes[0].set_ylim(1220,1500)
 
-    axes[0].text(5,1575,"Linear fit",fontsize="large")
-    axes[1].text(5,1575,"Log fit",fontsize="large")
+    axes[0].text(5,1475,"Linear fit",fontsize="large")
+    axes[1].text(5,1475,"Log fit",fontsize="large")
 
     for j, config_file in enumerate([lin_config_file,log_config_file]):
         with open(config_file, 'r') as f:
@@ -224,7 +224,7 @@ def make_paper_plots():
 
     # plt.show()
     fig.savefig(os.path.join(PAPER_DIR,"fig_tausq_tracks.pdf"),bbox_inches="tight")
-    fig.savefig(os.path.join(_DIR,"plots/MINESweeper_v7/fig_tausq_tracks.png"),bbox_inches="tight",dpi=600)
+    fig.savefig(os.path.join(_DIR,"plots/fig_tausq_tracks.png"),bbox_inches="tight",dpi=600)
 
 if __name__=="__main__":
 
